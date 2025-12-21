@@ -11,9 +11,8 @@
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     
-    <script src="https://cdn.jsdelivr.net/npm/@web3auth/modal@9.5.2/dist/modal.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@web3auth/ethereum-provider@9.5.2/dist/ethereumProvider.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@web3auth/openlogin-adapter@9.5.2/dist/openloginAdapter.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@web3auth/modal@8.12.4/dist/modal.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@web3auth/ethereum-provider@8.12.4/dist/ethereumProvider.umd.min.js"></script>
 </head>
 <body>
 
@@ -29,7 +28,6 @@
         </div>
 
         <div id="appContainer">
-            
             <div style="text-align: center; margin-bottom: 20px;">
                 <h2 style="margin:0;"><span class="gradient-text">Arc</span> <span class="shield-gradient">Shield</span></h2>
                 <p style="color:#64748b; font-size:0.9rem;">DeFi Suite V2</p>
@@ -42,6 +40,7 @@
                 <button id="btnSocial" class="btn-action btn-connect" style="background: white; color: black; border: none;" onclick="connectWallet('social')">
                     🔵 Login com Google / X
                 </button>
+                <p id="loginStatus" style="color: #ff4d4d; font-size: 0.8rem; margin-top: 10px; display: none;"></p>
             </div>
 
             <div class="nav-tabs" id="navTabs" style="display:none;">
@@ -54,7 +53,6 @@
             </div>
 
             <div class="card">
-                
                 <div id="creator" class="module-section active">
                     <label>Nome do Projeto</label>
                     <input type="text" id="tokenName" placeholder="Ex: Arc Governance">
@@ -70,7 +68,6 @@
                     <input type="text" id="multiTokenAddr" placeholder="Endereço do Token (0x...)" onchange="detectDecimals('multi')">
                     <label>Lista de Destinatários (CSV)</label>
                     <textarea id="csvInput" placeholder="0xCarteira1, 100&#10;0xCarteira2, 500"></textarea>
-                    <div class="hint">Formato: Endereço, Quantidade (Separado por vírgula)</div>
                     <div class="grid-2">
                         <button class="btn-action btn-connect" onclick="approveToken('multi')">Aprovar</button>
                         <button class="btn-action btn-create" onclick="sendBatch()">Disparar Lote</button>
@@ -78,32 +75,26 @@
                 </div>
 
                 <div id="locker" class="module-section">
-                    <label>Token para Bloquear (LP ou Team)</label>
+                    <label>Token para Bloquear</label>
                     <input type="text" id="lockTokenAddr" placeholder="Endereço do Token (0x...)" onchange="detectDecimals('lock')">
                     <label>Quantidade</label>
-                    <input type="number" id="lockAmount" placeholder="Ex: 1000">
-                    <label>Data de Liberação</label>
+                    <input type="number" id="lockAmount">
+                    <label>Data</label>
                     <input type="datetime-local" id="lockDate" style="color-scheme: dark;">
                     <div class="grid-2">
                         <button class="btn-action btn-connect" onclick="approveToken('lock')">Aprovar</button>
-                        <button class="btn-action btn-create" onclick="lockTokens()">Trancar Tokens</button>
+                        <button class="btn-action btn-create" onclick="lockTokens()">Trancar</button>
                     </div>
                 </div>
 
                 <div id="vesting" class="module-section">
-                    <label>Token de Pagamento</label>
-                    <input type="text" id="vestTokenAddr" placeholder="Endereço do Token (0x...)" onchange="detectDecimals('vest')">
+                    <label>Token</label>
+                    <input type="text" id="vestTokenAddr" placeholder="Endereço (0x...)" onchange="detectDecimals('vest')">
                     <label>Beneficiário</label>
-                    <input type="text" id="vestBeneficiary" placeholder="Endereço da Carteira (0x...)">
+                    <input type="text" id="vestBeneficiary">
                     <div class="grid-2">
-                        <div>
-                            <label>Total</label>
-                            <input type="number" id="vestAmount" placeholder="Ex: 5000">
-                        </div>
-                        <div>
-                            <label>Duração (Min)</label>
-                            <input type="number" id="vestDuration" placeholder="Ex: 10">
-                        </div>
+                        <input type="number" id="vestAmount" placeholder="Total">
+                        <input type="number" id="vestDuration" placeholder="Minutos">
                     </div>
                     <div class="grid-2">
                         <button class="btn-action btn-connect" onclick="approveToken('vest')">Aprovar</button>
@@ -112,32 +103,26 @@
                 </div>
 
                 <div id="dashboard" class="module-section">
-                    <div id="dashboardContent">
-                        <p class="hint" style="text-align:center">Carregando seus ativos na blockchain...</p>
-                    </div>
-                    <button class="btn-action btn-connect" onclick="loadDashboardData()" style="margin-top:20px">🔄 Atualizar Dados</button>
+                    <div id="dashboardContent"><p class="hint">Carregando...</p></div>
+                    <button class="btn-action btn-connect" onclick="loadDashboardData()" style="margin-top:20px">🔄 Atualizar</button>
                 </div>
 
                 <div id="leaderboard" class="module-section">
-                    <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border-light);">
-                        <label style="margin-top:0">Seu Perfil de Operador</label>
+                    <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                        <label>Seu Perfil</label>
                         <div class="grid-2">
-                            <input type="text" id="profileName" placeholder="Seu Nickname">
-                            <input type="text" id="profileAvatar" placeholder="URL da Foto (https://...)">
+                            <input type="text" id="profileName" placeholder="Nickname">
+                            <input type="text" id="profileAvatar" placeholder="URL Foto">
                         </div>
-                        <button class="mini-btn" style="width:100%; margin-top:5px; background: var(--accent-color); border:none;" onclick="saveProfile()">💾 Salvar Perfil</button>
+                        <button class="mini-btn" style="width:100%; margin-top:5px;" onclick="saveProfile()">💾 Salvar</button>
                     </div>
-                    <h3 style="margin: 0 0 15px 0; color: white; font-size: 1rem;">🏆 Top Operadores</h3>
-                    <div id="leaderboardList">
-                        <p class="hint">Carregando Ranking...</p>
-                    </div>
-                    <button class="btn-action btn-connect" onclick="loadLeaderboard()" style="margin-top:20px">🔄 Atualizar Rank</button>
+                    <div id="leaderboardList"></div>
+                    <button class="btn-action btn-connect" onclick="loadLeaderboard()" style="margin-top:20px">🔄 Rank</button>
                 </div>
 
                 <div id="consoleArea">
                     <div class="log-entry">> Sistema Arc Shield Inicializado...</div>
                 </div>
-
             </div>
         </div>
     </div>
