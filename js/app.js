@@ -1,5 +1,11 @@
 // ==========================================
-// 1. CONFIGURAÇÕES
+// 1. IMPORTAÇÕES NATIVAS (ESM)
+// ==========================================
+import { Web3Auth } from "https://cdn.jsdelivr.net/npm/@web3auth/modal@9.5.2/+esm";
+import { EthereumPrivateKeyProvider } from "https://cdn.jsdelivr.net/npm/@web3auth/ethereum-provider@9.5.2/+esm";
+
+// ==========================================
+// 2. CONFIGURAÇÕES GLOBAIS
 // ==========================================
 let provider, signer, userAddress;
 let currentDecimals = 18;
@@ -38,9 +44,10 @@ const ABIS = {
 };
 
 // ==========================================
-// 2. INICIALIZAÇÃO (Lógica ESM)
+// 3. INICIALIZAÇÃO
 // ==========================================
 
+// Função precisa estar no window para o HTML acessar
 window.startApp = function() {
     document.getElementById('startScreen').style.display = 'none';
     document.getElementById('appContainer').style.display = 'flex';
@@ -48,21 +55,9 @@ window.startApp = function() {
 }
 
 async function initWeb3Auth() {
-    // Espera a variável injetada pelo HTML existir
-    if (!window.Web3AuthLibrary) {
-        console.log("Aguardando injeção ESM...");
-        setTimeout(initWeb3Auth, 500);
-        return;
-    }
-
     try {
-        console.log("🚀 Iniciando Web3Auth (Versão ESM)...");
+        console.log("🚀 Iniciando Web3Auth via Módulo...");
         
-        // Usa a classe que injetamos manualmente
-        const Web3Auth = window.Web3AuthLibrary;
-        const EthereumPrivateKeyProvider = window.EthereumProviderLibrary;
-
-        // Configura o Provider Privado (Necessário no v9 ESM)
         const privateKeyProvider = new EthereumPrivateKeyProvider({ 
             config: { chainConfig: ARC_CHAIN } 
         });
@@ -71,12 +66,15 @@ async function initWeb3Auth() {
             clientId: WEB3AUTH_CLIENT_ID,
             web3AuthNetwork: "sapphire_devnet",
             privateKeyProvider: privateKeyProvider,
+            uiConfig: {
+                appName: "Arc Shield",
+                mode: "dark",
+                theme: "dark"
+            }
         });
 
         await web3auth.initModal();
-        console.log("✅ Web3Auth Pronto e Carregado!");
-        
-        // Limpa erro se existir
+        console.log("✅ Web3Auth Pronto!");
         document.getElementById("loginStatus").style.display = 'none';
 
     } catch (e) {
@@ -87,13 +85,11 @@ async function initWeb3Auth() {
     }
 }
 
-// Inicia assim que carregar (Backup)
-window.onload = function() {
-    setTimeout(initWeb3Auth, 1000);
-};
+// Inicia automaticamente
+initWeb3Auth();
 
 // ==========================================
-// 3. CONEXÃO
+// 4. CONEXÃO
 // ==========================================
 
 window.connectWallet = async function(method) {
@@ -107,16 +103,12 @@ window.connectWallet = async function(method) {
             signer = await provider.getSigner();
         } 
         else if (method === 'social') {
-            if (!web3auth) {
-                // Tenta forçar a inicialização se ainda não foi
-                await initWeb3Auth();
-                if(!web3auth) throw new Error("Aguarde, carregando bibliotecas...");
+            if (!web3auth) throw new Error("Aguarde o carregamento do sistema.");
+            if (!web3auth.provider) {
+                await web3auth.connect();
             }
-            
-            const web3authProvider = await web3auth.connect();
-            if(!web3authProvider) throw new Error("Login cancelado ou fechado.");
-
-            provider = new ethers.BrowserProvider(web3authProvider);
+            if(!web3auth.provider) throw new Error("Login cancelado.");
+            provider = new ethers.BrowserProvider(web3auth.provider);
             signer = await provider.getSigner();
         }
 
@@ -141,19 +133,9 @@ window.connectWallet = async function(method) {
 }
 
 // ==========================================
-// 4. FUNÇÕES DO DAPP (MANTIDAS)
+// 5. FUNÇÕES DAPP (GLOBALIZADAS)
 // ==========================================
-// ... (O restante é igual, apenas helpers visuais)
-
-function log(msg, type='normal') {
-    const area = document.getElementById("consoleArea");
-    if(!area) return;
-    const div = document.createElement("div");
-    div.className = "log-entry " + (type==='success'?'log-success':type==='error'?'log-error':'');
-    div.innerText = `> ${msg}`;
-    area.appendChild(div);
-    area.scrollTop = area.scrollHeight;
-}
+// Precisamos garantir que todas as funções usadas no HTML estejam no window
 
 window.switchTab = function(tabId, btn) {
     document.querySelectorAll('.module-section').forEach(el => el.classList.remove('active'));
@@ -164,8 +146,19 @@ window.switchTab = function(tabId, btn) {
     if(tabId === 'leaderboard') loadLeaderboard();
 }
 
+// Helpers
+function log(msg, type='normal') {
+    const area = document.getElementById("consoleArea");
+    if(!area) return;
+    const div = document.createElement("div");
+    div.className = "log-entry " + (type==='success'?'log-success':type==='error'?'log-error':'');
+    div.innerText = `> ${msg}`;
+    area.appendChild(div);
+    area.scrollTop = area.scrollHeight;
+}
 function clean(val) { return val ? val.trim() : ""; }
 
+// Supabase
 async function checkRegister(wallet) {
     try {
         let { data: user } = await supabaseClient.from('users').select('*').eq('wallet_address', wallet).single();
@@ -181,6 +174,7 @@ async function checkRegister(wallet) {
     } catch(e) {}
 }
 
+// Funções de Contrato
 window.createToken = async function() {
     const name = document.getElementById("tokenName").value;
     const symbol = document.getElementById("tokenSymbol").value;
@@ -192,7 +186,7 @@ window.createToken = async function() {
         await (await c.createToken(name, symbol, supply)).wait();
         log(`Token ${symbol} Criado!`, 'success');
         if(supabaseClient) addPoints(100);
-    } catch (e) { log("Erro: " + e.reason || e.message, 'error'); }
+    } catch (e) { log("Erro: " + (e.reason || e.message), 'error'); }
 }
 
 window.sendBatch = async function() {
@@ -258,7 +252,7 @@ window.saveProfile = async function() {
     const av = document.getElementById("profileAvatar").value;
     if(userAddress) {
         await supabaseClient.from('users').update({ username: name, avatar_url: av }).eq('wallet_address', userAddress);
-        log("Salvo!", 'success'); loadLeaderboard();
+        log("Salvo!", 'success'); window.loadLeaderboard();
     }
 }
 
@@ -313,8 +307,4 @@ window.loadDashboardData = async function() {
 
 window.claimVesting = async function(id) {
     try { await (await new ethers.Contract(CONTRACTS.vest, ABIS.vest, signer).release(id)).wait(); log("Sacado!", 'success'); loadDashboardData(); } catch(e){ log("Erro", 'error'); }
-}
-
-window.withdrawLock = async function(id) {
-    try { await (await new ethers.Contract(CONTRACTS.lock, ABIS.lock, signer).withdraw(id)).wait(); log("Cofre aberto!", 'success'); loadDashboardData(); } catch(e) { log(e.message, 'error'); }
 }
