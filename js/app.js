@@ -38,62 +38,67 @@ const ABIS = {
 };
 
 // ==========================================
-// 2. INICIALIZAÇÃO
+// 2. INICIALIZAÇÃO (Lógica ESM)
 // ==========================================
 
 window.startApp = function() {
     document.getElementById('startScreen').style.display = 'none';
     document.getElementById('appContainer').style.display = 'flex';
-    
-    // Tenta iniciar de novo se o usuário clicou e ainda não carregou
-    if(!web3auth) window.initWeb3Auth();
+    initWeb3Auth();
 }
 
-// Tornamos a função global para ser chamada pelo HTML ou Retry
-window.initWeb3Auth = async function() {
-    const statusEl = document.getElementById("loginStatus");
-    
-    // Evita rodar duas vezes
-    if(web3auth) return;
+async function initWeb3Auth() {
+    // Espera a variável injetada pelo HTML existir
+    if (!window.Web3AuthLibrary) {
+        console.log("Aguardando injeção ESM...");
+        setTimeout(initWeb3Auth, 500);
+        return;
+    }
 
     try {
-        // Verifica se a biblioteca carregou (Namespace v8)
-        if (!window.modal || !window.modal.Web3Auth) {
-            console.warn("Biblioteca ainda não chegou. Tentando novamente em 1s...");
-            return; // O HTML vai tentar de novo ou o script de segurança
-        }
-
-        console.log("Iniciando Web3Auth v8 (Unpkg)...");
+        console.log("🚀 Iniciando Web3Auth (Versão ESM)...");
         
-        web3auth = new window.modal.Web3Auth({
+        // Usa a classe que injetamos manualmente
+        const Web3Auth = window.Web3AuthLibrary;
+        const EthereumPrivateKeyProvider = window.EthereumProviderLibrary;
+
+        // Configura o Provider Privado (Necessário no v9 ESM)
+        const privateKeyProvider = new EthereumPrivateKeyProvider({ 
+            config: { chainConfig: ARC_CHAIN } 
+        });
+
+        web3auth = new Web3Auth({
             clientId: WEB3AUTH_CLIENT_ID,
-            chainConfig: ARC_CHAIN,
-            web3AuthNetwork: "sapphire_devnet"
+            web3AuthNetwork: "sapphire_devnet",
+            privateKeyProvider: privateKeyProvider,
         });
 
         await web3auth.initModal();
-        console.log("✅ Web3Auth Pronto!");
-        statusEl.style.display = 'none';
+        console.log("✅ Web3Auth Pronto e Carregado!");
+        
+        // Limpa erro se existir
+        document.getElementById("loginStatus").style.display = 'none';
 
     } catch (e) {
-        console.error("Web3Auth Falhou:", e);
-        if(statusEl) {
-            statusEl.style.display = 'block';
-            statusEl.innerText = "Erro Login Social: " + e.message;
-        }
+        console.error("Erro Init:", e);
+        const el = document.getElementById("loginStatus");
+        el.innerText = "Falha no Login: " + e.message;
+        el.style.display = 'block';
     }
 }
 
+// Inicia assim que carregar (Backup)
+window.onload = function() {
+    setTimeout(initWeb3Auth, 1000);
+};
+
 // ==========================================
-// 3. CONEXÃO E LÓGICA
+// 3. CONEXÃO
 // ==========================================
 
 window.connectWallet = async function(method) {
     const statusEl = document.getElementById("loginStatus");
-    if(statusEl) {
-        statusEl.innerText = "Conectando...";
-        statusEl.style.display = 'block';
-    }
+    if(statusEl) { statusEl.innerText = "Conectando..."; statusEl.style.display = 'block'; }
 
     try {
         if (method === 'metamask') {
@@ -103,13 +108,13 @@ window.connectWallet = async function(method) {
         } 
         else if (method === 'social') {
             if (!web3auth) {
-                // Tenta iniciar uma última vez
-                await window.initWeb3Auth();
-                if(!web3auth) throw new Error("A biblioteca de Login Social foi bloqueada pelo seu navegador (Brave Shield?).");
+                // Tenta forçar a inicialização se ainda não foi
+                await initWeb3Auth();
+                if(!web3auth) throw new Error("Aguarde, carregando bibliotecas...");
             }
             
             const web3authProvider = await web3auth.connect();
-            if(!web3authProvider) throw new Error("Login cancelado.");
+            if(!web3authProvider) throw new Error("Login cancelado ou fechado.");
 
             provider = new ethers.BrowserProvider(web3authProvider);
             signer = await provider.getSigner();
@@ -135,7 +140,11 @@ window.connectWallet = async function(method) {
     }
 }
 
-// Funções Auxiliares
+// ==========================================
+// 4. FUNÇÕES DO DAPP (MANTIDAS)
+// ==========================================
+// ... (O restante é igual, apenas helpers visuais)
+
 function log(msg, type='normal') {
     const area = document.getElementById("consoleArea");
     if(!area) return;
@@ -157,13 +166,12 @@ window.switchTab = function(tabId, btn) {
 
 function clean(val) { return val ? val.trim() : ""; }
 
-// Supabase
 async function checkRegister(wallet) {
     try {
         let { data: user } = await supabaseClient.from('users').select('*').eq('wallet_address', wallet).single();
         if (!user) {
             await supabaseClient.from('users').insert([{ wallet_address: wallet, points: 0 }]);
-            log("Conta criada no Rank!", 'success');
+            log("Conta criada!", 'success');
         } else {
             const pName = document.getElementById('profileName');
             const pAvatar = document.getElementById('profileAvatar');
@@ -172,10 +180,6 @@ async function checkRegister(wallet) {
         }
     } catch(e) {}
 }
-
-// ==========================================
-// 4. FUNÇÕES DO DAPP
-// ==========================================
 
 window.createToken = async function() {
     const name = document.getElementById("tokenName").value;
@@ -243,7 +247,6 @@ window.createVesting = async function() {
     } catch(e) { log("Erro: " + e.message, 'error'); }
 }
 
-// Utils e Dashboard
 async function addPoints(pts) {
     if(!supabaseClient) return;
     let { data: u } = await supabaseClient.from('users').select('points').eq('wallet_address', userAddress).single();
@@ -260,7 +263,7 @@ window.saveProfile = async function() {
 }
 
 window.loadLeaderboard = async function() {
-    const listDiv = document.getElementById("leaderboardList");
+    const div = document.getElementById("leaderboardList");
     div.innerHTML = "<p>Buscando...</p>";
     if(!supabaseClient) { div.innerHTML = "<p>Offline</p>"; return; }
     const { data: users } = await supabaseClient.from('users').select('*').order('points', { ascending: false }).limit(10);
@@ -310,4 +313,8 @@ window.loadDashboardData = async function() {
 
 window.claimVesting = async function(id) {
     try { await (await new ethers.Contract(CONTRACTS.vest, ABIS.vest, signer).release(id)).wait(); log("Sacado!", 'success'); loadDashboardData(); } catch(e){ log("Erro", 'error'); }
+}
+
+window.withdrawLock = async function(id) {
+    try { await (await new ethers.Contract(CONTRACTS.lock, ABIS.lock, signer).withdraw(id)).wait(); log("Cofre aberto!", 'success'); loadDashboardData(); } catch(e) { log(e.message, 'error'); }
 }
