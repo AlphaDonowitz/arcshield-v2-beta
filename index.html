@@ -8,20 +8,7 @@
     <link rel="stylesheet" href="css/style.css">
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
-
-    <script type="module">
-        // Importa diretamente do CDN moderno (ESM)
-        import { Web3Auth } from "https://cdn.jsdelivr.net/npm/@web3auth/modal@9.5.2/+esm";
-        import { EthereumPrivateKeyProvider } from "https://cdn.jsdelivr.net/npm/@web3auth/ethereum-provider@9.5.2/+esm";
-
-        // Força a biblioteca a ficar disponível globalmente para o app.js
-        window.Web3AuthLibrary = Web3Auth;
-        window.EthereumProviderLibrary = EthereumPrivateKeyProvider;
-        
-        console.log("✅ Sistema ESM: Bibliotecas Web3Auth injetadas na memória.");
-    </script>
 </head>
 <body>
 
@@ -33,7 +20,7 @@
             <div class="badge"><span class="dot"></span> Arc Testnet Live</div>
             <h1><span class="gradient-text">Arc</span> <span class="shield-gradient">Shield</span></h1>
             <p class="hero-desc">Hub de Infraestrutura DeFi: Crie, Distribua e Gerencie Ativos na Rede Arc.</p>
-            <button class="btn-hero" onclick="startApp()"><span>Iniciar DApp</span> <span>→</span></button>
+            <button class="btn-hero" onclick="window.startApp()"><span>Iniciar DApp</span> <span>→</span></button>
         </div>
 
         <div id="appContainer">
@@ -43,10 +30,10 @@
             </div>
 
             <div id="loginArea">
-                <button id="btnConnect" class="btn-action btn-connect" onclick="connectWallet('metamask')">
+                <button id="btnConnect" class="btn-action btn-connect" onclick="window.connectWallet('metamask')">
                     🦊 Conectar MetaMask
                 </button>
-                <button id="btnSocial" class="btn-action btn-connect" style="background: white; color: black; border: none;" onclick="connectWallet('social')">
+                <button id="btnSocial" class="btn-action btn-connect" style="background: white; color: black; border: none;" onclick="window.connectWallet('social')">
                     🔵 Login com Google / X
                 </button>
                 <p id="loginStatus" style="color: #ff4d4d; font-size: 0.8rem; margin-top: 10px; display: none;"></p>
@@ -62,7 +49,6 @@
             </div>
 
             <div class="card">
-                
                 <div id="creator" class="module-section active">
                     <label>Nome do Projeto</label>
                     <input type="text" id="tokenName" placeholder="Ex: Arc Governance">
@@ -142,6 +128,6 @@
         <div style="opacity:0.7">Arc Testnet Beta</div>
     </div>
 
-    <script src="js/app.js"></script>
+    <script type="module" src="js/app.js"></script>
 </body>
 </html>
