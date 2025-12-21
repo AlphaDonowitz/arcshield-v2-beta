@@ -49,12 +49,12 @@ const ABIS = {
 };
 
 // ==========================================
-// 3. INICIALIZAÇÃO & UI (COM RETRY LOGIC)
+// 3. INICIALIZAÇÃO & UI (BLINDADA)
 // ==========================================
 
-// Função Global startApp (A que estava falhando)
+// Função Start App
 window.startApp = function() {
-    console.log("Botão Iniciar clicado."); // Debug no console
+    console.log("Botão Iniciar clicado.");
     const screen = document.getElementById('startScreen');
     const app = document.getElementById('appContainer');
     if(screen && app) {
@@ -65,31 +65,43 @@ window.startApp = function() {
     }
 }
 
-// Lógica de Inicialização do Web3Auth com tentativas
+// Lógica de Inicialização do Web3Auth com BUSCA AGRESSIVA
 async function initWeb3AuthRetry(attempts = 0) {
-    if (attempts > 15) {
-        console.error("❌ Desisto: Web3Auth não carregou após várias tentativas.");
+    if (attempts > 20) {
+        console.error("❌ Desisto: Biblioteca Web3Auth não encontrada.");
+        log("Erro: Web3Auth não carregou. Verifique conexão/bloqueadores.", 'error');
         return;
     }
 
-    // Procura a biblioteca no window.modal (onde o CDN injeta)
-    const library = window.modal; 
+    // PROCURA EM TODOS OS LUGARES POSSÍVEIS (Auditoria de Namespace)
+    const Web3AuthConstructor = window.Web3Auth || 
+                                window.modal?.Web3Auth || 
+                                window.Modal?.Web3Auth ||
+                                window.web3auth?.Web3Auth;
 
-    if (library && library.Web3Auth) {
+    if (Web3AuthConstructor) {
         try {
-            web3auth = new library.Web3Auth({
+            console.log("🛠️ Construtor Web3Auth encontrado! Iniciando...");
+            web3auth = new Web3AuthConstructor({
                 clientId: WEB3AUTH_CLIENT_ID,
                 web3AuthNetwork: "sapphire_devnet", 
                 chainConfig: ARC_CHAIN_CONFIG,
+                uiConfig: {
+                    appName: "Arc Shield",
+                    mode: "dark",
+                    theme: "dark"
+                }
             });
             await web3auth.initModal();
-            console.log("✅ Web3Auth Iniciado com Sucesso!");
+            console.log("✅ Web3Auth Iniciado e Pronto!");
+            log("Sistema de Login Social: Online", 'success');
         } catch (e) {
             console.error("❌ Erro ao configurar Web3Auth:", e);
         }
     } else {
-        console.log(`⏳ Aguardando Web3Auth... (${attempts}/15)`);
-        setTimeout(() => initWeb3AuthRetry(attempts + 1), 1000); // Tenta a cada 1 segundo
+        // Se não achou, espera 500ms e tenta de novo
+        if(attempts % 5 === 0) console.log(`⏳ Procurando biblioteca Web3Auth... (${attempts}/20)`);
+        setTimeout(() => initWeb3AuthRetry(attempts + 1), 500); 
     }
 }
 
@@ -134,11 +146,16 @@ window.connectWallet = async function(method) {
         } 
         else if (method === 'social') {
             if (!web3auth) return alert("Web3Auth ainda está carregando... aguarde 5 segundos.");
-            if (!web3auth.provider) { // Se não estiver conectado ainda
+            if (!web3auth.provider) { 
                 await web3auth.connect(); 
             }
-            provider = new ethers.BrowserProvider(web3auth.provider);
-            signer = await provider.getSigner();
+            // Se o usuário fechou o modal sem logar, provider pode ser null
+            if(web3auth.provider) {
+                provider = new ethers.BrowserProvider(web3auth.provider);
+                signer = await provider.getSigner();
+            } else {
+                return; // Usuário cancelou
+            }
         }
 
         userAddress = await signer.getAddress();
@@ -151,7 +168,7 @@ window.connectWallet = async function(method) {
             btnSocial.innerText = `🟢 Conectado: ${userAddress.slice(0,6)}...`;
             btnSocial.classList.add('btn-disconnect');
         }
-        if(btnConnect) btnConnect.style.display = 'none'; // Esconde o botão metamask para limpar a tela
+        if(btnConnect) btnConnect.style.display = 'none';
         
         const nav = document.getElementById("navTabs");
         if(nav) nav.style.display = 'flex';
