@@ -10,7 +10,6 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 let supabaseClient = null;
 if (window.supabase) supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Configuração da Rede ARC
 const ARC_CHAIN = {
     chainNamespace: "eip155",
     chainId: "0x4cefba",
@@ -23,7 +22,6 @@ const ARC_CHAIN = {
 
 const WEB3AUTH_CLIENT_ID = "BGRg-3_GuM3Qefz4iAu_aT9DVxIED7NoOpI4bEh_Ttl1mVuzC2F5Vm8r_BYjfbuo2CWbkezDMB5S_4HIyj48IkE"; 
 
-// Contratos Verificados
 const CONTRACTS = {
     factory: "0x3Ed7Fd9b5a2a77B549463ea1263516635c77eB0a",
     multi: "0x59BcE4bE3e31B14a0528c9249a0580eEc2E59032", 
@@ -31,7 +29,6 @@ const CONTRACTS = {
     vest: "0xcC8a723917b0258280Ea1647eCDe13Ffa2E1D30b"  
 };
 
-// ABIs Resumidas
 const ABIS = {
     factory: ["function createToken(string name, string symbol, uint256 initialSupply) external", "event TokenCreated(address tokenAddress, string name, string symbol, address owner)"],
     multi: ["function multisendToken(address token, address[] recipients, uint256[] amounts) external payable"],
@@ -41,25 +38,33 @@ const ABIS = {
 };
 
 // ==========================================
-// 2. INICIALIZAÇÃO (WEB3AUTH v8)
+// 2. INICIALIZAÇÃO
 // ==========================================
 
 window.startApp = function() {
     document.getElementById('startScreen').style.display = 'none';
     document.getElementById('appContainer').style.display = 'flex';
+    
+    // Tenta iniciar de novo se o usuário clicou e ainda não carregou
+    if(!web3auth) window.initWeb3Auth();
 }
 
-async function initWeb3Auth() {
+// Tornamos a função global para ser chamada pelo HTML ou Retry
+window.initWeb3Auth = async function() {
     const statusEl = document.getElementById("loginStatus");
+    
+    // Evita rodar duas vezes
+    if(web3auth) return;
+
     try {
         // Verifica se a biblioteca carregou (Namespace v8)
         if (!window.modal || !window.modal.Web3Auth) {
-            throw new Error("Biblioteca Web3Auth não encontrada. Bloqueio de script?");
+            console.warn("Biblioteca ainda não chegou. Tentando novamente em 1s...");
+            return; // O HTML vai tentar de novo ou o script de segurança
         }
 
-        console.log("Iniciando Web3Auth v8...");
+        console.log("Iniciando Web3Auth v8 (Unpkg)...");
         
-        // Construtor v8
         web3auth = new window.modal.Web3Auth({
             clientId: WEB3AUTH_CLIENT_ID,
             chainConfig: ARC_CHAIN,
@@ -68,19 +73,16 @@ async function initWeb3Auth() {
 
         await web3auth.initModal();
         console.log("✅ Web3Auth Pronto!");
-        statusEl.innerText = ""; 
         statusEl.style.display = 'none';
 
     } catch (e) {
-        console.error(e);
-        statusEl.style.display = 'block';
-        statusEl.innerText = "Erro ao carregar sistema de login: " + e.message;
+        console.error("Web3Auth Falhou:", e);
+        if(statusEl) {
+            statusEl.style.display = 'block';
+            statusEl.innerText = "Erro Login Social: " + e.message;
+        }
     }
 }
-
-window.onload = function() {
-    initWeb3Auth();
-};
 
 // ==========================================
 // 3. CONEXÃO E LÓGICA
@@ -88,8 +90,10 @@ window.onload = function() {
 
 window.connectWallet = async function(method) {
     const statusEl = document.getElementById("loginStatus");
-    statusEl.innerText = "Conectando...";
-    statusEl.style.display = 'block';
+    if(statusEl) {
+        statusEl.innerText = "Conectando...";
+        statusEl.style.display = 'block';
+    }
 
     try {
         if (method === 'metamask') {
@@ -98,9 +102,12 @@ window.connectWallet = async function(method) {
             signer = await provider.getSigner();
         } 
         else if (method === 'social') {
-            if (!web3auth) throw new Error("Sistema social não carregou. Tente recarregar.");
+            if (!web3auth) {
+                // Tenta iniciar uma última vez
+                await window.initWeb3Auth();
+                if(!web3auth) throw new Error("A biblioteca de Login Social foi bloqueada pelo seu navegador (Brave Shield?).");
+            }
             
-            // Conecta no v8
             const web3authProvider = await web3auth.connect();
             if(!web3authProvider) throw new Error("Login cancelado.");
 
@@ -116,7 +123,7 @@ window.connectWallet = async function(method) {
         btnSocial.innerText = `🟢 ${userAddress.slice(0,6)}...`;
         btnSocial.classList.add('btn-disconnect');
         document.getElementById("navTabs").style.display = 'flex';
-        statusEl.style.display = 'none';
+        if(statusEl) statusEl.style.display = 'none';
         
         log(`Conectado: ${userAddress}`, 'success');
         if(supabaseClient) checkRegister(userAddress);
@@ -124,13 +131,14 @@ window.connectWallet = async function(method) {
     } catch (e) {
         console.error(e);
         log("Erro Conexão: " + e.message, 'error');
-        statusEl.innerText = "Erro: " + e.message;
+        if(statusEl) statusEl.innerText = "Erro: " + e.message;
     }
 }
 
 // Funções Auxiliares
 function log(msg, type='normal') {
     const area = document.getElementById("consoleArea");
+    if(!area) return;
     const div = document.createElement("div");
     div.className = "log-entry " + (type==='success'?'log-success':type==='error'?'log-error':'');
     div.innerText = `> ${msg}`;
@@ -252,7 +260,7 @@ window.saveProfile = async function() {
 }
 
 window.loadLeaderboard = async function() {
-    const div = document.getElementById("leaderboardList");
+    const listDiv = document.getElementById("leaderboardList");
     div.innerHTML = "<p>Buscando...</p>";
     if(!supabaseClient) { div.innerHTML = "<p>Offline</p>"; return; }
     const { data: users } = await supabaseClient.from('users').select('*').order('points', { ascending: false }).limit(10);
