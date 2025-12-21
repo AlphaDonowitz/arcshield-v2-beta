@@ -10,9 +10,18 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
-    
-    <script src="https://unpkg.com/@web3auth/modal@8.12.4/dist/modal.umd.min.js"></script>
-    <script src="https://unpkg.com/@web3auth/ethereum-provider@8.12.4/dist/ethereumProvider.umd.min.js"></script>
+
+    <script type="module">
+        // Importa diretamente do CDN moderno (ESM)
+        import { Web3Auth } from "https://cdn.jsdelivr.net/npm/@web3auth/modal@9.5.2/+esm";
+        import { EthereumPrivateKeyProvider } from "https://cdn.jsdelivr.net/npm/@web3auth/ethereum-provider@9.5.2/+esm";
+
+        // Força a biblioteca a ficar disponível globalmente para o app.js
+        window.Web3AuthLibrary = Web3Auth;
+        window.EthereumProviderLibrary = EthereumPrivateKeyProvider;
+        
+        console.log("✅ Sistema ESM: Bibliotecas Web3Auth injetadas na memória.");
+    </script>
 </head>
 <body>
 
@@ -53,6 +62,7 @@
             </div>
 
             <div class="card">
+                
                 <div id="creator" class="module-section active">
                     <label>Nome do Projeto</label>
                     <input type="text" id="tokenName" placeholder="Ex: Arc Governance">
@@ -65,21 +75,21 @@
 
                 <div id="multisender" class="module-section">
                     <label>Token para Envio</label>
-                    <input type="text" id="multiTokenAddr" placeholder="Endereço do Token (0x...)" onchange="detectDecimals('multi')">
-                    <label>Lista de Destinatários (CSV)</label>
-                    <textarea id="csvInput" placeholder="0xCarteira1, 100&#10;0xCarteira2, 500"></textarea>
+                    <input type="text" id="multiTokenAddr" placeholder="Endereço (0x...)" onchange="detectDecimals('multi')">
+                    <label>Lista (CSV)</label>
+                    <textarea id="csvInput" placeholder="0xWallet, Amount"></textarea>
                     <div class="grid-2">
                         <button class="btn-action btn-connect" onclick="approveToken('multi')">Aprovar</button>
-                        <button class="btn-action btn-create" onclick="sendBatch()">Disparar Lote</button>
+                        <button class="btn-action btn-create" onclick="sendBatch()">Disparar</button>
                     </div>
                 </div>
 
                 <div id="locker" class="module-section">
-                    <label>Token para Bloquear</label>
-                    <input type="text" id="lockTokenAddr" placeholder="Endereço do Token (0x...)" onchange="detectDecimals('lock')">
+                    <label>Token</label>
+                    <input type="text" id="lockTokenAddr" placeholder="Endereço (0x...)" onchange="detectDecimals('lock')">
                     <label>Quantidade</label>
                     <input type="number" id="lockAmount">
-                    <label>Data</label>
+                    <label>Data Liberação</label>
                     <input type="datetime-local" id="lockDate" style="color-scheme: dark;">
                     <div class="grid-2">
                         <button class="btn-action btn-connect" onclick="approveToken('lock')">Aprovar</button>
@@ -133,12 +143,5 @@
     </div>
 
     <script src="js/app.js"></script>
-    
-    <script>
-        // Se o Web3Auth não carregar em 3 segundos via HTML, tenta iniciar manualmente
-        setTimeout(() => {
-            if(!window.web3auth) window.initWeb3Auth(); 
-        }, 3000);
-    </script>
 </body>
 </html>
