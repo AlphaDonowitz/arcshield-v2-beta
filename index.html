@@ -6,9 +6,6 @@
     <title>Arc Shield - Infrastructure Hub</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
-    
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
 </head>
 <body>
 
@@ -23,7 +20,7 @@
             <button class="btn-hero" onclick="window.startApp()"><span>Iniciar DApp</span> <span>→</span></button>
         </div>
 
-        <div id="appContainer">
+        <div id="appContainer" style="display: none;">
             <div style="text-align: center; margin-bottom: 20px;">
                 <h2 style="margin:0;"><span class="gradient-text">Arc</span> <span class="shield-gradient">Shield</span></h2>
                 <p style="color:#64748b; font-size:0.9rem;">DeFi Suite V2</p>
@@ -128,6 +125,12 @@
         <div style="opacity:0.7">Arc Testnet Beta</div>
     </div>
 
-    <script type="module" src="js/app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    
+    <script src="https://unpkg.com/@web3auth/modal@9.4.4/dist/modal.umd.min.js"></script>
+    <script src="https://unpkg.com/@web3auth/ethereum-provider@9.4.4/dist/ethereumProvider.umd.min.js"></script>
+
+    <script src="js/app.js"></script>
 </body>
 </html>
