@@ -1,11 +1,20 @@
 // ==========================================
-// 1. IMPORTAÇÕES NATIVAS (ESM)
+// 1. UI & INICIALIZAÇÃO IMEDIATA
 // ==========================================
-import { Web3Auth } from "https://cdn.jsdelivr.net/npm/@web3auth/modal@9.5.2/+esm";
-import { EthereumPrivateKeyProvider } from "https://cdn.jsdelivr.net/npm/@web3auth/ethereum-provider@9.5.2/+esm";
+
+// Esta função agora está blindada. Ela existe independente das bibliotecas.
+window.startApp = function() {
+    console.log("🚀 Iniciando aplicação...");
+    const screen = document.getElementById('startScreen');
+    const app = document.getElementById('appContainer');
+    if(screen && app) {
+        screen.style.display = 'none';
+        app.style.display = 'flex';
+    }
+}
 
 // ==========================================
-// 2. CONFIGURAÇÕES GLOBAIS
+// 2. CONFIGURAÇÕES & VARIÁVEIS
 // ==========================================
 let provider, signer, userAddress;
 let currentDecimals = 18;
@@ -14,7 +23,11 @@ let web3auth = null;
 const SUPABASE_URL = 'https://jfgiiuzqyqjbfaubdhja.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmZ2lpdXpxeXFqYmZhdWJkaGphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4OTk2NzIsImV4cCI6MjA4MTQ3NTY3Mn0.4AZ_FIazsIlP5I_FPpAQh0lkIXRpBwGVfKVG3nwzxWA';
 let supabaseClient = null;
-if (window.supabase) supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Tenta iniciar Supabase com segurança
+try {
+    if (window.supabase) supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+} catch(e) { console.error("Supabase offline"); }
 
 const ARC_CHAIN = {
     chainNamespace: "eip155",
@@ -28,44 +41,26 @@ const ARC_CHAIN = {
 
 const WEB3AUTH_CLIENT_ID = "BGRg-3_GuM3Qefz4iAu_aT9DVxIED7NoOpI4bEh_Ttl1mVuzC2F5Vm8r_BYjfbuo2CWbkezDMB5S_4HIyj48IkE"; 
 
-const CONTRACTS = {
-    factory: "0x3Ed7Fd9b5a2a77B549463ea1263516635c77eB0a",
-    multi: "0x59BcE4bE3e31B14a0528c9249a0580eEc2E59032", 
-    lock: "0x4475a197265Dd9c7CaF24Fe1f8cf63B6e9935452", 
-    vest: "0xcC8a723917b0258280Ea1647eCDe13Ffa2E1D30b"  
-};
-
-const ABIS = {
-    factory: ["function createToken(string name, string symbol, uint256 initialSupply) external", "event TokenCreated(address tokenAddress, string name, string symbol, address owner)"],
-    multi: ["function multisendToken(address token, address[] recipients, uint256[] amounts) external payable"],
-    lock: ["function lockTokens(address _token, uint256 _amount, uint256 _unlockTime) external", "function withdraw(uint256 _lockId) external", "function lockIdCounter() view returns (uint256)", "function locks(uint256) view returns (address owner, address token, uint256 amount, uint256 unlockTime, bool withdrawn)"],
-    vest: ["function createVestingSchedule(address, address, uint256, uint256, uint256, uint256, bool) external", "function release(uint256) external", "function getUserScheduleCount(address) view returns (uint256)", "function getUserScheduleIdAtIndex(address, uint256) view returns (uint256)", "function schedules(uint256) view returns (uint256 scheduleId, address token, address beneficiary, uint256 amountTotal, uint256 released, uint256 start, uint256 duration)"],
-    erc20: ["function approve(address spender, uint256 amount) external", "function decimals() view returns (uint8)", "function symbol() view returns (string)"]
-};
-
 // ==========================================
-// 3. INICIALIZAÇÃO
+// 3. INICIALIZAÇÃO WEB3AUTH (ASSÍNCRONA)
 // ==========================================
-
-// Função precisa estar no window para o HTML acessar
-window.startApp = function() {
-    document.getElementById('startScreen').style.display = 'none';
-    document.getElementById('appContainer').style.display = 'flex';
-    initWeb3Auth();
-}
 
 async function initWeb3Auth() {
+    const statusEl = document.getElementById("loginStatus");
     try {
-        console.log("🚀 Iniciando Web3Auth via Módulo...");
-        
-        const privateKeyProvider = new EthereumPrivateKeyProvider({ 
-            config: { chainConfig: ARC_CHAIN } 
-        });
+        // Verifica se a biblioteca window.modal existe (padrão do script unpkg)
+        if (!window.modal || !window.modal.Web3Auth) {
+            console.log("⚠️ Biblioteca Web3Auth ainda não carregou. Tentando em breve...");
+            setTimeout(initWeb3Auth, 1000); // Tenta de novo em 1s
+            return;
+        }
 
-        web3auth = new Web3Auth({
+        console.log("🛠️ Configurando Web3Auth...");
+        
+        web3auth = new window.modal.Web3Auth({
             clientId: WEB3AUTH_CLIENT_ID,
             web3AuthNetwork: "sapphire_devnet",
-            privateKeyProvider: privateKeyProvider,
+            chainConfig: ARC_CHAIN,
             uiConfig: {
                 appName: "Arc Shield",
                 mode: "dark",
@@ -75,21 +70,24 @@ async function initWeb3Auth() {
 
         await web3auth.initModal();
         console.log("✅ Web3Auth Pronto!");
-        document.getElementById("loginStatus").style.display = 'none';
+        if(statusEl) statusEl.style.display = 'none';
 
     } catch (e) {
-        console.error("Erro Init:", e);
-        const el = document.getElementById("loginStatus");
-        el.innerText = "Falha no Login: " + e.message;
-        el.style.display = 'block';
+        console.error("Erro Web3Auth:", e);
+        if(statusEl) {
+            statusEl.innerText = "Erro Login Social: " + (e.message || "Bloqueio de Rede");
+            statusEl.style.display = 'block';
+        }
     }
 }
 
-// Inicia automaticamente
-initWeb3Auth();
+// Inicia o Web3Auth em segundo plano, sem travar o site
+window.onload = function() {
+    initWeb3Auth();
+};
 
 // ==========================================
-// 4. CONEXÃO
+// 4. LÓGICA DE CONEXÃO
 // ==========================================
 
 window.connectWallet = async function(method) {
@@ -98,13 +96,17 @@ window.connectWallet = async function(method) {
 
     try {
         if (method === 'metamask') {
-            if (!window.ethereum) throw new Error("Metamask não instalada.");
+            if (!window.ethereum) throw new Error("Metamask não detectada.");
             provider = new ethers.BrowserProvider(window.ethereum);
             signer = await provider.getSigner();
         } 
         else if (method === 'social') {
-            if (!web3auth) throw new Error("Aguarde o carregamento do sistema.");
-            if (!web3auth.provider) {
+            if (!web3auth) {
+                // Tenta forçar o carregamento
+                await initWeb3Auth();
+                if(!web3auth) throw new Error("O sistema de login não carregou. Verifique sua conexão.");
+            }
+            if(!web3auth.provider) {
                 await web3auth.connect();
             }
             if(!web3auth.provider) throw new Error("Login cancelado.");
@@ -114,7 +116,7 @@ window.connectWallet = async function(method) {
 
         userAddress = await signer.getAddress();
         
-        // Sucesso
+        // Sucesso na conexão
         document.getElementById("btnConnect").style.display = 'none';
         const btnSocial = document.getElementById("btnSocial");
         btnSocial.innerText = `🟢 ${userAddress.slice(0,6)}...`;
@@ -133,10 +135,25 @@ window.connectWallet = async function(method) {
 }
 
 // ==========================================
-// 5. FUNÇÕES DAPP (GLOBALIZADAS)
+// 5. FUNÇÕES DAPP
 // ==========================================
-// Precisamos garantir que todas as funções usadas no HTML estejam no window
 
+const CONTRACTS = {
+    factory: "0x3Ed7Fd9b5a2a77B549463ea1263516635c77eB0a",
+    multi: "0x59BcE4bE3e31B14a0528c9249a0580eEc2E59032", 
+    lock: "0x4475a197265Dd9c7CaF24Fe1f8cf63B6e9935452", 
+    vest: "0xcC8a723917b0258280Ea1647eCDe13Ffa2E1D30b"  
+};
+
+const ABIS = {
+    factory: ["function createToken(string name, string symbol, uint256 initialSupply) external", "event TokenCreated(address tokenAddress, string name, string symbol, address owner)"],
+    multi: ["function multisendToken(address token, address[] recipients, uint256[] amounts) external payable"],
+    lock: ["function lockTokens(address _token, uint256 _amount, uint256 _unlockTime) external", "function withdraw(uint256 _lockId) external", "function lockIdCounter() view returns (uint256)", "function locks(uint256) view returns (address owner, address token, uint256 amount, uint256 unlockTime, bool withdrawn)"],
+    vest: ["function createVestingSchedule(address, address, uint256, uint256, uint256, uint256, bool) external", "function release(uint256) external", "function getUserScheduleCount(address) view returns (uint256)", "function getUserScheduleIdAtIndex(address, uint256) view returns (uint256)", "function schedules(uint256) view returns (uint256 scheduleId, address token, address beneficiary, uint256 amountTotal, uint256 released, uint256 start, uint256 duration)"],
+    erc20: ["function approve(address spender, uint256 amount) external", "function decimals() view returns (uint8)", "function symbol() view returns (string)"]
+};
+
+// Funções Helpers
 window.switchTab = function(tabId, btn) {
     document.querySelectorAll('.module-section').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -146,7 +163,6 @@ window.switchTab = function(tabId, btn) {
     if(tabId === 'leaderboard') loadLeaderboard();
 }
 
-// Helpers
 function log(msg, type='normal') {
     const area = document.getElementById("consoleArea");
     if(!area) return;
@@ -158,13 +174,11 @@ function log(msg, type='normal') {
 }
 function clean(val) { return val ? val.trim() : ""; }
 
-// Supabase
 async function checkRegister(wallet) {
     try {
         let { data: user } = await supabaseClient.from('users').select('*').eq('wallet_address', wallet).single();
         if (!user) {
             await supabaseClient.from('users').insert([{ wallet_address: wallet, points: 0 }]);
-            log("Conta criada!", 'success');
         } else {
             const pName = document.getElementById('profileName');
             const pAvatar = document.getElementById('profileAvatar');
@@ -307,4 +321,8 @@ window.loadDashboardData = async function() {
 
 window.claimVesting = async function(id) {
     try { await (await new ethers.Contract(CONTRACTS.vest, ABIS.vest, signer).release(id)).wait(); log("Sacado!", 'success'); loadDashboardData(); } catch(e){ log("Erro", 'error'); }
+}
+
+window.withdrawLock = async function(id) {
+    try { await (await new ethers.Contract(CONTRACTS.lock, ABIS.lock, signer).withdraw(id)).wait(); log("Cofre aberto!", 'success'); loadDashboardData(); } catch(e) { log(e.message, 'error'); }
 }
