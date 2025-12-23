@@ -8,17 +8,14 @@
     <link rel="stylesheet" href="css/style.css">
     
     <script>
-        function forceStart() {
-            console.log("🚀 Início Forçado!");
+        function startApp() {
             document.getElementById('startScreen').style.display = 'none';
             document.getElementById('appContainer').style.display = 'flex';
         }
     </script>
 
-    <script src="https://unpkg.com/@web3auth/modal@8.12.4/dist/modal.umd.min.js"></script>
-    <script src="https://unpkg.com/@web3auth/ethereum-provider@8.12.4/dist/ethereumProvider.umd.min.js"></script>
-    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
 </head>
 <body>
@@ -32,7 +29,7 @@
             <h1><span class="gradient-text">Arc</span> <span class="shield-gradient">Shield</span></h1>
             <p class="hero-desc">Hub de Infraestrutura DeFi: Crie, Distribua e Gerencie Ativos na Rede Arc.</p>
             
-            <button class="btn-hero" onclick="forceStart()"><span>Iniciar DApp</span> <span>→</span></button>
+            <button class="btn-hero" onclick="startApp()"><span>Iniciar DApp</span> <span>→</span></button>
         </div>
 
         <div id="appContainer" style="display: none;">
@@ -42,11 +39,8 @@
             </div>
 
             <div id="loginArea">
-                <button id="btnConnect" class="btn-action btn-connect" onclick="window.connectWallet('metamask')">
-                    🦊 Conectar MetaMask
-                </button>
-                <button id="btnSocial" class="btn-action btn-connect" style="background: white; color: black; border: none;" onclick="window.connectWallet('social')">
-                    🔵 Login com Google / X
+                <button id="btnConnect" class="btn-action btn-connect" onclick="connectWallet()">
+                    🦊 Conectar MetaMask / Web3
                 </button>
                 <p id="loginStatus" style="color: #ff4d4d; font-size: 0.8rem; margin-top: 10px; display: none;"></p>
             </div>
