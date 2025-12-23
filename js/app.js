@@ -3,121 +3,62 @@
 // ==========================================
 let provider, signer, userAddress;
 let currentDecimals = 18;
-let web3auth = null;
 
+// Configuração Supabase (Opcional, não trava o DApp se falhar)
 const SUPABASE_URL = 'https://jfgiiuzqyqjbfaubdhja.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmZ2lpdXpxeXFqYmZhdWJkaGphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4OTk2NzIsImV4cCI6MjA4MTQ3NTY3Mn0.4AZ_FIazsIlP5I_FPpAQh0lkIXRpBwGVfKVG3nwzxWA';
 let supabaseClient = null;
 try {
     if (window.supabase) supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-} catch(e) {}
-
-// Configuração da Rede Arc
-const ARC_CHAIN = {
-    chainNamespace: "eip155",
-    chainId: "0x4cefba",
-    rpcTarget: "https://rpc.testnet.arc.network",
-    displayName: "Arc Testnet",
-    blockExplorer: "https://testnet.arcscan.app",
-    ticker: "USDC",
-    tickerName: "USDC",
-};
-
-const WEB3AUTH_CLIENT_ID = "BGRg-3_GuM3Qefz4iAu_aT9DVxIED7NoOpI4bEh_Ttl1mVuzC2F5Vm8r_BYjfbuo2CWbkezDMB5S_4HIyj48IkE"; 
+    console.log("✅ Banco de Dados conectado.");
+} catch(e) { console.log("Modo Offline (Sem Rank)"); }
 
 // ==========================================
-// 2. INICIALIZAÇÃO WEB3AUTH (CORREÇÃO DE REDE)
+// 2. CONEXÃO SIMPLIFICADA (METAMASK)
 // ==========================================
 
-async function initWeb3Auth() {
+window.connectWallet = async function() {
+    const statusEl = document.getElementById("loginStatus");
+    if(statusEl) statusEl.style.display = 'none';
+
     try {
-        // Verifica se a biblioteca V8 carregou (window.modal.Web3Auth)
-        if (!window.modal || !window.modal.Web3Auth) {
-            console.log("⚠️ Biblioteca Web3Auth V8 ainda não disponível.");
+        // Verifica se tem carteira instalada
+        if (!window.ethereum) {
+            alert("Metamask não encontrada! Por favor, instale para continuar.");
             return;
         }
 
-        // Evita reinicializar se já existe
-        if (web3auth) return;
-
-        console.log("🛠️ Configurando Web3Auth (Sapphire Devnet)...");
-        
-        web3auth = new window.modal.Web3Auth({
-            clientId: WEB3AUTH_CLIENT_ID,
-            chainConfig: ARC_CHAIN,
-            // AQUI ESTÁ A CORREÇÃO: Deve ser igual ao seu painel (Devnet)
-            web3AuthNetwork: "sapphire_devnet" 
-        });
-
-        await web3auth.initModal();
-        console.log("✅ Web3Auth Pronto e Conectado à Devnet!");
-        
-        // Esconde erro se existir
-        const statusEl = document.getElementById("loginStatus");
-        if(statusEl) statusEl.style.display = 'none';
-
-    } catch (e) {
-        console.error("Erro Web3Auth Init:", e);
-    }
-}
-
-// Tenta iniciar assim que carregar, e tenta de novo após 1.5s (segurança)
-window.addEventListener('load', () => {
-    initWeb3Auth();
-    setTimeout(initWeb3Auth, 1500);
-});
-
-// ==========================================
-// 3. CONEXÃO
-// ==========================================
-
-window.connectWallet = async function(method) {
-    const statusEl = document.getElementById("loginStatus");
-    if(statusEl) { statusEl.innerText = "Conectando..."; statusEl.style.display = 'block'; }
-
-    try {
-        if (method === 'metamask') {
-            if (!window.ethereum) throw new Error("Metamask não detectada.");
-            provider = new ethers.BrowserProvider(window.ethereum);
-            signer = await provider.getSigner();
-        } 
-        else if (method === 'social') {
-            if (!web3auth) {
-                await initWeb3Auth(); // Tenta carregar na hora do clique
-                if(!web3auth) throw new Error("O sistema de login não iniciou. Tente recarregar a página.");
-            }
-            
-            // Abre o Modal
-            const web3authProvider = await web3auth.connect();
-            
-            if(!web3authProvider) throw new Error("Janela fechada ou login cancelado.");
-
-            provider = new ethers.BrowserProvider(web3authProvider);
-            signer = await provider.getSigner();
-        }
-
+        // Conecta
+        provider = new ethers.BrowserProvider(window.ethereum);
+        signer = await provider.getSigner();
         userAddress = await signer.getAddress();
         
-        // Sucesso
-        document.getElementById("btnConnect").style.display = 'none';
-        const btnSocial = document.getElementById("btnSocial");
-        btnSocial.innerText = `🟢 ${userAddress.slice(0,6)}...`;
-        btnSocial.classList.add('btn-disconnect');
+        // Atualiza UI
+        const btn = document.getElementById("btnConnect");
+        btn.innerText = `🟢 Conectado: ${userAddress.slice(0,6)}...`;
+        btn.classList.add('btn-disconnect');
+        // Desativa o clique para não reconectar
+        btn.onclick = null; 
+
         document.getElementById("navTabs").style.display = 'flex';
-        if(statusEl) statusEl.style.display = 'none';
         
         log(`Conectado: ${userAddress}`, 'success');
+        
+        // Registra no Rank
         if(supabaseClient) checkRegister(userAddress);
 
     } catch (e) {
         console.error(e);
-        log("Erro Conexão: " + e.message, 'error');
-        if(statusEl) statusEl.innerText = "Erro: " + e.message;
+        log("Erro Conexão: " + (e.reason || e.message), 'error');
+        if(statusEl) {
+            statusEl.innerText = "Erro: " + e.message;
+            statusEl.style.display = 'block';
+        }
     }
 }
 
 // ==========================================
-// 4. FUNÇÕES DAPP (MÓDULOS GLOBAIS)
+// 3. FUNÇÕES DAPP (CONTRATOS)
 // ==========================================
 
 const CONTRACTS = {
@@ -135,7 +76,7 @@ const ABIS = {
     erc20: ["function approve(address spender, uint256 amount) external", "function decimals() view returns (uint8)", "function symbol() view returns (string)"]
 };
 
-// Navegação
+// --- NAVEGAÇÃO E LOGS ---
 window.switchTab = function(tabId, btn) {
     document.querySelectorAll('.module-section').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -156,6 +97,7 @@ function log(msg, type='normal') {
 }
 function clean(val) { return val ? val.trim() : ""; }
 
+// --- SUPABASE & RANK ---
 async function checkRegister(wallet) {
     try {
         let { data: user } = await supabaseClient.from('users').select('*').eq('wallet_address', wallet).single();
@@ -170,6 +112,34 @@ async function checkRegister(wallet) {
     } catch(e) {}
 }
 
+async function addPoints(pts) {
+    if(!supabaseClient) return;
+    let { data: u } = await supabaseClient.from('users').select('points').eq('wallet_address', userAddress).single();
+    if(u) await supabaseClient.from('users').update({ points: (u.points||0)+pts }).eq('wallet_address', userAddress);
+}
+
+window.saveProfile = async function() {
+    const name = document.getElementById("profileName").value;
+    const av = document.getElementById("profileAvatar").value;
+    if(userAddress) {
+        await supabaseClient.from('users').update({ username: name, avatar_url: av }).eq('wallet_address', userAddress);
+        log("Salvo!", 'success'); window.loadLeaderboard();
+    }
+}
+
+window.loadLeaderboard = async function() {
+    const div = document.getElementById("leaderboardList");
+    div.innerHTML = "<p>Buscando...</p>";
+    if(!supabaseClient) { div.innerHTML = "<p>Offline</p>"; return; }
+    const { data: users } = await supabaseClient.from('users').select('*').order('points', { ascending: false }).limit(10);
+    let html = "";
+    users.forEach((u, i) => {
+        html += `<div class="asset-card" style="align-items:center;"><div>#${i+1} <b>${u.username||u.wallet_address.substring(0,4)}</b></div><div style="color:#00ff9d">${u.points} PTS</div></div>`;
+    });
+    div.innerHTML = html;
+}
+
+// --- OPERAÇÕES DO DAPP ---
 window.createToken = async function() {
     const name = document.getElementById("tokenName").value;
     const symbol = document.getElementById("tokenSymbol").value;
@@ -234,33 +204,6 @@ window.createVesting = async function() {
         log("Criado!", 'success');
         if(supabaseClient) addPoints(75);
     } catch(e) { log("Erro: " + e.message, 'error'); }
-}
-
-async function addPoints(pts) {
-    if(!supabaseClient) return;
-    let { data: u } = await supabaseClient.from('users').select('points').eq('wallet_address', userAddress).single();
-    if(u) await supabaseClient.from('users').update({ points: (u.points||0)+pts }).eq('wallet_address', userAddress);
-}
-
-window.saveProfile = async function() {
-    const name = document.getElementById("profileName").value;
-    const av = document.getElementById("profileAvatar").value;
-    if(userAddress) {
-        await supabaseClient.from('users').update({ username: name, avatar_url: av }).eq('wallet_address', userAddress);
-        log("Salvo!", 'success'); window.loadLeaderboard();
-    }
-}
-
-window.loadLeaderboard = async function() {
-    const div = document.getElementById("leaderboardList");
-    div.innerHTML = "<p>Buscando...</p>";
-    if(!supabaseClient) { div.innerHTML = "<p>Offline</p>"; return; }
-    const { data: users } = await supabaseClient.from('users').select('*').order('points', { ascending: false }).limit(10);
-    let html = "";
-    users.forEach((u, i) => {
-        html += `<div class="asset-card" style="align-items:center;"><div>#${i+1} <b>${u.username||u.wallet_address.substring(0,4)}</b></div><div style="color:#00ff9d">${u.points} PTS</div></div>`;
-    });
-    div.innerHTML = html;
 }
 
 window.detectDecimals = async function(mod) {
