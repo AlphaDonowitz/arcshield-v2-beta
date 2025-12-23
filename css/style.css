@@ -240,15 +240,13 @@ input:focus { outline: 1px solid var(--accent-color); }
     background: #333; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.7rem;
 }
 
-/* =========================================
-   NOVO: MODAL DE SUCESSO (GROWTH LOOP)
-   ========================================= */
+/* MODAL DE SUCESSO (GROWTH LOOP) */
 .modal-overlay {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0,0,0,0.85);
     backdrop-filter: blur(5px);
-    display: none; /* Escondido por padrão */
+    display: none;
     justify-content: center;
     align-items: center;
     z-index: 1000;
