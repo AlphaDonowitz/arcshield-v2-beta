@@ -98,7 +98,9 @@ window.createToken = async function() {
     const name = document.getElementById("tokenName").value;
     const symbol = document.getElementById("tokenSymbol").value;
     const supply = document.getElementById("tokenSupply").value;
-    if(!name || !supply) return log("Preencha tudo", 'error');
+    
+    if(!name || !symbol || !supply) return log("Preencha todos os campos!", 'error');
+    
     try {
         const c = new ethers.Contract(CONTRACTS.factory, ABIS.factory, signer);
         log("Criando Token...", 'normal');
@@ -120,19 +122,28 @@ window.createToken = async function() {
 
 window.sendBatch = async function() {
     const token = clean(document.getElementById("multiTokenAddr").value);
-    const raw = document.getElementById("csvInput").value.split(/\r?\n/);
+    const raw = document.getElementById("csvInput").value;
+    
+    if(!token || !raw) return log("Preencha o Token e a Lista CSV.", 'error');
+
+    const lines = raw.split(/\r?\n/);
     let rec=[], amt=[];
-    for(let line of raw) {
+    
+    for(let line of lines) {
         let p = line.split(',');
         if(p.length >= 2) {
             rec.push(p[0].trim());
-            try { amt.push(ethers.parseUnits(p[1].trim(), currentDecimals)); } catch(e){}
+            // Corrige vírgula e remove espaços
+            let cleanAmt = p[1].trim().replace(',', '.');
+            try { amt.push(ethers.parseUnits(cleanAmt, currentDecimals)); } catch(e){}
         }
     }
-    if(rec.length === 0) return log("Lista vazia", 'error');
+    
+    if(rec.length === 0) return log("Lista vazia ou inválida", 'error');
+    
     try {
         const c = new ethers.Contract(CONTRACTS.multi, ABIS.multi, signer);
-        log(`Enviando para ${rec.length}...`);
+        log(`Enviando para ${rec.length} carteiras...`);
         const tx = await c.multisendToken(token, rec, amt);
         await tx.wait();
 
@@ -153,9 +164,22 @@ window.lockTokens = async function() {
     const token = clean(document.getElementById("lockTokenAddr").value);
     const amount = document.getElementById("lockAmount").value;
     const date = document.getElementById("lockDate").value;
+
+    // VALIDAÇÃO BLINDADA
+    if(!token) return log("Endereço do Token inválido.", 'error');
+    if(!amount) return log("Digite a quantidade.", 'error');
+    if(!date) return log("Selecione a Data de Liberação.", 'error');
+
     try {
-        const wei = ethers.parseUnits(amount, currentDecimals);
+        // Corrige vírgula para ponto
+        const safeAmount = amount.replace(',', '.');
+        const wei = ethers.parseUnits(safeAmount, currentDecimals);
+        
+        // Valida Data
         const time = Math.floor(new Date(date).getTime() / 1000);
+        if(isNaN(time)) return log("Data inválida.", 'error');
+        if(time < Math.floor(Date.now()/1000)) return log("A data deve ser no futuro!", 'error');
+
         const c = new ethers.Contract(CONTRACTS.lock, ABIS.lock, signer);
         log("Trancando...");
         const tx = await c.lockTokens(token, wei, time);
@@ -171,7 +195,7 @@ window.lockTokens = async function() {
             tx.hash
         );
 
-    } catch (e) { log("Erro: " + e.message, 'error'); }
+    } catch (e) { log("Erro: " + (e.reason || e.message), 'error'); }
 }
 
 window.createVesting = async function() {
@@ -179,9 +203,14 @@ window.createVesting = async function() {
     const bene = clean(document.getElementById("vestBeneficiary").value);
     const amount = document.getElementById("vestAmount").value;
     const dur = document.getElementById("vestDuration").value;
+
+    if(!token || !bene || !amount || !dur) return log("Preencha todos os campos do Vesting.", 'error');
+
     try {
-        const wei = ethers.parseUnits(amount, currentDecimals);
+        const safeAmount = amount.replace(',', '.');
+        const wei = ethers.parseUnits(safeAmount, currentDecimals);
         const sec = parseInt(dur) * 60;
+        
         const c = new ethers.Contract(CONTRACTS.vest, ABIS.vest, signer);
         log("Criando Vesting...");
         const tx = await c.createVestingSchedule(token, bene, Math.floor(Date.now()/1000), 0, sec, wei, true);
@@ -274,6 +303,8 @@ window.approveToken = async function(mod) {
     const mapAddr = { multi: CONTRACTS.multi, lock: CONTRACTS.lock, vest: CONTRACTS.vest };
     const mapInput = { multi: 'multiTokenAddr', lock: 'lockTokenAddr', vest: 'vestTokenAddr' };
     const token = clean(document.getElementById(mapInput[mod]).value);
+    if(!token) return log("Insira o endereço do token", 'error');
+    
     try {
         log("Aprovando...");
         await (await new ethers.Contract(token, ABIS.erc20, signer).approve(mapAddr[mod], ethers.MaxUint256)).wait();
