@@ -1,20 +1,5 @@
 // ==========================================
-// 1. UI & INICIALIZAÇÃO IMEDIATA
-// ==========================================
-
-// Esta função agora está blindada. Ela existe independente das bibliotecas.
-window.startApp = function() {
-    console.log("🚀 Iniciando aplicação...");
-    const screen = document.getElementById('startScreen');
-    const app = document.getElementById('appContainer');
-    if(screen && app) {
-        screen.style.display = 'none';
-        app.style.display = 'flex';
-    }
-}
-
-// ==========================================
-// 2. CONFIGURAÇÕES & VARIÁVEIS
+// 1. CONFIGURAÇÕES GLOBAIS
 // ==========================================
 let provider, signer, userAddress;
 let currentDecimals = 18;
@@ -23,12 +8,11 @@ let web3auth = null;
 const SUPABASE_URL = 'https://jfgiiuzqyqjbfaubdhja.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmZ2lpdXpxeXFqYmZhdWJkaGphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4OTk2NzIsImV4cCI6MjA4MTQ3NTY3Mn0.4AZ_FIazsIlP5I_FPpAQh0lkIXRpBwGVfKVG3nwzxWA';
 let supabaseClient = null;
-
-// Tenta iniciar Supabase com segurança
 try {
     if (window.supabase) supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-} catch(e) { console.error("Supabase offline"); }
+} catch(e) {}
 
+// Configuração da Rede Arc
 const ARC_CHAIN = {
     chainNamespace: "eip155",
     chainId: "0x4cefba",
@@ -42,52 +26,49 @@ const ARC_CHAIN = {
 const WEB3AUTH_CLIENT_ID = "BGRg-3_GuM3Qefz4iAu_aT9DVxIED7NoOpI4bEh_Ttl1mVuzC2F5Vm8r_BYjfbuo2CWbkezDMB5S_4HIyj48IkE"; 
 
 // ==========================================
-// 3. INICIALIZAÇÃO WEB3AUTH (ASSÍNCRONA)
+// 2. INICIALIZAÇÃO WEB3AUTH (CORREÇÃO DE REDE)
 // ==========================================
 
 async function initWeb3Auth() {
-    const statusEl = document.getElementById("loginStatus");
     try {
-        // Verifica se a biblioteca window.modal existe (padrão do script unpkg)
+        // Verifica se a biblioteca V8 carregou (window.modal.Web3Auth)
         if (!window.modal || !window.modal.Web3Auth) {
-            console.log("⚠️ Biblioteca Web3Auth ainda não carregou. Tentando em breve...");
-            setTimeout(initWeb3Auth, 1000); // Tenta de novo em 1s
+            console.log("⚠️ Biblioteca Web3Auth V8 ainda não disponível.");
             return;
         }
 
-        console.log("🛠️ Configurando Web3Auth...");
+        // Evita reinicializar se já existe
+        if (web3auth) return;
+
+        console.log("🛠️ Configurando Web3Auth (Sapphire Devnet)...");
         
         web3auth = new window.modal.Web3Auth({
             clientId: WEB3AUTH_CLIENT_ID,
-            web3AuthNetwork: "sapphire_devnet",
             chainConfig: ARC_CHAIN,
-            uiConfig: {
-                appName: "Arc Shield",
-                mode: "dark",
-                theme: "dark"
-            }
+            // AQUI ESTÁ A CORREÇÃO: Deve ser igual ao seu painel (Devnet)
+            web3AuthNetwork: "sapphire_devnet" 
         });
 
         await web3auth.initModal();
-        console.log("✅ Web3Auth Pronto!");
+        console.log("✅ Web3Auth Pronto e Conectado à Devnet!");
+        
+        // Esconde erro se existir
+        const statusEl = document.getElementById("loginStatus");
         if(statusEl) statusEl.style.display = 'none';
 
     } catch (e) {
-        console.error("Erro Web3Auth:", e);
-        if(statusEl) {
-            statusEl.innerText = "Erro Login Social: " + (e.message || "Bloqueio de Rede");
-            statusEl.style.display = 'block';
-        }
+        console.error("Erro Web3Auth Init:", e);
     }
 }
 
-// Inicia o Web3Auth em segundo plano, sem travar o site
-window.onload = function() {
+// Tenta iniciar assim que carregar, e tenta de novo após 1.5s (segurança)
+window.addEventListener('load', () => {
     initWeb3Auth();
-};
+    setTimeout(initWeb3Auth, 1500);
+});
 
 // ==========================================
-// 4. LÓGICA DE CONEXÃO
+// 3. CONEXÃO
 // ==========================================
 
 window.connectWallet = async function(method) {
@@ -102,21 +83,22 @@ window.connectWallet = async function(method) {
         } 
         else if (method === 'social') {
             if (!web3auth) {
-                // Tenta forçar o carregamento
-                await initWeb3Auth();
-                if(!web3auth) throw new Error("O sistema de login não carregou. Verifique sua conexão.");
+                await initWeb3Auth(); // Tenta carregar na hora do clique
+                if(!web3auth) throw new Error("O sistema de login não iniciou. Tente recarregar a página.");
             }
-            if(!web3auth.provider) {
-                await web3auth.connect();
-            }
-            if(!web3auth.provider) throw new Error("Login cancelado.");
-            provider = new ethers.BrowserProvider(web3auth.provider);
+            
+            // Abre o Modal
+            const web3authProvider = await web3auth.connect();
+            
+            if(!web3authProvider) throw new Error("Janela fechada ou login cancelado.");
+
+            provider = new ethers.BrowserProvider(web3authProvider);
             signer = await provider.getSigner();
         }
 
         userAddress = await signer.getAddress();
         
-        // Sucesso na conexão
+        // Sucesso
         document.getElementById("btnConnect").style.display = 'none';
         const btnSocial = document.getElementById("btnSocial");
         btnSocial.innerText = `🟢 ${userAddress.slice(0,6)}...`;
@@ -135,7 +117,7 @@ window.connectWallet = async function(method) {
 }
 
 // ==========================================
-// 5. FUNÇÕES DAPP
+// 4. FUNÇÕES DAPP (MÓDULOS GLOBAIS)
 // ==========================================
 
 const CONTRACTS = {
@@ -153,7 +135,7 @@ const ABIS = {
     erc20: ["function approve(address spender, uint256 amount) external", "function decimals() view returns (uint8)", "function symbol() view returns (string)"]
 };
 
-// Funções Helpers
+// Navegação
 window.switchTab = function(tabId, btn) {
     document.querySelectorAll('.module-section').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -188,7 +170,6 @@ async function checkRegister(wallet) {
     } catch(e) {}
 }
 
-// Funções de Contrato
 window.createToken = async function() {
     const name = document.getElementById("tokenName").value;
     const symbol = document.getElementById("tokenSymbol").value;
