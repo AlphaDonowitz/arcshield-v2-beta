@@ -14,7 +14,7 @@ try {
 } catch(e) { console.log("Modo Offline (Sem Rank)"); }
 
 // ==========================================
-// 2. CONEXÃO
+// 2. CONEXÃO (LITE)
 // ==========================================
 
 window.connectWallet = async function() {
@@ -46,18 +46,26 @@ window.connectWallet = async function() {
 }
 
 // ==========================================
-// 3. LÓGICA DO MODAL (GROWTH LOOP)
+// 3. LÓGICA DO MODAL (GROWTH LOOP + EXPLORER)
 // ==========================================
 
-window.showSuccessModal = function(title, msg, tweetText) {
+window.showSuccessModal = function(title, msg, tweetText, txHash) {
     document.getElementById("modalTitle").innerText = title;
     document.getElementById("modalMsg").innerText = msg;
     
-    // Configura o link do Twitter
-    const url = "https://arcshield-v2-beta.vercel.app"; // Seu link
+    // Configura Twitter
+    const url = "https://arcshield-v2-beta.vercel.app";
     const finalUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(url)}`;
-    
     document.getElementById("shareBtn").href = finalUrl;
+    
+    // Configura Explorer
+    if (txHash) {
+        const explorerLink = `https://testnet.arcscan.app/tx/${txHash}`;
+        const explorerBtn = document.getElementById("explorerBtn");
+        explorerBtn.href = explorerLink;
+        explorerBtn.style.display = "block";
+    }
+
     document.getElementById("successModal").style.display = "flex";
 }
 
@@ -95,16 +103,16 @@ window.createToken = async function() {
         const c = new ethers.Contract(CONTRACTS.factory, ABIS.factory, signer);
         log("Criando Token...", 'normal');
         const tx = await c.createToken(name, symbol, supply);
-        await tx.wait(); // Espera confirmação
+        await tx.wait(); 
         
         log(`Token ${symbol} Criado!`, 'success');
         if(supabaseClient) addPoints(100);
 
-        // GROWTH LOOP:
         showSuccessModal(
             "Token Criado! 🚀", 
-            `O token ${name} ($${symbol}) foi implantado na Arc Testnet com sucesso.`,
-            `Acabei de criar o token $${symbol} na #ArcTestnet usando o Arc Shield! 🛡️ A infraestrutura DeFi mais rápida. Build on Arc!`
+            `O token ${name} ($${symbol}) foi implantado na Arc Testnet.`,
+            `Acabei de criar o token $${symbol} na #ArcTestnet usando o Arc Shield! 🛡️ Build on Arc!`,
+            tx.hash
         );
 
     } catch (e) { log("Erro: " + (e.reason || e.message), 'error'); }
@@ -134,7 +142,8 @@ window.sendBatch = async function() {
         showSuccessModal(
             "Disparo Concluído! 📨",
             `Tokens enviados para ${rec.length} carteiras com sucesso.`,
-            `Acabei de fazer um airdrop para ${rec.length} pessoas na #ArcTestnet usando o Arc Shield Multisender! 🛡️🚀`
+            `Acabei de fazer um airdrop na #ArcTestnet usando o Arc Shield Multisender! 🛡️🚀`,
+            tx.hash
         );
 
     } catch (e) { log("Erro: " + e.message, 'error'); }
@@ -157,8 +166,9 @@ window.lockTokens = async function() {
 
         showSuccessModal(
             "Liquidez Trancada! 🔒",
-            "Seus tokens estão seguros no contrato de Locker da Arc Shield.",
-            "Acabei de trancar liquidez do meu projeto na #ArcTestnet usando o Arc Shield Locker! 🛡️ Segurança em primeiro lugar."
+            "Seus tokens estão seguros no contrato de Locker.",
+            "Acabei de trancar liquidez na #ArcTestnet usando o Arc Shield Locker! 🛡️",
+            tx.hash
         );
 
     } catch (e) { log("Erro: " + e.message, 'error'); }
@@ -182,14 +192,15 @@ window.createVesting = async function() {
 
         showSuccessModal(
             "Salário Criado! ⏳",
-            "O contrato de Vesting foi configurado e iniciado.",
-            "Configurei um pagamento automático (Vesting) na #ArcTestnet usando o Arc Shield! 🛡️ Pagamentos descentralizados."
+            "O contrato de Vesting foi iniciado.",
+            "Configurei um pagamento automático (Vesting) na #ArcTestnet usando o Arc Shield! 🛡️",
+            tx.hash
         );
 
     } catch (e) { log("Erro: " + e.message, 'error'); }
 }
 
-// --- UTILS ---
+// --- UTILS (Mantidos) ---
 window.switchTab = function(tabId, btn) {
     document.querySelectorAll('.module-section').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
