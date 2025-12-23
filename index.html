@@ -6,6 +6,20 @@
     <title>Arc Shield - Infrastructure Hub</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
+    
+    <script>
+        function forceStart() {
+            console.log("🚀 Início Forçado!");
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'flex';
+        }
+    </script>
+
+    <script src="https://unpkg.com/@web3auth/modal@8.12.4/dist/modal.umd.min.js"></script>
+    <script src="https://unpkg.com/@web3auth/ethereum-provider@8.12.4/dist/ethereumProvider.umd.min.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
 </head>
 <body>
 
@@ -17,7 +31,8 @@
             <div class="badge"><span class="dot"></span> Arc Testnet Live</div>
             <h1><span class="gradient-text">Arc</span> <span class="shield-gradient">Shield</span></h1>
             <p class="hero-desc">Hub de Infraestrutura DeFi: Crie, Distribua e Gerencie Ativos na Rede Arc.</p>
-            <button class="btn-hero" onclick="window.startApp()"><span>Iniciar DApp</span> <span>→</span></button>
+            
+            <button class="btn-hero" onclick="forceStart()"><span>Iniciar DApp</span> <span>→</span></button>
         </div>
 
         <div id="appContainer" style="display: none;">
@@ -124,12 +139,6 @@
         <div>Developed by <span style="color:#fff">@AlphaDonowitz</span></div>
         <div style="opacity:0.7">Arc Testnet Beta</div>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
-    
-    <script src="https://unpkg.com/@web3auth/modal@9.4.4/dist/modal.umd.min.js"></script>
-    <script src="https://unpkg.com/@web3auth/ethereum-provider@9.4.4/dist/ethereumProvider.umd.min.js"></script>
 
     <script src="js/app.js"></script>
 </body>
