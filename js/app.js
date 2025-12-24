@@ -4,17 +4,16 @@
 let provider, signer, userAddress;
 let currentDecimals = 18;
 
-// Configuração Supabase
 const SUPABASE_URL = 'https://jfgiiuzqyqjbfaubdhja.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmZ2lpdXpxeXFqYmZhdWJkaGphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4OTk2NzIsImV4cCI6MjA4MTQ3NTY3Mn0.4AZ_FIazsIlP5I_FPpAQh0lkIXRpBwGVfKVG3nwzxWA';
 let supabaseClient = null;
 try {
     if (window.supabase) supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     console.log("✅ Banco de Dados conectado.");
-} catch(e) { console.log("Modo Offline (Sem Rank)"); }
+} catch(e) { console.log("Modo Offline"); }
 
 // ==========================================
-// 2. CONEXÃO (LITE)
+// 2. CONEXÃO
 // ==========================================
 
 window.connectWallet = async function() {
@@ -46,26 +45,44 @@ window.connectWallet = async function() {
 }
 
 // ==========================================
-// 3. LÓGICA DO MODAL (GROWTH LOOP + EXPLORER)
+// 3. UTILS DE AIRDROP E MODAL
 // ==========================================
+
+// Leitura de Arquivo
+window.handleFileUpload = function(input) {
+    const file = input.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        document.getElementById('csvInput').value = e.target.result;
+        log(`Arquivo carregado: ${file.name}`, 'success');
+        updateSummary(); // Atualiza contagem
+    };
+    reader.readAsText(file);
+}
+
+// Atualiza resumo enquanto digita
+document.getElementById('csvInput').addEventListener('input', updateSummary);
+
+function updateSummary() {
+    const raw = document.getElementById("csvInput").value;
+    const lines = raw.split(/\r?\n/).filter(l => l.trim() !== "");
+    const count = lines.filter(l => l.includes('0x')).length;
+    document.getElementById("multiSummary").innerText = `${count} carteiras detectadas`;
+}
 
 window.showSuccessModal = function(title, msg, tweetText, txHash) {
     document.getElementById("modalTitle").innerText = title;
     document.getElementById("modalMsg").innerText = msg;
-    
-    // Configura Twitter
     const url = "https://arcshield-v2-beta.vercel.app";
     const finalUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(url)}`;
     document.getElementById("shareBtn").href = finalUrl;
-    
-    // Configura Explorer
     if (txHash) {
         const explorerLink = `https://testnet.arcscan.app/tx/${txHash}`;
         const explorerBtn = document.getElementById("explorerBtn");
         explorerBtn.href = explorerLink;
         explorerBtn.style.display = "block";
     }
-
     document.getElementById("successModal").style.display = "flex";
 }
 
@@ -74,7 +91,7 @@ window.closeSuccessModal = function() {
 }
 
 // ==========================================
-// 4. FUNÇÕES DAPP
+// 4. LÓGICA DO DAPP (SMART PARSER)
 // ==========================================
 
 const CONTRACTS = {
@@ -92,7 +109,62 @@ const ABIS = {
     erc20: ["function approve(address spender, uint256 amount) external", "function decimals() view returns (uint8)", "function symbol() view returns (string)"]
 };
 
-// --- FUNÇÕES PRINCIPAIS ---
+// --- MULTISENDER INTELIGENTE ---
+window.sendBatch = async function() {
+    const token = clean(document.getElementById("multiTokenAddr").value);
+    const raw = document.getElementById("csvInput").value;
+    
+    if(!token || !raw) return log("Preencha o Token e a Lista.", 'error');
+
+    const lines = raw.split(/\r?\n/);
+    let rec=[], amt=[];
+    
+    // O PARSER MÁGICO
+    for(let line of lines) {
+        // Divide por: virgula, ponto-virgula, tab ou espaço
+        let parts = line.split(/[;,\t\s]+/);
+        // Remove vazios
+        parts = parts.filter(p => p.trim() !== "");
+
+        if(parts.length >= 2) {
+            const address = parts[0].trim();
+            // Aceita virgula ou ponto no numero
+            const value = parts[1].trim().replace(',', '.');
+            
+            if(ethers.isAddress(address)) {
+                rec.push(address);
+                try { amt.push(ethers.parseUnits(value, currentDecimals)); } catch(e){}
+            }
+        }
+    }
+    
+    if(rec.length === 0) return log("Nenhuma carteira válida encontrada.", 'error');
+    
+    try {
+        const c = new ethers.Contract(CONTRACTS.multi, ABIS.multi, signer);
+        log(`Preparando envio para ${rec.length} carteiras...`);
+        
+        // Estima gas (opcional, mas bom pra debug)
+        // await c.multisendToken.estimateGas(token, rec, amt);
+
+        const tx = await c.multisendToken(token, rec, amt);
+        log("Transação enviada! Aguardando...", 'normal');
+        await tx.wait();
+
+        log("Airdrop Realizado!", 'success');
+        if(supabaseClient) addPoints(50);
+
+        showSuccessModal(
+            "Airdrop Concluído! 📨",
+            `${rec.length} carteiras receberam seus tokens.`,
+            `Acabei de disparar um Airdrop para ${rec.length} pessoas na #ArcTestnet usando o Arc Shield! 🛡️🚀`,
+            tx.hash
+        );
+
+    } catch (e) { log("Erro: " + (e.reason || e.message), 'error'); }
+}
+
+// --- RESTO DAS FUNÇÕES (MANTIDAS) ---
 
 window.createToken = async function() {
     const name = document.getElementById("tokenName").value;
@@ -110,54 +182,9 @@ window.createToken = async function() {
         log(`Token ${symbol} Criado!`, 'success');
         if(supabaseClient) addPoints(100);
 
-        showSuccessModal(
-            "Token Criado! 🚀", 
-            `O token ${name} ($${symbol}) foi implantado na Arc Testnet.`,
-            `Acabei de criar o token $${symbol} na #ArcTestnet usando o Arc Shield! 🛡️ Build on Arc!`,
-            tx.hash
-        );
+        showSuccessModal("Token Criado! 🚀", `Token ${name} ($${symbol}) implantado.`, `Criei o token $${symbol} na #ArcTestnet com Arc Shield! 🛡️`, tx.hash);
 
     } catch (e) { log("Erro: " + (e.reason || e.message), 'error'); }
-}
-
-window.sendBatch = async function() {
-    const token = clean(document.getElementById("multiTokenAddr").value);
-    const raw = document.getElementById("csvInput").value;
-    
-    if(!token || !raw) return log("Preencha o Token e a Lista CSV.", 'error');
-
-    const lines = raw.split(/\r?\n/);
-    let rec=[], amt=[];
-    
-    for(let line of lines) {
-        let p = line.split(',');
-        if(p.length >= 2) {
-            rec.push(p[0].trim());
-            // Corrige vírgula e remove espaços
-            let cleanAmt = p[1].trim().replace(',', '.');
-            try { amt.push(ethers.parseUnits(cleanAmt, currentDecimals)); } catch(e){}
-        }
-    }
-    
-    if(rec.length === 0) return log("Lista vazia ou inválida", 'error');
-    
-    try {
-        const c = new ethers.Contract(CONTRACTS.multi, ABIS.multi, signer);
-        log(`Enviando para ${rec.length} carteiras...`);
-        const tx = await c.multisendToken(token, rec, amt);
-        await tx.wait();
-
-        log("Enviado!", 'success');
-        if(supabaseClient) addPoints(50);
-
-        showSuccessModal(
-            "Disparo Concluído! 📨",
-            `Tokens enviados para ${rec.length} carteiras com sucesso.`,
-            `Acabei de fazer um airdrop na #ArcTestnet usando o Arc Shield Multisender! 🛡️🚀`,
-            tx.hash
-        );
-
-    } catch (e) { log("Erro: " + e.message, 'error'); }
 }
 
 window.lockTokens = async function() {
@@ -165,20 +192,14 @@ window.lockTokens = async function() {
     const amount = document.getElementById("lockAmount").value;
     const date = document.getElementById("lockDate").value;
 
-    // VALIDAÇÃO BLINDADA
-    if(!token) return log("Endereço do Token inválido.", 'error');
-    if(!amount) return log("Digite a quantidade.", 'error');
-    if(!date) return log("Selecione a Data de Liberação.", 'error');
+    if(!token || !amount || !date) return log("Preencha tudo.", 'error');
 
     try {
-        // Corrige vírgula para ponto
         const safeAmount = amount.replace(',', '.');
         const wei = ethers.parseUnits(safeAmount, currentDecimals);
-        
-        // Valida Data
         const time = Math.floor(new Date(date).getTime() / 1000);
-        if(isNaN(time)) return log("Data inválida.", 'error');
-        if(time < Math.floor(Date.now()/1000)) return log("A data deve ser no futuro!", 'error');
+        
+        if(time < Math.floor(Date.now()/1000)) return log("A data deve ser futura!", 'error');
 
         const c = new ethers.Contract(CONTRACTS.lock, ABIS.lock, signer);
         log("Trancando...");
@@ -188,12 +209,7 @@ window.lockTokens = async function() {
         log("Trancado!", 'success');
         if(supabaseClient) addPoints(50);
 
-        showSuccessModal(
-            "Liquidez Trancada! 🔒",
-            "Seus tokens estão seguros no contrato de Locker.",
-            "Acabei de trancar liquidez na #ArcTestnet usando o Arc Shield Locker! 🛡️",
-            tx.hash
-        );
+        showSuccessModal("Liquidez Trancada! 🔒", "Tokens seguros no Locker.", "Tranquei liquidez na #ArcTestnet com Arc Shield! 🛡️", tx.hash);
 
     } catch (e) { log("Erro: " + (e.reason || e.message), 'error'); }
 }
@@ -204,7 +220,7 @@ window.createVesting = async function() {
     const amount = document.getElementById("vestAmount").value;
     const dur = document.getElementById("vestDuration").value;
 
-    if(!token || !bene || !amount || !dur) return log("Preencha todos os campos do Vesting.", 'error');
+    if(!token || !bene || !amount || !dur) return log("Preencha tudo.", 'error');
 
     try {
         const safeAmount = amount.replace(',', '.');
@@ -219,17 +235,12 @@ window.createVesting = async function() {
         log("Criado!", 'success');
         if(supabaseClient) addPoints(75);
 
-        showSuccessModal(
-            "Salário Criado! ⏳",
-            "O contrato de Vesting foi iniciado.",
-            "Configurei um pagamento automático (Vesting) na #ArcTestnet usando o Arc Shield! 🛡️",
-            tx.hash
-        );
+        showSuccessModal("Vesting Criado! ⏳", "Pagamento programado.", "Criei um Vesting na #ArcTestnet com Arc Shield! 🛡️", tx.hash);
 
     } catch (e) { log("Erro: " + e.message, 'error'); }
 }
 
-// --- UTILS (Mantidos) ---
+// UTILS
 window.switchTab = function(tabId, btn) {
     document.querySelectorAll('.module-section').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -253,9 +264,8 @@ function clean(val) { return val ? val.trim() : ""; }
 async function checkRegister(wallet) {
     try {
         let { data: user } = await supabaseClient.from('users').select('*').eq('wallet_address', wallet).single();
-        if (!user) {
-            await supabaseClient.from('users').insert([{ wallet_address: wallet, points: 0 }]);
-        } else {
+        if (!user) await supabaseClient.from('users').insert([{ wallet_address: wallet, points: 0 }]);
+        else {
             const pName = document.getElementById('profileName');
             const pAvatar = document.getElementById('profileAvatar');
             if(user.username && pName) pName.value = user.username;
@@ -303,8 +313,7 @@ window.approveToken = async function(mod) {
     const mapAddr = { multi: CONTRACTS.multi, lock: CONTRACTS.lock, vest: CONTRACTS.vest };
     const mapInput = { multi: 'multiTokenAddr', lock: 'lockTokenAddr', vest: 'vestTokenAddr' };
     const token = clean(document.getElementById(mapInput[mod]).value);
-    if(!token) return log("Insira o endereço do token", 'error');
-    
+    if(!token) return log("Endereço Inválido", 'error');
     try {
         log("Aprovando...");
         await (await new ethers.Contract(token, ABIS.erc20, signer).approve(mapAddr[mod], ethers.MaxUint256)).wait();
