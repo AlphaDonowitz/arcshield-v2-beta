@@ -48,7 +48,8 @@
                 <button class="tab-btn" onclick="switchTab('multisender', this)">Multisender</button>
                 <button class="tab-btn" onclick="switchTab('locker', this)">Locker</button>
                 <button class="tab-btn" onclick="switchTab('vesting', this)">Vesting</button>
-                <button class="tab-btn" onclick="switchTab('dashboard', this)">Meus Ativos</button>
+                <button class="tab-btn" onclick="switchTab('trade', this)" style="color: var(--accent-color); border-color: var(--accent-color);">💱 Trade</button>
+                <button class="tab-btn" onclick="switchTab('dashboard', this)">💎 Claim</button>
                 <button class="tab-btn" onclick="switchTab('leaderboard', this)">🏆 Rank</button>
             </div>
 
@@ -69,15 +70,13 @@
                     
                     <div style="display:flex; justify-content:space-between; align-items:end; margin-top:15px; margin-bottom:5px;">
                         <label style="margin:0">Lista (Carteira, Quantidade)</label>
-                        
                         <div style="position:relative;">
                             <input type="file" id="fileUpload" accept=".txt, .csv" style="display:none;" onchange="handleFileUpload(this)">
                             <button class="mini-btn" onclick="document.getElementById('fileUpload').click()">📂 Upload TXT/CSV</button>
                         </div>
                     </div>
                     
-                    <textarea id="csvInput" placeholder="Cole aqui ou faça upload...&#10;Ex: 0x123... 500" style="height: 150px; font-family:monospace; font-size:0.85rem;"></textarea>
-                    
+                    <textarea id="csvInput" placeholder="Ex: 0x123... 500" style="height: 150px; font-family:monospace; font-size:0.85rem;"></textarea>
                     <p id="multiSummary" style="color: #64748b; font-size: 0.8rem; text-align: right; margin-top: 5px;">Aguardando dados...</p>
 
                     <div class="grid-2">
@@ -114,9 +113,31 @@
                     </div>
                 </div>
 
+                <div id="trade" class="module-section">
+                    <div style="text-align:center; padding: 20px;">
+                        <h3 style="margin-top:0;">Arc Swap</h3>
+                        <p style="color:#888; font-size:0.9rem;">Troque tokens instantaneamente.</p>
+                        
+                        <div style="background: #191919; border-radius: 16px; padding: 20px; border: 1px solid #333; max-width: 400px; margin: 0 auto;">
+                            <iframe
+                                src="https://app.uniswap.org/#/swap?theme=dark"
+                                height="400px"
+                                width="100%"
+                                style="border: 0; border-radius: 16px; display: block;"
+                                id="swapFrame"
+                            ></iframe>
+                        </div>
+                        <p class="hint">Nota: Widget demonstrativo. Na Mainnet usaremos Li.Fi ou 1inch.</p>
+                    </div>
+                </div>
+
                 <div id="dashboard" class="module-section">
+                    <div style="text-align:center; margin-bottom:15px;">
+                        <h3>💰 Seus Ativos</h3>
+                        <p class="hint">Tokens disponíveis para saque de Vestings.</p>
+                    </div>
                     <div id="dashboardContent"><p class="hint">Carregando...</p></div>
-                    <button class="btn-action btn-connect" onclick="loadDashboardData()" style="margin-top:20px">🔄 Atualizar</button>
+                    <button class="btn-action btn-connect" onclick="loadDashboardData()" style="margin-top:20px">🔄 Atualizar Portfolio</button>
                 </div>
 
                 <div id="leaderboard" class="module-section">
