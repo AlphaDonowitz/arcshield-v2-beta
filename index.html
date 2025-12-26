@@ -45,9 +45,9 @@
 
             <div class="nav-tabs" id="navTabs" style="display:none;">
                 <button class="tab-btn active" onclick="switchTab('creator', this)">Launchpad</button>
-                <button class="tab-btn" onclick="switchTab('multisender', this)">Multisender</button>
-                <button class="tab-btn" onclick="switchTab('locker', this)">Locker</button>
+                <button class="tab-btn" onclick="switchTab('pools', this)">💧 Pools</button> <button class="tab-btn" onclick="switchTab('locker', this)">Locker</button>
                 <button class="tab-btn" onclick="switchTab('vesting', this)">Vesting</button>
+                <button class="tab-btn" onclick="switchTab('multisender', this)">Multisend</button>
                 <button class="tab-btn" onclick="switchTab('trade', this)" style="color: var(--accent-color); border-color: var(--accent-color);">💱 Trade</button>
                 <button class="tab-btn" onclick="switchTab('dashboard', this)">💎 Claim</button>
                 <button class="tab-btn" onclick="switchTab('leaderboard', this)">🏆 Rank</button>
@@ -62,6 +62,34 @@
                     <label>Supply Inicial</label>
                     <input type="number" id="tokenSupply" placeholder="Ex: 1000000">
                     <button class="btn-action btn-create" onclick="createToken()">🚀 Criar Token (+100 Pts)</button>
+                </div>
+
+                <div id="pools" class="module-section">
+                    <div style="text-align:center; padding: 10px;">
+                        <h3 style="margin-top:0;">Gerenciar Liquidez</h3>
+                        <p style="color:#888; font-size:0.9rem;">Crie o mercado para o seu token aqui.</p>
+                        
+                        <div style="
+                            background: #000; 
+                            border-radius: 20px; 
+                            overflow: hidden; 
+                            border: 1px solid #333; 
+                            max-width: 500px; 
+                            margin: 0 auto;
+                            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+                        ">
+                            <iframe
+                                src="https://app.synthra.org/#/pool" 
+                                height="650px"
+                                width="100%"
+                                style="border: 0; display: block;"
+                                id="poolFrame"
+                            ></iframe>
+                        </div>
+                        <p class="hint" style="margin-top:15px">
+                            Dica: Após criar a Pool, use a aba <b>Locker</b> para trancar seus tokens LP e ganhar confiança.
+                        </p>
+                    </div>
                 </div>
 
                 <div id="multisender" class="module-section">
@@ -86,8 +114,8 @@
                 </div>
 
                 <div id="locker" class="module-section">
-                    <label>Token</label>
-                    <input type="text" id="lockTokenAddr" placeholder="Endereço (0x...)" onchange="detectDecimals('lock')">
+                    <label>Token (ou LP Token)</label>
+                    <input type="text" id="lockTokenAddr" placeholder="Endereço do Token ou LP" onchange="detectDecimals('lock')">
                     <label>Quantidade</label>
                     <input type="number" id="lockAmount">
                     <label>Data Liberação</label>
@@ -117,23 +145,8 @@
                     <div style="text-align:center; padding: 10px;">
                         <h3 style="margin-top:0;">Arc Swap</h3>
                         <p style="color:#888; font-size:0.9rem;">Powered by Synthra</p>
-                        
-                        <div style="
-                            background: #000; 
-                            border-radius: 20px; 
-                            overflow: hidden; 
-                            border: 1px solid #333; 
-                            max-width: 500px; 
-                            margin: 0 auto;
-                            box-shadow: 0 0 30px rgba(0,0,0,0.5);
-                        ">
-                            <iframe
-                                src="https://app.synthra.org/#/swap" 
-                                height="650px"
-                                width="100%"
-                                style="border: 0; display: block;"
-                                id="swapFrame"
-                            ></iframe>
+                        <div style="background: #000; border-radius: 20px; overflow: hidden; border: 1px solid #333; max-width: 500px; margin: 0 auto; box-shadow: 0 0 30px rgba(0,0,0,0.5);">
+                            <iframe src="https://app.synthra.org/#/swap" height="650px" width="100%" style="border: 0; display: block;" id="swapFrame"></iframe>
                         </div>
                     </div>
                 </div>
