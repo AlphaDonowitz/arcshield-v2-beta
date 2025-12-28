@@ -3,6 +3,7 @@
 // ==========================================
 let provider, signer, userAddress;
 let currentDecimals = 18;
+let uploadedLogoData = null; // Armazena a imagem do PFP em Base64
 
 // Configuração Supabase (Banco de Dados para Rank)
 const SUPABASE_URL = 'https://jfgiiuzqyqjbfaubdhja.supabase.co';
@@ -53,24 +54,44 @@ window.connectWallet = async function() {
 }
 
 // ==========================================
-// 3. UTILS (UPLOAD, MODAL E PARSER)
+// 3. UTILS (UPLOADS E MODAL)
 // ==========================================
 
-// Upload de Arquivo CSV/TXT
+// Upload da LOGO (PFP)
+window.handleLogoUpload = function(input) {
+    const file = input.files[0];
+    if(file) {
+        // Mostra o nome do arquivo para feedback
+        document.getElementById('logoFileName').innerText = file.name;
+        
+        // Lê o arquivo para memória (Base64)
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            uploadedLogoData = e.target.result;
+            log("Logo carregada com sucesso!", 'success');
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+// Upload de Arquivo CSV/TXT (Multisender)
 window.handleFileUpload = function(input) {
     const file = input.files[0];
     if(!file) return;
     const reader = new FileReader();
     reader.onload = function(e) {
         document.getElementById('csvInput').value = e.target.result;
-        log(`Arquivo carregado: ${file.name}`, 'success');
+        log(`Lista carregada: ${file.name}`, 'success');
         updateSummary();
     };
     reader.readAsText(file);
 }
 
 // Contador de Carteiras
-document.getElementById('csvInput').addEventListener('input', updateSummary);
+if(document.getElementById('csvInput')) {
+    document.getElementById('csvInput').addEventListener('input', updateSummary);
+}
+
 function updateSummary() {
     const raw = document.getElementById("csvInput").value;
     const lines = raw.split(/\r?\n/).filter(l => l.trim() !== "");
@@ -88,8 +109,8 @@ window.showSuccessModal = function(title, msg, tweetText, txHash, imageUrl = nul
     modalMsg.innerText = msg;
     
     // Se tiver Imagem (PFP), mostra ela. Se não, mostra Troféu.
-    if (imageUrl && imageUrl.startsWith('http')) {
-        iconSpan.innerHTML = `<img src="${imageUrl}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid #00ff9d; box-shadow: 0 0 15px rgba(0,255,157,0.3);">`;
+    if (imageUrl) {
+        iconSpan.innerHTML = `<img src="${imageUrl}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #00ff9d; box-shadow: 0 0 20px rgba(0,255,157,0.3);">`;
     } else {
         iconSpan.innerHTML = "🏆";
     }
@@ -138,8 +159,9 @@ window.createToken = async function() {
     const name = document.getElementById("tokenName").value;
     const symbol = document.getElementById("tokenSymbol").value;
     const supply = document.getElementById("tokenSupply").value;
-    const logoUrl = document.getElementById("tokenLogo").value.trim();
     const desc = document.getElementById("tokenDesc").value.trim();
+    
+    // A variável uploadedLogoData já contém a imagem se o usuário fez upload
     
     if(!name || !symbol || !supply) return log("Preencha os campos obrigatórios!", 'error');
     
@@ -157,7 +179,8 @@ window.createToken = async function() {
         const tweetDesc = desc ? desc : `Criei o token $${symbol} na #ArcTestnet com Arc Shield! 🛡️`;
         const modalBody = `Contrato implantado com sucesso.\n${desc ? '"'+desc+'"' : ''}`;
 
-        showSuccessModal(`Token ${symbol} Criado! 🚀`, modalBody, tweetDesc, tx.hash, logoUrl);
+        // Passa a imagem carregada (uploadedLogoData) para o modal
+        showSuccessModal(`Token ${symbol} Criado! 🚀`, modalBody, tweetDesc, tx.hash, uploadedLogoData);
 
     } catch (e) { log("Erro: " + (e.reason || e.message), 'error'); }
 }
@@ -320,7 +343,6 @@ async function checkRegister(wallet) {
         let { data: user } = await supabaseClient.from('users').select('*').eq('wallet_address', wallet).single();
         if (!user) await supabaseClient.from('users').insert([{ wallet_address: wallet, points: 0 }]);
         else {
-            // Carrega perfil se existir
             const pName = document.getElementById('profileName');
             const pAvatar = document.getElementById('profileAvatar');
             if(user.username && pName) pName.value = user.username;
@@ -367,7 +389,7 @@ window.loadDashboardData = async function() {
             for(let i=0; i<count; i++) {
                 const id = await c.getUserScheduleIdAtIndex(userAddress, i);
                 const s = await c.schedules(id);
-                // Calcula quanto já liberou (estimativa simples)
+                // Calcula quanto já liberou
                 const now = Math.floor(Date.now()/1000);
                 const elapsed = now - Number(s.start);
                 const total = Number(s.duration);
