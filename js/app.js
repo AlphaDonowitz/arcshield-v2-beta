@@ -3,9 +3,8 @@
 // ==========================================
 let provider, signer, userAddress;
 let currentDecimals = 18;
-let uploadedLogoData = null; // Armazena a imagem do PFP em Base64
+let uploadedLogoData = null; 
 
-// Configuração Supabase (Banco de Dados para Rank)
 const SUPABASE_URL = 'https://jfgiiuzqyqjbfaubdhja.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmZ2lpdXpxeXFqYmZhdWJkaGphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4OTk2NzIsImV4cCI6MjA4MTQ3NTY3Mn0.4AZ_FIazsIlP5I_FPpAQh0lkIXRpBwGVfKVG3nwzxWA';
 let supabaseClient = null;
@@ -15,7 +14,7 @@ try {
         supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         console.log("✅ Banco de Dados conectado.");
     }
-} catch(e) { console.log("Modo Offline (Sem Rank)"); }
+} catch(e) { console.log("Modo Offline"); }
 
 // ==========================================
 // 2. CONEXÃO WALLET
@@ -34,17 +33,13 @@ window.connectWallet = async function() {
         signer = await provider.getSigner();
         userAddress = await signer.getAddress();
         
-        // Atualiza Botão
         const btn = document.getElementById("btnConnect");
         btn.innerText = `🟢 Conectado: ${userAddress.slice(0,6)}...`;
         btn.classList.add('btn-disconnect');
         btn.onclick = null; 
 
-        // Mostra o App
         document.getElementById("navTabs").style.display = 'flex';
         log(`Conectado: ${userAddress}`, 'success');
-        
-        // Registra Usuário no Rank
         if(supabaseClient) checkRegister(userAddress);
 
     } catch (e) {
@@ -54,27 +49,22 @@ window.connectWallet = async function() {
 }
 
 // ==========================================
-// 3. UTILS (UPLOADS E MODAL)
+// 3. UTILS (UPLOAD, CARD, SMART SHARE)
 // ==========================================
 
-// Upload da LOGO (PFP)
 window.handleLogoUpload = function(input) {
     const file = input.files[0];
     if(file) {
-        // Mostra o nome do arquivo para feedback
         document.getElementById('logoFileName').innerText = file.name;
-        
-        // Lê o arquivo para memória (Base64)
         const reader = new FileReader();
         reader.onload = function(e) {
             uploadedLogoData = e.target.result;
-            log("Logo carregada com sucesso!", 'success');
+            log("Logo carregada!", 'success');
         };
         reader.readAsDataURL(file);
     }
 }
 
-// Upload de Arquivo CSV/TXT (Multisender)
 window.handleFileUpload = function(input) {
     const file = input.files[0];
     if(!file) return;
@@ -87,7 +77,6 @@ window.handleFileUpload = function(input) {
     reader.readAsText(file);
 }
 
-// Contador de Carteiras
 if(document.getElementById('csvInput')) {
     document.getElementById('csvInput').addEventListener('input', updateSummary);
 }
@@ -99,28 +88,122 @@ function updateSummary() {
     document.getElementById("multiSummary").innerText = `${count} carteiras detectadas`;
 }
 
-// Modal de Sucesso Dinâmico
-window.showSuccessModal = function(title, msg, tweetText, txHash, imageUrl = null) {
+// --- GERADOR DE CARD SOCIAL ---
+async function generateSocialCard(name, symbol, supply, logoData) {
+    document.getElementById('cardTokenSymbol').innerText = "$" + symbol;
+    document.getElementById('cardTokenName').innerText = name;
+    document.getElementById('cardTokenSupply').innerText = supply;
+    const imgEl = document.getElementById('cardTokenLogo');
+    
+    if(logoData) {
+        imgEl.src = logoData;
+        imgEl.style.display = 'block';
+    } else {
+        imgEl.style.display = 'none';
+    }
+
+    const element = document.getElementById("socialCardTemplate");
+    try {
+        const canvas = await html2canvas(element, { backgroundColor: null, scale: 2 });
+        return canvas.toDataURL("image/png");
+    } catch(e) {
+        console.error("Erro ao gerar card", e);
+        return null;
+    }
+}
+
+// Helper: Converter DataURL para Blob (Necessário para Clipboard)
+function dataURLtoBlob(dataurl) {
+    var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+        bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+    while(n--){
+        u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], {type:mime});
+}
+
+// --- FUNÇÃO SMART SHARE (A MÁGICA) ---
+window.smartShare = async function(tweetText, cardDataUrl) {
+    if (!cardDataUrl) return;
+
+    const blob = dataURLtoBlob(cardDataUrl);
+    const file = new File([blob], 'arc-shield-card.png', { type: 'image/png' });
+    const shareData = {
+        title: 'Arc Shield Launch',
+        text: tweetText,
+        files: [file]
+    };
+
+    // 1. Tenta Compartilhamento Nativo (Mobile)
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+        try {
+            await navigator.share(shareData);
+            log("Compartilhado via Mobile!", 'success');
+            return;
+        } catch (err) {
+            console.log("Share API cancelada ou erro, tentando clipboard...", err);
+        }
+    }
+
+    // 2. Fallback: Clipboard + Twitter Intent (Desktop)
+    try {
+        await navigator.clipboard.write([
+            new ClipboardItem({ 'image/png': blob })
+        ]);
+        
+        // Feedback Visual
+        document.getElementById('shareHint').style.display = 'block';
+        const btn = document.getElementById('smartShareBtn');
+        btn.innerText = "✅ Copiado! Cole no X";
+        
+        // Abre o Twitter
+        const url = "https://arcshield-v2.vercel.app";
+        const intentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(url)}`;
+        window.open(intentUrl, '_blank');
+
+    } catch (err) {
+        console.error("Erro Clipboard:", err);
+        alert("Não foi possível copiar automaticamente. Use o botão 'Baixar Imagem'.");
+    }
+}
+
+window.showSuccessModal = async function(title, msg, tweetText, txHash, imageUrl = null, cardData = null) {
     const modalTitle = document.getElementById("modalTitle");
     const modalMsg = document.getElementById("modalMsg");
     const iconSpan = document.querySelector(".success-icon");
+    const cardContainer = document.getElementById("generatedCardContainer");
+    const downloadBtn = document.getElementById("downloadCardBtn");
+    const smartBtn = document.getElementById("smartShareBtn");
+    const hint = document.getElementById("shareHint");
 
+    // Reseta Estado
     modalTitle.innerText = title;
     modalMsg.innerText = msg;
+    hint.style.display = 'none';
+    smartBtn.innerText = "🐦 Postar no X (Copiar & Abrir)";
     
-    // Se tiver Imagem (PFP), mostra ela. Se não, mostra Troféu.
+    // Ícone
     if (imageUrl) {
         iconSpan.innerHTML = `<img src="${imageUrl}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #00ff9d; box-shadow: 0 0 20px rgba(0,255,157,0.3);">`;
     } else {
         iconSpan.innerHTML = "🏆";
     }
+
+    // Configura Botão Inteligente
+    if (cardData) {
+        cardContainer.style.display = 'flex';
+        cardContainer.innerHTML = `<img src="${cardData}" style="width: 100%; border-radius: 12px; border: 1px solid #333; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">`;
+        
+        downloadBtn.href = cardData; // Link para download manual
+        
+        // Atribui a função ao clique
+        smartBtn.onclick = () => smartShare(tweetText, cardData);
+        smartBtn.style.display = 'block';
+    } else {
+        cardContainer.style.display = 'none';
+        smartBtn.style.display = 'none';
+    }
     
-    // Link do Twitter
-    const url = "https://arcshield-v2.vercel.app";
-    const finalUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(url)}`;
-    document.getElementById("shareBtn").href = finalUrl;
-    
-    // Link do Explorer
     if (txHash) {
         const explorerLink = `https://testnet.arcscan.app/tx/${txHash}`;
         const explorerBtn = document.getElementById("explorerBtn");
@@ -154,14 +237,12 @@ const ABIS = {
     erc20: ["function approve(address spender, uint256 amount) external", "function decimals() view returns (uint8)", "function symbol() view returns (string)"]
 };
 
-// --- 1. LAUNCHPAD (Com Branding) ---
+// --- LAUNCHPAD (COM GERADOR DE CARDS) ---
 window.createToken = async function() {
     const name = document.getElementById("tokenName").value;
     const symbol = document.getElementById("tokenSymbol").value;
     const supply = document.getElementById("tokenSupply").value;
     const desc = document.getElementById("tokenDesc").value.trim();
-    
-    // A variável uploadedLogoData já contém a imagem se o usuário fez upload
     
     if(!name || !symbol || !supply) return log("Preencha os campos obrigatórios!", 'error');
     
@@ -175,17 +256,19 @@ window.createToken = async function() {
         log(`Token ${symbol} Criado!`, 'success');
         if(supabaseClient) addPoints(100);
 
-        // Prepara mensagem personalizada
+        // --- GERAÇÃO DO CARD SOCIAL ---
+        log("Gerando Card Social...", 'normal');
+        const cardImage = await generateSocialCard(name, symbol, supply, uploadedLogoData);
+
         const tweetDesc = desc ? desc : `Criei o token $${symbol} na #ArcTestnet com Arc Shield! 🛡️`;
         const modalBody = `Contrato implantado com sucesso.\n${desc ? '"'+desc+'"' : ''}`;
 
-        // Passa a imagem carregada (uploadedLogoData) para o modal
-        showSuccessModal(`Token ${symbol} Criado! 🚀`, modalBody, tweetDesc, tx.hash, uploadedLogoData);
+        showSuccessModal(`Token ${symbol} Criado! 🚀`, modalBody, tweetDesc, tx.hash, uploadedLogoData, cardImage);
 
     } catch (e) { log("Erro: " + (e.reason || e.message), 'error'); }
 }
 
-// --- 2. MULTISENDER (Parser Inteligente) ---
+// --- MULTISENDER ---
 window.sendBatch = async function() {
     const token = clean(document.getElementById("multiTokenAddr").value);
     const raw = document.getElementById("csvInput").value;
@@ -196,14 +279,11 @@ window.sendBatch = async function() {
     let rec=[], amt=[];
     
     for(let line of lines) {
-        // Separa por vírgula, ponto-virgula, tab ou espaço
         let parts = line.split(/[;,\t\s]+/);
         parts = parts.filter(p => p.trim() !== "");
-
         if(parts.length >= 2) {
             const address = parts[0].trim();
-            const value = parts[1].trim().replace(',', '.'); // Correção PT-BR
-            
+            const value = parts[1].trim().replace(',', '.');
             if(ethers.isAddress(address)) {
                 rec.push(address);
                 try { amt.push(ethers.parseUnits(value, currentDecimals)); } catch(e){}
@@ -211,7 +291,7 @@ window.sendBatch = async function() {
         }
     }
     
-    if(rec.length === 0) return log("Nenhuma carteira válida encontrada.", 'error');
+    if(rec.length === 0) return log("Nenhuma carteira válida.", 'error');
     
     try {
         const c = new ethers.Contract(CONTRACTS.multi, ABIS.multi, signer);
@@ -222,17 +302,12 @@ window.sendBatch = async function() {
         log("Enviado!", 'success');
         if(supabaseClient) addPoints(50);
 
-        showSuccessModal(
-            "Airdrop Concluído! 📨",
-            `${rec.length} carteiras receberam seus tokens.`,
-            `Disparei um Airdrop para ${rec.length} pessoas na #ArcTestnet via Arc Shield! 🛡️`,
-            tx.hash
-        );
+        showSuccessModal("Airdrop Concluído! 📨", `${rec.length} carteiras receberam.`, `Airdrop para ${rec.length} pessoas via Arc Shield! 🛡️`, tx.hash);
 
     } catch (e) { log("Erro: " + (e.reason || e.message), 'error'); }
 }
 
-// --- 3. LOCKER (Validação de Data) ---
+// --- LOCKER ---
 window.lockTokens = async function() {
     const token = clean(document.getElementById("lockTokenAddr").value);
     const amount = document.getElementById("lockAmount").value;
@@ -244,8 +319,7 @@ window.lockTokens = async function() {
         const safeAmount = amount.replace(',', '.');
         const wei = ethers.parseUnits(safeAmount, currentDecimals);
         const time = Math.floor(new Date(date).getTime() / 1000);
-        
-        if(time < Math.floor(Date.now()/1000)) return log("A data deve ser futura!", 'error');
+        if(time < Math.floor(Date.now()/1000)) return log("Data futura necessária!", 'error');
 
         const c = new ethers.Contract(CONTRACTS.lock, ABIS.lock, signer);
         log("Trancando...");
@@ -255,12 +329,12 @@ window.lockTokens = async function() {
         log("Trancado!", 'success');
         if(supabaseClient) addPoints(50);
 
-        showSuccessModal("Liquidez Trancada! 🔒", "Tokens seguros no Locker.", "Tranquei liquidez na #ArcTestnet via Arc Shield! 🛡️", tx.hash);
+        showSuccessModal("Liquidez Trancada! 🔒", "Tokens seguros no Locker.", "Tranquei liquidez via Arc Shield! 🛡️", tx.hash);
 
     } catch (e) { log("Erro: " + (e.reason || e.message), 'error'); }
 }
 
-// --- 4. VESTING (Salário) ---
+// --- VESTING ---
 window.createVesting = async function() {
     const token = clean(document.getElementById("vestTokenAddr").value);
     const bene = clean(document.getElementById("vestBeneficiary").value);
@@ -272,7 +346,7 @@ window.createVesting = async function() {
     try {
         const safeAmount = amount.replace(',', '.');
         const wei = ethers.parseUnits(safeAmount, currentDecimals);
-        const sec = parseInt(dur) * 60; // Minutos para Segundos
+        const sec = parseInt(dur) * 60;
         
         const c = new ethers.Contract(CONTRACTS.vest, ABIS.vest, signer);
         log("Criando Vesting...");
@@ -282,15 +356,12 @@ window.createVesting = async function() {
         log("Criado!", 'success');
         if(supabaseClient) addPoints(75);
 
-        showSuccessModal("Vesting Criado! ⏳", "Pagamento programado com sucesso.", "Criei um Vesting na #ArcTestnet via Arc Shield! 🛡️", tx.hash);
+        showSuccessModal("Vesting Criado! ⏳", "Pagamento programado.", "Criei Vesting via Arc Shield! 🛡️", tx.hash);
 
     } catch (e) { log("Erro: " + e.message, 'error'); }
 }
 
-// ==========================================
-// 5. UTILS GERAIS
-// ==========================================
-
+// --- UTILS GERAIS ---
 window.switchTab = function(tabId, btn) {
     document.querySelectorAll('.module-section').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -337,7 +408,6 @@ window.approveToken = async function(mod) {
 }
 
 // --- SUPABASE & DASHBOARD ---
-
 async function checkRegister(wallet) {
     try {
         let { data: user } = await supabaseClient.from('users').select('*').eq('wallet_address', wallet).single();
@@ -389,7 +459,6 @@ window.loadDashboardData = async function() {
             for(let i=0; i<count; i++) {
                 const id = await c.getUserScheduleIdAtIndex(userAddress, i);
                 const s = await c.schedules(id);
-                // Calcula quanto já liberou
                 const now = Math.floor(Date.now()/1000);
                 const elapsed = now - Number(s.start);
                 const total = Number(s.duration);
@@ -405,9 +474,9 @@ window.loadDashboardData = async function() {
                     <button class="mini-btn" onclick="claimVesting(${id})">SACAR</button>
                 </div>`;
             }
-        } else html = "<p class='hint'>Nenhum Vesting encontrado para sua carteira.</p>";
+        } else html = "<p class='hint'>Nenhum Vesting encontrado.</p>";
         div.innerHTML = html;
-    } catch(e) { div.innerHTML = "Erro ao buscar dados."; console.log(e); }
+    } catch(e) { div.innerHTML = "Erro ao buscar dados."; }
 }
 
 window.claimVesting = async function(id) {
@@ -416,5 +485,5 @@ window.claimVesting = async function(id) {
         await (await new ethers.Contract(CONTRACTS.vest, ABIS.vest, signer).release(id)).wait(); 
         log("Saque realizado!", 'success'); 
         loadDashboardData(); 
-    } catch(e){ log("Erro no Saque (Talvez nada a sacar agora)", 'error'); }
+    } catch(e){ log("Erro no Saque", 'error'); }
 }
