@@ -1,21 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Arc Shield - Infrastructure Hub</title>
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+    
     <link rel="stylesheet" href="css/style.css">
     
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+
     <script>
         function startApp() {
             document.getElementById('startScreen').style.display = 'none';
             document.getElementById('appContainer').style.display = 'flex';
         }
     </script>
-
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
 </head>
 <body>
 
@@ -31,6 +33,7 @@
         </div>
 
         <div id="appContainer" style="display: none;">
+            
             <div style="text-align: center; margin-bottom: 20px;">
                 <h2 style="margin:0;"><span class="gradient-text">Arc</span> <span class="shield-gradient">Shield</span></h2>
                 <p style="color:#64748b; font-size:0.9rem;">DeFi Suite V2</p>
@@ -53,13 +56,25 @@
             </div>
 
             <div class="card">
+                
                 <div id="creator" class="module-section active">
                     <label>Nome do Projeto</label>
                     <input type="text" id="tokenName" placeholder="Ex: Arc Governance">
+                    
                     <label>Símbolo (Ticker)</label>
                     <input type="text" id="tokenSymbol" placeholder="Ex: ARC">
+                    
                     <label>Supply Inicial</label>
                     <input type="number" id="tokenSupply" placeholder="Ex: 1000000">
+
+                    <label>Logo / PFP (URL da Imagem)</label>
+                    <input type="text" id="tokenLogo" placeholder="https://...">
+
+                    <details class="advanced-options">
+                        <summary>📝 Adicionar Descrição / Info</summary>
+                        <textarea id="tokenDesc" placeholder="Descreva a utilidade do seu token..."></textarea>
+                    </details>
+
                     <button class="btn-action btn-create" onclick="createToken()">🚀 Criar Token (+100 Pts)</button>
                 </div>
 
@@ -115,7 +130,7 @@
                 <div id="dashboard" class="module-section">
                     <div style="text-align:center; margin-bottom:15px;">
                         <h3>💰 Seus Ativos</h3>
-                        <p class="hint">Gerencie seus recebimentos e saques.</p>
+                        <p class="hint">Gerencie seus recebimentos e saques de Vesting.</p>
                     </div>
                     <div id="dashboardContent"><p class="hint">Carregando...</p></div>
                     <button class="btn-action btn-connect" onclick="loadDashboardData()" style="margin-top:20px">🔄 Atualizar Portfolio</button>
@@ -131,7 +146,7 @@
                         <button class="mini-btn" style="width:100%; margin-top:5px;" onclick="saveProfile()">💾 Salvar</button>
                     </div>
                     <div id="leaderboardList"></div>
-                    <button class="btn-action btn-connect" onclick="loadLeaderboard()" style="margin-top:20px">🔄 Rank</button>
+                    <button class="btn-action btn-connect" onclick="loadLeaderboard()" style="margin-top:20px">🔄 Atualizar Rank</button>
                 </div>
 
                 <div id="consoleArea">
