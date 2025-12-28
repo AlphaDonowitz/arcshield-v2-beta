@@ -67,8 +67,12 @@
                     <label>Supply Inicial</label>
                     <input type="number" id="tokenSupply" placeholder="Ex: 1000000">
 
-                    <label>Logo / PFP (URL da Imagem)</label>
-                    <input type="text" id="tokenLogo" placeholder="https://...">
+                    <label>Logo / PFP</label>
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px;">
+                        <input type="file" id="tokenLogoFile" accept="image/*" style="display:none;" onchange="handleLogoUpload(this)">
+                        <button class="mini-btn" onclick="document.getElementById('tokenLogoFile').click()">📂 Carregar Imagem</button>
+                        <span id="logoFileName" style="color:#666; font-size:0.8rem; font-style: italic;">Nenhum arquivo...</span>
+                    </div>
 
                     <details class="advanced-options">
                         <summary>📝 Adicionar Descrição / Info</summary>
