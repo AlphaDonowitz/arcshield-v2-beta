@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Arc Shield - Social Hub</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+    <title>Arc Shield - Infrastructure Hub</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -19,16 +20,21 @@
         <div class="landing-content">
             <div class="badge"><span class="dot"></span> Arc Testnet Live</div>
             <h1 class="main-title"><span class="gradient-text">Arc</span> <span class="shield-gradient">Shield</span></h1>
-            <p class="hero-desc">Launchpad, DeFi Tools & Social Reputation Protocol.</p>
-            <button class="btn-hero" onclick="enterApp()"><span>Entrar no App</span> <span>→</span></button>
+            <p class="hero-desc">Launchpad, Bridge CCTP, Ferramentas DeFi & Reputação Social.</p>
+            <button class="btn-hero" onclick="enterApp()">
+                <span>Entrar no Dashboard</span> <span>→</span>
+            </button>
         </div>
-        <div class="orb orb-1"></div><div class="orb orb-2"></div>
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
     </div>
 
     <div id="dashboardLayout" style="display: none;">
         
         <aside class="sidebar">
-            <div class="brand"><span class="gradient-text">Arc</span> <span class="shield-gradient">Shield</span></div>
+            <div class="brand">
+                <span class="gradient-text">Arc</span> <span class="shield-gradient">Shield</span>
+            </div>
             <nav class="nav-menu">
                 <button class="nav-item active" onclick="navigate('creator', this)">🚀 Launchpad</button>
                 <button class="nav-item" onclick="navigate('bridge', this)">🌉 Bridge CCTP</button>
@@ -40,14 +46,16 @@
                     👑 Social Hub
                 </button>
             </nav>
-            <div class="sidebar-footer"><p>v3.5 Social</p></div>
+            <div class="sidebar-footer">
+                <p>v3.5 Stable • <a href="#" onclick="disconnectWallet()" style="color:#ff6b6b; text-decoration:none;">Sair</a></p>
+            </div>
         </aside>
 
         <main class="main-content">
             <header class="top-bar">
                 <h2 id="pageTitle">Launchpad</h2>
                 <div class="wallet-area">
-                    <button id="btnConnect" class="btn-connect" onclick="connectWallet()">🔌 Conectar</button>
+                    <button id="btnConnect" class="btn-connect" onclick="connectWallet()">🔌 Conectar Carteira</button>
                 </div>
             </header>
 
@@ -56,17 +64,150 @@
                 <div id="creator" class="page-section active">
                     <div class="glass-panel">
                         <h3>Criar Novo Token</h3>
-                        <div class="form-grid"><div><label>Nome</label><input type="text" id="tokenName"></div><div><label>Símbolo</label><input type="text" id="tokenSymbol"></div></div>
-                        <label>Supply</label><input type="number" id="tokenSupply">
-                        <div class="upload-area"><button class="mini-btn" onclick="document.getElementById('tokenLogoFile').click()">📂 Logo</button><input type="file" id="tokenLogoFile" hidden onchange="handleLogoUpload(this)"></div>
-                        <button id="btnCreate" class="btn-primary" style="margin-top:15px;" onclick="createToken()">🚀 Lançar Token</button>
+                        <div class="form-grid">
+                            <div>
+                                <label>Nome do Projeto</label>
+                                <input type="text" id="tokenName" placeholder="Ex: Arc Gold">
+                            </div>
+                            <div>
+                                <label>Símbolo (Ticker)</label>
+                                <input type="text" id="tokenSymbol" placeholder="Ex: GOLD">
+                            </div>
+                        </div>
+                        <label>Supply Inicial</label>
+                        <input type="number" id="tokenSupply" placeholder="Ex: 1000000">
+                        
+                        <div class="upload-area">
+                            <label>Logo do Token</label>
+                            <div class="file-input-wrapper">
+                                <button class="mini-btn" onclick="document.getElementById('tokenLogoFile').click()">📂 Escolher Arquivo</button>
+                                <span id="logoFileName" style="margin-left:10px; font-size:0.8rem; color:#888;">Nenhum selecionado</span>
+                                <input type="file" id="tokenLogoFile" hidden onchange="handleLogoUpload(this)">
+                            </div>
+                        </div>
+                        
+                        <label>Descrição (Opcional)</label>
+                        <textarea id="tokenDesc" placeholder="Descrição para o card social..."></textarea>
+                        
+                        <button id="btnCreate" class="btn-primary" onclick="createToken()">🚀 Lançar Token (+100 XP)</button>
                     </div>
                 </div>
-                
-                <div id="bridge" class="page-section"><div class="glass-panel"><h3>Bridge (Use código anterior)</h3></div></div>
-                <div id="multisender" class="page-section"><div class="glass-panel"><h3>Multisender (Use código anterior)</h3></div></div>
-                <div id="locker" class="page-section"><div class="glass-panel"><h3>Locker (Use código anterior)</h3></div></div>
-                <div id="vesting" class="page-section"><div class="glass-panel"><h3>Vesting (Use código anterior)</h3></div></div>
+
+                <div id="bridge" class="page-section">
+                    <div class="glass-panel">
+                        <h3>USDC Cross-Chain (Circle CCTP)</h3>
+                        <div class="nav-tabs" style="justify-content:center; margin-bottom:20px;">
+                            <button class="tab-btn active" id="btnModeDeposit" onclick="setBridgeMode('deposit')">📤 1. Enviar (Sepolia)</button>
+                            <button class="tab-btn" id="btnModeClaim" onclick="setBridgeMode('claim')">📥 2. Receber (Arc)</button>
+                        </div>
+
+                        <div id="bridgeDepositArea">
+                            <div class="info-box">⚠️ Atenção: Você deve estar conectado na rede <b>Ethereum Sepolia</b> para enviar.</div>
+                            
+                            <label>Quantidade USDC (Sepolia)</label>
+                            <input type="number" id="bridgeAmount" placeholder="Ex: 10.00">
+                            
+                            <label>Destino (Sua carteira na Arc)</label>
+                            <input type="text" id="bridgeRecipient" readonly style="opacity:0.6; cursor:not-allowed;">
+                            
+                            <div class="action-row">
+                                <button id="btnApproveCCTP" class="btn-secondary" onclick="approveUSDC()">1. Aprovar USDC</button>
+                                <button id="btnBurnCCTP" class="btn-primary" onclick="burnUSDC()" disabled>2. Queimar & Enviar</button>
+                            </div>
+                        </div>
+
+                        <div id="bridgeClaimArea" style="display:none;">
+                            <div class="info-box">ℹ️ Após enviar, pegue a assinatura na <a href="https://developers.circle.com/stablecoins/docs/cctp-testnet-faucet" target="_blank" style="color:#4dcfff;">Circle Testnet Tool</a> (~15min).</div>
+                            
+                            <label>Mensagem (Message Bytes)</label>
+                            <textarea id="cctpMessageBytes" placeholder="Cole os bytes da mensagem aqui..." style="height:80px;"></textarea>
+                            
+                            <label>Assinatura (Attestation)</label>
+                            <textarea id="cctpAttestation" placeholder="Cole a assinatura da Circle aqui..." style="height:80px;"></textarea>
+                            
+                            <button id="btnClaimCCTP" class="btn-primary" onclick="mintUSDC()">🚀 Receber USDC na Arc</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="multisender" class="page-section">
+                    <div class="glass-panel">
+                        <h3>Envio em Massa (Airdrop)</h3>
+                        <label>Endereço do Token</label>
+                        <input type="text" id="multiTokenAddr" placeholder="0x...">
+                        
+                        <div class="flex-between" style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                            <label>Lista de Destinatários (CSV)</label>
+                            <button class="mini-btn" onclick="document.getElementById('csvFile').click()">📂 Upload CSV</button>
+                            <input type="file" id="csvFile" hidden onchange="handleFileUpload(this)">
+                        </div>
+                        
+                        <textarea id="csvInput" class="code-area" placeholder="0xWallet1, 100&#10;0xWallet2, 500" style="font-family:monospace; height:120px;"></textarea>
+                        <p id="multiSummary" class="hint-text" style="color:#666; font-size:0.8rem; text-align:right;">0 endereços detectados</p>
+                        
+                        <div class="action-row">
+                            <button class="btn-secondary" onclick="approveToken('multi')">1. Aprovar</button>
+                            <button id="btnMulti" class="btn-primary" onclick="sendBatch()">2. Enviar Lote</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="locker" class="page-section">
+                    <div class="glass-panel">
+                        <h3>Trancar Liquidez / Tokens</h3>
+                        <label>Token Address</label>
+                        <input type="text" id="lockTokenAddr">
+                        
+                        <div class="form-grid">
+                            <div>
+                                <label>Quantidade</label>
+                                <input type="number" id="lockAmount">
+                            </div>
+                            <div>
+                                <label>Data de Desbloqueio</label>
+                                <input type="datetime-local" id="lockDate" style="color-scheme:dark;">
+                            </div>
+                        </div>
+
+                        <div class="action-row">
+                            <button class="btn-secondary" onclick="approveToken('lock')">1. Aprovar</button>
+                            <button id="btnLock" class="btn-primary" onclick="lockTokens()">2. Trancar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="vesting" class="page-section">
+                    <div class="glass-panel">
+                        <h3>Criar Contrato de Vesting</h3>
+                        <label>Token Address</label>
+                        <input type="text" id="vestTokenAddr">
+                        
+                        <label>Beneficiário (Carteira)</label>
+                        <input type="text" id="vestBeneficiary">
+
+                        <div class="form-grid">
+                            <div>
+                                <label>Total de Tokens</label>
+                                <input type="number" id="vestAmount">
+                            </div>
+                            <div>
+                                <label>Duração (Minutos)</label>
+                                <input type="number" id="vestDuration">
+                            </div>
+                        </div>
+
+                        <div class="action-row">
+                            <button class="btn-secondary" onclick="approveToken('vest')">1. Aprovar</button>
+                            <button id="btnVest" class="btn-primary" onclick="createVesting()">2. Criar Vesting</button>
+                        </div>
+                    </div>
+                    
+                    <div class="glass-panel" style="margin-top:20px;">
+                        <h3>Meus Vestings a Receber</h3>
+                        <div id="dashboardContent" style="min-height:50px; color:#888;">Nenhum dado carregado.</div>
+                        <button class="mini-btn full-width" style="margin-top:10px;" onclick="loadDashboardData()">🔄 Atualizar Lista</button>
+                    </div>
+                </div>
 
                 <div id="leaderboard" class="page-section">
                     
@@ -87,7 +228,7 @@
                                 <button id="btnDailyCheckin" class="btn-daily" onclick="dailyCheckIn()">
                                     🎁 Daily Claim (+50 XP)
                                 </button>
-                                <p id="dailyTimer" style="font-size:0.7rem; margin-top:5px; color:#888;">Disponível</p>
+                                <p id="dailyTimer" style="font-size:0.7rem; margin-top:5px; color:#888;">Carregando...</p>
                             </div>
                         </div>
 
@@ -125,7 +266,8 @@
                             <span>Rank</span> <span>Usuário</span> <span>Badges</span> <span>XP</span>
                         </div>
                         <div id="leaderboardList" class="leaderboard-list">
-                            </div>
+                            <div style="padding:20px; text-align:center; color:#666;">Conecte a carteira para ver o ranking.</div>
+                        </div>
                         <button class="mini-btn full-width" style="margin-top:15px;" onclick="loadLeaderboard()">🔄 Atualizar Rank</button>
                     </div>
                 </div>
@@ -134,16 +276,67 @@
         </main>
     </div>
 
-    <div id="consoleArea" style="display:none;"></div>
-    
-    <div id="successModal" class="modal-overlay">
-        <div class="glass-panel success-panel">
-            <h2 id="modalTitle">Sucesso!</h2>
-            <p id="modalMsg">...</p>
-            <button class="btn-primary" onclick="document.getElementById('successModal').style.display='none'">Fechar</button>
+    <div id="tutorialOverlay" class="modal-overlay" style="display: none;">
+        <div class="tutorial-card">
+            <div id="tutStep1" class="tut-step active">
+                <h2>👋 Bem-vindo ao Arc Shield</h2>
+                <p>Sua plataforma tudo-em-um para a Arc Network. Vamos configurar tudo em segundos.</p>
+                <div class="tut-img">🛡️</div>
+                <button class="btn-primary" onclick="nextTutorial(2)">Próximo</button>
+            </div>
+            <div id="tutStep2" class="tut-step">
+                <h2>🚀 Launchpad & Bridge</h2>
+                <p>Crie tokens, envie airdrops e traga liquidez USDC da Sepolia via CCTP.</p>
+                <div class="tut-img">🌉</div>
+                <button class="btn-primary" onclick="nextTutorial(3)">Legal</button>
+            </div>
+            <div id="tutStep3" class="tut-step">
+                <h2>🏆 Social Hub</h2>
+                <p>Ganhe XP a cada ação, personalize seu perfil e suba no ranking global!</p>
+                <div class="tut-img">📊</div>
+                <button class="btn-primary" onclick="finishTutorial()">Começar a Usar!</button>
+            </div>
+            <button class="skip-btn" onclick="finishTutorial()">Pular Tutorial</button>
         </div>
     </div>
 
-    <script src="js/app.js"></script>
-</body>
+    <div id="socialCardTemplate" class="social-card-layout">
+        <div class="card-header"><span class="badge">ARC TESTNET</span><span class="card-brand">🛡️ Arc Shield</span></div>
+        <div class="card-body">
+            <img id="cardTokenLogo" src="" class="card-logo-img">
+            <h1 id="cardTokenSymbol">$TOKEN</h1>
+            <p id="cardTokenName">Token Name</p>
+        </div>
+        <div class="card-footer">
+            <div class="stat-box"><span>Status</span><b>Deployed 🚀</b></div>
+            <div class="stat-box"><span>Supply</span><b id="cardTokenSupply">1M</b></div>
+        </div>
+    </div>
+
+    <div id="successModal" class="modal-overlay">
+        <div class="glass-panel success-panel">
+            <span class="success-icon">🎉</span>
+            <h2 id="modalTitle">Sucesso!</h2>
+            <p id="modalMsg">Operação realizada com sucesso.</p>
+            
+            <div id="tokenCreatedInfo" style="display:none; background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; margin:10px 0;">
+                <label style="font-size:0.7rem; color:#888;">Contrato:</label><br>
+                <code id="newContractAddr" style="color:#00ff9d; word-break:break-all; font-size:0.85rem;">0x...</code>
+                <button onclick="copyContractAddr()" class="mini-btn" style="margin-top:5px;">Copiar</button>
+            </div>
+
+            <div id="generatedCardContainer" style="display:none; justify-content:center; margin:15px 0;"></div>
+            
+            <div class="action-row">
+                <button id="simpleShareBtn" class="btn-secondary" style="display:none;">Compartilhar</button>
+                <a id="downloadCardBtn" href="#" class="btn-secondary" style="display:none; text-align:center; text-decoration:none;">Baixar Card</a>
+            </div>
+            
+            <button class="btn-primary" onclick="document.getElementById('successModal').style.display='none'">Fechar</button>
+        </div>
+    </div>
+    
+    <div id="consoleArea" style="display:none;"></div>
+
+    <script src="js/config.js"></script>    <script src="js/ui.js"></script>        <script src="js/social.js"></script>    <script src="js/web3.js"></script>      </body>
 </html>
