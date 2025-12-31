@@ -1,62 +1,46 @@
 :root {
     /* Cores Base */
     --bg-color: #050505;
-    --glass-bg: rgba(20, 20, 20, 0.65); /* Fundo do card semi-transparente */
-    --glass-border: rgba(255, 255, 255, 0.08); /* Borda fina e sutil */
+    --glass-bg: rgba(20, 20, 20, 0.65);
+    --glass-border: rgba(255, 255, 255, 0.08);
     
     /* Cores de Ação */
-    --primary-gradient: linear-gradient(135deg, #00C6FF 0%, #0072FF 100%); /* Azul Tech */
-    --secondary-gradient: linear-gradient(135deg, #00ff9d 0%, #00bd7e 100%); /* Verde Sucesso */
-    --danger-gradient: linear-gradient(135deg, #ff4d4d 0%, #c0392b 100%); /* Vermelho Logout */
+    --primary-gradient: linear-gradient(135deg, #00C6FF 0%, #0072FF 100%);
+    --secondary-gradient: linear-gradient(135deg, #00ff9d 0%, #00bd7e 100%);
     
     --text-main: #ffffff;
     --text-muted: #94a3b8;
     
     /* Sombras (Glow) */
     --glow-primary: 0 0 20px rgba(0, 198, 255, 0.4);
-    --glow-success: 0 0 20px rgba(0, 255, 157, 0.3);
 }
 
-/* --- ANIMAÇÃO DE FUNDO (ORBS) --- */
+/* --- ESTRUTURA GLOBAL --- */
 body {
     background-color: var(--bg-color);
     color: var(--text-main);
     font-family: 'Inter', sans-serif;
     margin: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    padding: 0;
     min-height: 100vh;
     overflow-x: hidden;
-    position: relative; /* Necessário para os elementos absolutos */
+    position: relative;
+    /* FIX: Removemos o flex centralizador que quebrava o layout */
+    display: block; 
 }
 
-/* Orb Azul (Topo Esquerda) */
+/* --- ANIMAÇÃO DE FUNDO (ORBS) --- */
+/* Mantemos os orbs, mas garantimos que fiquem no fundo */
 body::before {
-    content: '';
-    position: fixed;
-    top: -10%;
-    left: -10%;
-    width: 600px;
-    height: 600px;
-    background: radial-gradient(circle, rgba(0, 114, 255, 0.25) 0%, rgba(0,0,0,0) 70%);
-    z-index: -1;
-    filter: blur(60px);
-    animation: float 15s infinite alternate ease-in-out;
+    content: ''; position: fixed; top: -10%; left: -10%; width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(0, 114, 255, 0.2) 0%, rgba(0,0,0,0) 70%);
+    z-index: -1; filter: blur(80px); animation: float 15s infinite alternate ease-in-out;
 }
 
-/* Orb Verde/Ciano (Baixo Direita) */
 body::after {
-    content: '';
-    position: fixed;
-    bottom: -10%;
-    right: -10%;
-    width: 500px;
-    height: 500px;
+    content: ''; position: fixed; bottom: -10%; right: -10%; width: 500px; height: 500px;
     background: radial-gradient(circle, rgba(0, 255, 157, 0.15) 0%, rgba(0,0,0,0) 70%);
-    z-index: -1;
-    filter: blur(60px);
-    animation: float 12s infinite alternate-reverse ease-in-out;
+    z-index: -1; filter: blur(80px); animation: float 12s infinite alternate-reverse ease-in-out;
 }
 
 @keyframes float {
@@ -64,9 +48,18 @@ body::after {
     100% { transform: translate(30px, 50px); }
 }
 
-/* --- ESTRUTURA --- */
-.hero { width: 100%; max-width: 500px; padding: 20px; box-sizing: border-box; z-index: 1; }
+/* --- CONTAINER PRINCIPAL (CORREÇÃO DE LAYOUT) --- */
+.hero {
+    width: 100%;
+    max-width: 480px; /* Largura controlada */
+    margin: 0 auto;   /* Centraliza horizontalmente */
+    padding: 80px 20px 40px 20px; /* Espaço para o cabeçalho não cobrir conteúdo */
+    box-sizing: border-box;
+    position: relative;
+    z-index: 1;
+}
 
+/* Botões do Topo (Faucet/Explorer) */
 .btn-header {
     position: absolute; top: 20px; right: 20px;
     background: rgba(255,255,255,0.05);
@@ -76,160 +69,106 @@ body::after {
     padding: 8px 16px; border-radius: 20px;
     text-decoration: none; font-size: 0.8rem; font-weight: 500;
     transition: 0.3s;
+    z-index: 10; /* Garante que fiquem clicáveis */
 }
-.btn-header:hover { background: rgba(255,255,255,0.1); color: #fff; transform: translateY(-2px); }
+.btn-header:hover { background: rgba(255,255,255,0.1); color: #fff; }
 
-/* --- TELA INICIAL --- */
-h1 { font-weight: 800; font-size: 2.8rem; letter-spacing: -1.5px; margin-bottom: 10px; text-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+/* --- TIPOGRAFIA --- */
+h1 { font-weight: 800; font-size: 2.5rem; letter-spacing: -1px; margin-bottom: 10px; text-align: center; }
 .gradient-text { background: linear-gradient(to bottom, #fff, #aebacf); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 .shield-gradient { background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-.hero-desc { color: var(--text-muted); font-size: 1rem; line-height: 1.6; margin-bottom: 30px; font-weight: 400; }
+.hero-desc { color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 30px; text-align: center; }
 
 .badge {
-    background: rgba(0, 198, 255, 0.1);
-    color: #4dcfff;
+    background: rgba(0, 198, 255, 0.1); color: #4dcfff;
     border: 1px solid rgba(0, 198, 255, 0.2);
     padding: 6px 14px; border-radius: 50px;
-    font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px;
+    font-size: 0.75rem; font-weight: 600;
     display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px;
+    /* Centraliza a badge */
+    position: relative; left: 50%; transform: translateX(-50%);
 }
 .dot { width: 6px; height: 6px; background: #4dcfff; border-radius: 50%; box-shadow: 0 0 8px #4dcfff; }
 
 .btn-hero {
     background: var(--primary-gradient);
     color: #fff; border: none;
-    padding: 16px 32px; font-size: 1rem; font-weight: 700;
+    padding: 14px 30px; font-size: 1rem; font-weight: 700;
     border-radius: 50px; cursor: pointer;
     box-shadow: var(--glow-primary);
     transition: all 0.3s ease;
-    display: inline-flex; align-items: center; gap: 10px;
+    display: flex; align-items: center; gap: 10px; margin: 0 auto; /* Centraliza o botão */
 }
-.btn-hero:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 0 30px rgba(0, 198, 255, 0.6); }
+.btn-hero:hover { transform: translateY(-3px) scale(1.02); }
 
-/* --- O CARTÃO DE VIDRO (MAIN CARD) --- */
+/* --- CARTÃO DE VIDRO (MAIN CARD) --- */
 .card {
     background: var(--glass-bg);
-    backdrop-filter: blur(24px); /* O Segredo do Glassmorphism */
-    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
-    border-top: 1px solid rgba(255,255,255,0.15); /* Topo mais claro para simular luz */
+    border-top: 1px solid rgba(255,255,255,0.15);
     border-radius: 24px;
-    padding: 30px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-    position: relative; overflow: hidden;
-    animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    padding: 25px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    margin-bottom: 30px;
 }
 
-@keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
-/* --- INPUTS & LABELS --- */
-label { display: block; margin-bottom: 8px; font-size: 0.8rem; color: var(--text-muted); font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase; }
+/* --- INPUTS & INTERFACE --- */
+label { display: block; margin-bottom: 6px; font-size: 0.8rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase; }
 
 input, select, textarea {
-    width: 100%; padding: 16px; margin-bottom: 20px;
-    background: rgba(0,0,0,0.4); /* Mais escuro que o card para profundidade */
+    width: 100%; padding: 14px; margin-bottom: 15px;
+    background: rgba(0,0,0,0.3);
     border: 1px solid var(--glass-border);
     border-radius: 12px;
     color: #fff; font-size: 1rem; font-family: 'Inter', sans-serif;
     outline: none; transition: 0.3s; box-sizing: border-box;
 }
-input:focus, textarea:focus {
-    border-color: #0072FF;
-    background: rgba(0,0,0,0.6);
-    box-shadow: 0 0 0 4px rgba(0, 114, 255, 0.1);
-}
+input:focus, textarea:focus { border-color: #0072FF; background: rgba(0,0,0,0.5); }
 
-/* --- TABS DE NAVEGAÇÃO --- */
-.nav-tabs {
-    display: flex; gap: 8px; margin-bottom: 25px; overflow-x: auto; padding-bottom: 5px;
-    scrollbar-width: none; /* Firefox */
-}
+/* --- ABAS --- */
+.nav-tabs { display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: none; }
 .nav-tabs::-webkit-scrollbar { display: none; }
 
 .tab-btn {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid transparent;
-    color: var(--text-muted);
-    padding: 10px 20px; border-radius: 12px;
-    cursor: pointer; font-size: 0.9rem; font-weight: 500; white-space: nowrap;
-    transition: 0.3s;
+    background: rgba(255,255,255,0.03); border: 1px solid transparent;
+    color: var(--text-muted); padding: 8px 16px; border-radius: 12px;
+    cursor: pointer; font-size: 0.85rem; white-space: nowrap; transition: 0.3s;
 }
-.tab-btn:hover { background: rgba(255,255,255,0.08); color: #fff; }
 .tab-btn.active {
-    background: rgba(0, 198, 255, 0.15);
-    color: #4dcfff;
-    border: 1px solid rgba(0, 198, 255, 0.3);
-    font-weight: 600;
-    box-shadow: 0 0 15px rgba(0, 198, 255, 0.1);
+    background: rgba(0, 198, 255, 0.1); color: #4dcfff;
+    border-color: rgba(0, 198, 255, 0.3); font-weight: 600;
 }
 
-/* --- BOTÕES --- */
+/* --- BOTÕES DE AÇÃO --- */
 .btn-action {
-    width: 100%; padding: 18px; border-radius: 14px;
+    width: 100%; padding: 16px; border-radius: 12px;
     font-size: 1rem; font-weight: 700; cursor: pointer; border: none;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    margin-top: 10px; letter-spacing: 0.5px;
+    transition: 0.2s; margin-top: 10px;
 }
+.btn-connect { background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.1); }
+.btn-connect:hover { background: rgba(255,255,255,0.15); }
+.btn-create { background: var(--primary-gradient); color: #fff; box-shadow: var(--glow-primary); }
+.btn-create:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); }
+.btn-disconnect { background: rgba(255, 77, 77, 0.1) !important; color: #ff4d4d !important; border: 1px solid rgba(255, 77, 77, 0.3) !important; }
 
-.btn-connect {
-    background: rgba(255,255,255,0.05);
-    color: #fff; border: 1px solid rgba(255,255,255,0.1);
-    display: flex; justify-content: center; align-items: center; gap: 10px;
-}
-.btn-connect:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.3); transform: translateY(-2px); }
+/* --- UTILITÁRIOS & SEÇÕES --- */
+.module-section { display: none; animation: fadeIn 0.4s ease; }
+.module-section.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-.btn-create {
-    background: var(--primary-gradient);
-    color: #fff;
-    box-shadow: var(--glow-primary);
-}
-.btn-create:hover { filter: brightness(1.1); transform: translateY(-2px) scale(1.01); box-shadow: 0 10px 30px rgba(0, 114, 255, 0.4); }
-.btn-create:disabled { background: #333; color: #666; cursor: not-allowed; box-shadow: none; transform: none; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.mini-btn { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; }
 
-.btn-disconnect {
-    background: rgba(255, 77, 77, 0.1) !important;
-    color: #ff4d4d !important;
-    border: 1px solid rgba(255, 77, 77, 0.3) !important;
-}
-.btn-disconnect:hover { background: rgba(255, 77, 77, 0.2) !important; box-shadow: 0 0 15px rgba(255, 77, 77, 0.2); }
-
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.mini-btn { background: rgba(255,255,255,0.1); color: #fff; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; transition: 0.2s; }
-.mini-btn:hover { background: rgba(255,255,255,0.2); }
-
-/* --- UTILITÁRIOS --- */
 #consoleArea {
-    background: #000;
-    padding: 15px; border-radius: 12px; margin-top: 25px;
-    height: 120px; overflow-y: auto;
-    font-family: 'Courier New', monospace; font-size: 0.8rem;
-    border: 1px solid var(--glass-border);
-    box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+    background: #000; padding: 12px; border-radius: 8px; margin-top: 20px;
+    height: 100px; overflow-y: auto; font-family: monospace; font-size: 0.75rem;
+    border: 1px solid var(--glass-border); color: #666;
 }
-.log-entry { margin-bottom: 6px; color: #888; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 4px; }
-.log-success { color: #00ff9d; }
-.log-error { color: #ff4d4d; }
 
-.advanced-options summary { padding: 12px; cursor: pointer; color: var(--text-muted); font-size: 0.9rem; list-style: none; background: rgba(255,255,255,0.03); border-radius: 8px; transition: 0.2s; margin-bottom: 10px; }
-.advanced-options summary:hover { background: rgba(255,255,255,0.06); color: #fff; }
-
-/* --- CARD SOCIAL & MODAL (MANTIDOS COM AJUSTES) --- */
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 1000; display: none; justify-content: center; align-items: center; }
-.success-card { background: #111; border: 1px solid #333; padding: 30px; border-radius: 24px; text-align: center; width: 90%; max-width: 350px; box-shadow: 0 20px 60px rgba(0,0,0,0.8); animation: popIn 0.3s ease; }
-@keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
-.success-icon { font-size: 3rem; margin-bottom: 15px; display: block; filter: drop-shadow(0 0 20px rgba(0,255,157,0.4)); }
-.success-title { color: #fff; margin: 10px 0; }
-.success-msg { color: #888; font-size: 0.9rem; margin-bottom: 25px; }
-.btn-close-modal { background: transparent; border: none; color: #666; cursor: pointer; text-decoration: underline; margin-top: 15px; display: block; width: 100%; }
-
-.social-card-layout { /* Mantido igual para gerar a imagem corretamente */
-    position: fixed; left: -9999px; width: 600px; height: 315px;
-    background: radial-gradient(circle at top right, #1a2a24, #000);
-    border: 4px solid #00ff9d; border-radius: 20px; padding: 30px;
-    box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;
-    font-family: 'Inter', sans-serif; color: #fff;
-}
+/* --- CARD SOCIAL (MANTIDO ESTRUTURA) --- */
+.social-card-layout { position: fixed; left: -9999px; width: 600px; height: 315px; background: radial-gradient(circle at top right, #1a2a24, #000); border: 4px solid #00ff9d; border-radius: 20px; padding: 30px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; font-family: 'Inter', sans-serif; color: #fff; }
 .card-header { display: flex; justify-content: space-between; align-items: center; }
 .card-brand { font-weight: 800; color: #00ff9d; font-size: 1.2rem; text-transform: uppercase; }
 .card-body { text-align: center; display: flex; flex-direction: column; align-items: center; flex-grow: 1; justify-content: center; }
@@ -241,6 +180,12 @@ input:focus, textarea:focus {
 .stat-label { display: block; font-size: 0.7rem; color: #666; text-transform: uppercase; }
 .stat-value { font-size: 1.1rem; font-weight: 700; color: #00ff9d; }
 
-.footer-bar { position: fixed; bottom: 0; width: 100%; text-align: center; padding: 10px; font-size: 0.7rem; color: rgba(255,255,255,0.3); z-index: 10; pointer-events: none; }
-.asset-card { display: flex; justify-content: space-between; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 8px; border: 1px solid transparent; transition: 0.2s; }
-.asset-card:hover { border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.08); }
+/* --- MODAL --- */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 1000; display: none; justify-content: center; align-items: center; }
+.success-card { background: #111; border: 1px solid #333; padding: 30px; border-radius: 24px; text-align: center; width: 90%; max-width: 320px; }
+.success-icon { font-size: 3rem; display: block; margin-bottom: 10px; }
+.success-title { color: #fff; margin: 10px 0; }
+.success-msg { color: #888; font-size: 0.9rem; margin-bottom: 20px; }
+.btn-close-modal { background: transparent; border: none; color: #666; cursor: pointer; text-decoration: underline; width: 100%; margin-top: 15px; }
+
+.footer-bar { position: fixed; bottom: 0; width: 100%; text-align: center; padding: 10px; font-size: 0.7rem; color: rgba(255,255,255,0.3); pointer-events: none; }
