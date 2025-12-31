@@ -1,13 +1,21 @@
 // ==========================================
-// SOCIAL HUB & GAMIFICATION
+// SOCIAL HUB & GAMIFICATION (V3.5.2)
 // ==========================================
 
 window.userProfile = {
-    username: "Visitante", bio: "", avatar: null,
-    points: 0, tokens: 0, vestings: 0, locks: 0, multisends: 0
+    username: "Visitante", 
+    bio: "", 
+    avatar: null,
+    banner: null, // Campo Banner
+    points: 0, 
+    tokens: 0, 
+    vestings: 0, 
+    locks: 0, 
+    multisends: 0
 };
 let myChart = null;
 
+// 1. CARREGAR PERFIL
 window.loadUserProfile = async function(wallet) {
     if(!window.supabaseClient) return;
     try {
@@ -22,6 +30,7 @@ window.loadUserProfile = async function(wallet) {
                 username: user.username || `User ${wallet.slice(0,4)}`,
                 bio: user.bio || "Sem descrição.",
                 avatar: user.avatar_url || `https://robohash.org/${wallet}?set=set4`,
+                banner: user.banner_url || null, // Carrega Banner
                 points: user.points || 0,
                 tokens: user.tokens_created || 0,
                 vestings: user.vestings_created || 0,
@@ -35,7 +44,9 @@ window.loadUserProfile = async function(wallet) {
     } catch(e) { console.error("Erro Profile:", e); }
 }
 
+// 2. ATUALIZAR INTERFACE
 function updateProfileUI() {
+    // Textos
     const ids = {
         'userDisplayName': window.userProfile.username,
         'userWalletDisplay': window.userAddress,
@@ -50,13 +61,25 @@ function updateProfileUI() {
         const el = document.getElementById(id);
         if(el) el.innerText = val;
     }
+    
+    // Avatar
     const img = document.getElementById('userAvatarDisplay');
     if(img) img.src = window.userProfile.avatar;
+
+    // Banner (Fundo)
+    const bannerDiv = document.getElementById('profileBannerDisplay');
+    if(bannerDiv) {
+        if(window.userProfile.banner) {
+            bannerDiv.style.backgroundImage = `url('${window.userProfile.banner}')`;
+        } else {
+            bannerDiv.style.backgroundImage = "linear-gradient(90deg, #00C6FF, #0072FF)";
+        }
+    }
     
     renderCharts();
 }
 
-// Daily Checkin
+// 3. DAILY CHECKIN
 function checkDailyAvailability() {
     const btn = document.getElementById('btnDailyCheckin');
     const timer = document.getElementById('dailyTimer');
@@ -87,7 +110,7 @@ window.dailyCheckIn = async function() {
     const newPoints = window.userProfile.points + 50;
     
     await supabaseClient.from('users').update({ points: newPoints, last_daily_claim: now }).eq('wallet_address', userAddress);
-    alert("+50 XP!");
+    alert("🎉 +50 XP Recebidos!");
     window.userProfile.points = newPoints;
     window.userProfile.lastDaily = now;
     updateProfileUI();
@@ -101,18 +124,15 @@ window.incrementStat = async function(col, pts) {
     const update = { points: (u.points||0) + pts };
     update[col] = (u[col]||0) + 1;
     await supabaseClient.from('users').update(update).eq('wallet_address', userAddress);
-    // Reload profile
     loadUserProfile(userAddress);
 }
 
-// Chart
+// 4. GRÁFICOS
 function renderCharts() {
     const ctx = document.getElementById('skillsChart');
     if(!ctx) return;
-    
     if(myChart) myChart.destroy();
     
-    // Normalização simples para o gráfico ficar bonito
     const p = window.userProfile;
     const data = [p.tokens, p.multisends, p.locks, p.vestings, Math.min(p.points/100, 10)];
 
@@ -138,15 +158,21 @@ function renderCharts() {
     });
 }
 
-// Edição de Perfil
+// 5. UPLOADS (AVATAR E BANNER)
 window.handleAvatarUpload = function(input) {
     const file = input.files[0];
     if(file) {
         const r = new FileReader();
-        r.onload = function(e) { 
-            window.userProfile.avatar = e.target.result; 
-            updateProfileUI(); 
-        };
+        r.onload = function(e) { window.userProfile.avatar = e.target.result; updateProfileUI(); };
+        r.readAsDataURL(file);
+    }
+}
+
+window.handleBannerUpload = function(input) {
+    const file = input.files[0];
+    if(file) {
+        const r = new FileReader();
+        r.onload = function(e) { window.userProfile.banner = e.target.result; updateProfileUI(); };
         r.readAsDataURL(file);
     }
 }
@@ -154,13 +180,15 @@ window.handleAvatarUpload = function(input) {
 window.saveProfileData = async function() {
     const name = document.getElementById('editName').value;
     const bio = document.getElementById('editBio').value;
+    
     const up = {};
     if(name) up.username = name;
     if(bio) up.bio = bio;
     if(window.userProfile.avatar) up.avatar_url = window.userProfile.avatar;
+    if(window.userProfile.banner) up.banner_url = window.userProfile.banner;
     
     await supabaseClient.from('users').update(up).eq('wallet_address', userAddress);
-    alert("Salvo!");
+    alert("Perfil Atualizado! 💾");
     loadUserProfile(userAddress);
 }
 
