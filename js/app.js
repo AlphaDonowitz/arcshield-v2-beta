@@ -5,12 +5,12 @@ let provider, signer, userAddress;
 let currentDecimals = 18;
 let uploadedLogoData = null; 
 
-// ARC TESTNET
+// ARC TESTNET CONFIG
 const ARC_CHAIN_ID = '0x4c9a62'; // 5042002
 const ARC_RPC_URL = 'https://rpc.testnet.arc.network';
 const ARC_EXPLORER = 'https://testnet.arcscan.app';
 
-// SUPABASE
+// SUPABASE CONFIG (GAMIFICATION)
 const SUPABASE_URL = 'https://jfgiiuzqyqjbfaubdhja.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmZ2lpdXpxeXFqYmZhdWJkaGphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4OTk2NzIsImV4cCI6MjA4MTQ3NTY3Mn0.4AZ_FIazsIlP5I_FPpAQh0lkIXRpBwGVfKVG3nwzxWA';
 let supabaseClient = null;
@@ -23,11 +23,41 @@ try {
 } catch(e) { console.log("Modo Offline"); }
 
 // ==========================================
-// 2. CONEXÃO WALLET (HARD RESET / SELETOR)
+// 2. INICIALIZAÇÃO E AUTO-CONNECT
+// ==========================================
+
+// Ao carregar a página, verifica se deve reconectar automaticamente
+window.onload = async function() {
+    // Se o usuário clicou em "Desconectar" na última sessão, NÃO reconecta sozinho.
+    if (localStorage.getItem('userDisconnected') === 'true') {
+        console.log("Usuário desconectado manualmente. Aguardando ação.");
+        return; 
+    }
+
+    // Se não houve desconexão manual, tenta restaurar a sessão (persistência)
+    if (window.ethereum) {
+        try {
+            const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+            if (accounts && accounts.length > 0) {
+                // Reconecta silenciosamente (sem pedir permissão de novo)
+                provider = new ethers.BrowserProvider(window.ethereum);
+                signer = await provider.getSigner();
+                userAddress = await signer.getAddress();
+                setupUIConnected();
+            }
+        } catch(e) { console.log("Sem sessão anterior."); }
+    }
+};
+
+// ==========================================
+// 3. CONEXÃO WALLET (NUCLEAR OPTION)
 // ==========================================
 window.connectWallet = async function() {
     const statusEl = document.getElementById("loginStatus");
     if(statusEl) statusEl.style.display = 'none';
+
+    // Remove a flag de desconexão, pois o usuário está tentando entrar
+    localStorage.removeItem('userDisconnected');
 
     try {
         if (!window.ethereum) {
@@ -35,9 +65,7 @@ window.connectWallet = async function() {
             return;
         }
 
-        // --- A MÁGICA ACONTECE AQUI ---
-        // Isso força a carteira a abrir a janela de seleção de contas.
-        // Funciona perfeitamente na Rabby e MetaMask.
+        // --- O FIX: FORÇA A SELEÇÃO DE CONTA ---
         try {
             await window.ethereum.request({
                 method: "wallet_requestPermissions",
@@ -45,18 +73,15 @@ window.connectWallet = async function() {
             });
         } catch (permError) {
             if (permError.code === 4001) {
-                // Usuário fechou a janela de seleção sem escolher
-                console.log("Seleção de conta cancelada.");
-                return; 
+                console.log("Seleção de conta cancelada pelo usuário.");
+                return; // Para tudo se ele cancelou
             }
-            // Se der outro erro, seguimos tentando conectar normalmente
-            console.warn("wallet_requestPermissions não suportado, tentando fallback...", permError);
         }
-        // ------------------------------
+        // ---------------------------------------
         
         provider = new ethers.BrowserProvider(window.ethereum);
         
-        // AUTO SWITCH NETWORK
+        // AUTO SWITCH NETWORK (Garante Arc Testnet)
         const network = await provider.getNetwork();
         if (network.chainId !== 5042002n) { 
             try {
@@ -78,50 +103,49 @@ window.connectWallet = async function() {
                     });
                 } else { throw switchError; }
             }
-            // Recarrega provider após troca de rede para garantir sincronia
+            // Recarrega provider após troca
             provider = new ethers.BrowserProvider(window.ethereum);
         }
 
         signer = await provider.getSigner();
         userAddress = await signer.getAddress();
         
-        // ESTADO: CONECTADO
-        const btn = document.getElementById("btnConnect");
-        btn.innerText = `🔴 Desconectar: ${userAddress.slice(0,6)}...`;
-        btn.classList.add('btn-disconnect');
-        btn.onclick = disconnectWallet; // Muda a ação do botão
-
-        document.getElementById("navTabs").style.display = 'flex';
-        log(`Conectado: ${userAddress}`, 'success');
-        if(supabaseClient) checkRegister(userAddress);
+        setupUIConnected();
 
     } catch (e) {
         console.error(e);
-        log("Erro: " + (e.reason || e.message), 'error');
+        log("Erro Conexão: " + (e.reason || e.message), 'error');
     }
 }
 
-// LOGOUT (Limpa a UI apenas)
+// Configura a tela após conectar
+function setupUIConnected() {
+    const btn = document.getElementById("btnConnect");
+    btn.innerText = `🔴 Desconectar: ${userAddress.slice(0,6)}...`;
+    btn.classList.add('btn-disconnect');
+    btn.onclick = disconnectWallet; // Muda a função do botão para logout
+
+    document.getElementById("navTabs").style.display = 'flex';
+    log(`Conectado na Arc: ${userAddress}`, 'success');
+    if(supabaseClient) checkRegister(userAddress);
+}
+
+// LOGOUT REAL
 window.disconnectWallet = function() {
+    // 1. Seta a flag para o window.onload saber que saímos
+    localStorage.setItem('userDisconnected', 'true');
+    
+    // 2. Limpa dados da sessão
     provider = null;
     signer = null;
     userAddress = null;
 
-    const btn = document.getElementById("btnConnect");
-    btn.innerText = "🦊 Conectar Carteira";
-    btn.classList.remove('btn-disconnect');
-    btn.onclick = connectWallet; // Volta para a função que força a escolha
-
-    document.getElementById("navTabs").style.display = 'none';
-    const activeSection = document.querySelector('.module-section.active');
-    if(activeSection) activeSection.classList.remove('active');
-    
-    // Feedback visual
-    log("Desconectado. Clique em conectar para trocar de conta.", 'normal');
+    // 3. Recarrega a página para limpar o estado da memória da Rabby/MetaMask no navegador
+    window.location.reload();
 }
 
 // ==========================================
-// 3. UTILS (LOADING, CARD, UI)
+// 4. UTILS (LOADING, CARD, UI) - MANTIDOS DA V2
 // ==========================================
 function setLoading(btnId, isLoading) {
     const btn = document.getElementById(btnId);
@@ -230,7 +254,7 @@ window.showSuccessModal = async function(title, msg, tweetText, txHash, imageUrl
 window.closeSuccessModal = function() { document.getElementById("successModal").style.display = "none"; }
 
 // ==========================================
-// 4. LÓGICA CORE
+// 5. LÓGICA CORE (CONTRATOS V2)
 // ==========================================
 const CONTRACTS = { factory: "0x3Ed7Fd9b5a2a77B549463ea1263516635c77eB0a", multi: "0x59BcE4bE3e31B14a0528c9249a0580eEc2E59032", lock: "0x4475a197265Dd9c7CaF24Fe1f8cf63B6e9935452", vest: "0xcC8a723917b0258280Ea1647eCDe13Ffa2E1D30b" };
 const ABIS = { factory: ["function createToken(string name, string symbol, uint256 initialSupply) external", "event TokenCreated(address tokenAddress, string name, string symbol, address owner)"], multi: ["function multisendToken(address token, address[] recipients, uint256[] amounts) external payable"], lock: ["function lockTokens(address _token, uint256 _amount, uint256 _unlockTime) external", "function withdraw(uint256 _lockId) external", "function lockIdCounter() view returns (uint256)", "function locks(uint256) view returns (address owner, address token, uint256 amount, uint256 unlockTime, bool withdrawn)"], vest: ["function createVestingSchedule(address, address, uint256, uint256, uint256, uint256, bool) external", "function release(uint256) external", "function getUserScheduleCount(address) view returns (uint256)", "function getUserScheduleIdAtIndex(address, uint256) view returns (uint256)", "function schedules(uint256) view returns (uint256 scheduleId, address token, address beneficiary, uint256 amountTotal, uint256 released, uint256 start, uint256 duration)"], erc20: ["function approve(address spender, uint256 amount) external", "function decimals() view returns (uint8)", "function symbol() view returns (string)"] };
@@ -324,6 +348,9 @@ window.createVesting = async function() {
 }
 
 // UTILS E SUB-FUNCOES
+window.handleFileUpload = function(input) { const file = input.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = function(e) { document.getElementById('csvInput').value = e.target.result; log(`Lista carregada: ${file.name}`, 'success'); updateSummary(); }; reader.readAsText(file); }
+if(document.getElementById('csvInput')) document.getElementById('csvInput').addEventListener('input', updateSummary);
+function updateSummary() { const raw = document.getElementById("csvInput").value; const lines = raw.split(/\r?\n/).filter(l => l.trim() !== ""); const count = lines.filter(l => l.includes('0x')).length; document.getElementById("multiSummary").innerText = `${count} carteiras detectadas`; }
 window.switchTab = function(tabId, btn) { document.querySelectorAll('.module-section').forEach(el => el.classList.remove('active')); document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active')); document.getElementById(tabId).classList.add('active'); btn.classList.add('active'); if(tabId === 'dashboard') loadDashboardData(); if(tabId === 'leaderboard') loadLeaderboard(); }
 function log(msg, type='normal') { const area = document.getElementById("consoleArea"); if(!area) return; const div = document.createElement("div"); div.className = "log-entry " + (type==='success'?'log-success':type==='error'?'log-error':''); div.innerText = `> ${msg}`; area.appendChild(div); area.scrollTop = area.scrollHeight; }
 function clean(val) { return val ? val.trim() : ""; }
