@@ -10,7 +10,7 @@ const ARC_CHAIN_ID = '0x4c9a62'; // 5042002
 const ARC_RPC_URL = 'https://rpc.testnet.arc.network';
 const ARC_EXPLORER = 'https://testnet.arcscan.app';
 
-// SUPABASE (PONTOS)
+// SUPABASE
 const SUPABASE_URL = 'https://jfgiiuzqyqjbfaubdhja.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmZ2lpdXpxeXFqYmZhdWJkaGphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4OTk2NzIsImV4cCI6MjA4MTQ3NTY3Mn0.4AZ_FIazsIlP5I_FPpAQh0lkIXRpBwGVfKVG3nwzxWA';
 let supabaseClient = null;
@@ -23,7 +23,7 @@ try {
 } catch(e) { console.log("Modo Offline"); }
 
 // ==========================================
-// 2. CONEXÃO WALLET (CONNECT & DISCONNECT)
+// 2. CONEXÃO WALLET (HARD RESET / SELETOR)
 // ==========================================
 window.connectWallet = async function() {
     const statusEl = document.getElementById("loginStatus");
@@ -31,9 +31,28 @@ window.connectWallet = async function() {
 
     try {
         if (!window.ethereum) {
-            alert("MetaMask não encontrada!");
+            alert("Nenhuma carteira detectada (Rabby/MetaMask)!");
             return;
         }
+
+        // --- A MÁGICA ACONTECE AQUI ---
+        // Isso força a carteira a abrir a janela de seleção de contas.
+        // Funciona perfeitamente na Rabby e MetaMask.
+        try {
+            await window.ethereum.request({
+                method: "wallet_requestPermissions",
+                params: [{ eth_accounts: {} }]
+            });
+        } catch (permError) {
+            if (permError.code === 4001) {
+                // Usuário fechou a janela de seleção sem escolher
+                console.log("Seleção de conta cancelada.");
+                return; 
+            }
+            // Se der outro erro, seguimos tentando conectar normalmente
+            console.warn("wallet_requestPermissions não suportado, tentando fallback...", permError);
+        }
+        // ------------------------------
         
         provider = new ethers.BrowserProvider(window.ethereum);
         
@@ -59,6 +78,7 @@ window.connectWallet = async function() {
                     });
                 } else { throw switchError; }
             }
+            // Recarrega provider após troca de rede para garantir sincronia
             provider = new ethers.BrowserProvider(window.ethereum);
         }
 
@@ -81,22 +101,23 @@ window.connectWallet = async function() {
     }
 }
 
-// LOGOUT
+// LOGOUT (Limpa a UI apenas)
 window.disconnectWallet = function() {
     provider = null;
     signer = null;
     userAddress = null;
 
     const btn = document.getElementById("btnConnect");
-    btn.innerText = "🦊 Conectar MetaMask / Web3";
+    btn.innerText = "🦊 Conectar Carteira";
     btn.classList.remove('btn-disconnect');
-    btn.onclick = connectWallet;
+    btn.onclick = connectWallet; // Volta para a função que força a escolha
 
     document.getElementById("navTabs").style.display = 'none';
     const activeSection = document.querySelector('.module-section.active');
     if(activeSection) activeSection.classList.remove('active');
     
-    log("Desconectado.", 'normal');
+    // Feedback visual
+    log("Desconectado. Clique em conectar para trocar de conta.", 'normal');
 }
 
 // ==========================================
@@ -302,7 +323,7 @@ window.createVesting = async function() {
     } catch (e) { log("Erro: " + e.message, 'error'); } finally { setLoading('btnVest', false); }
 }
 
-// UTILS E SUB-FUNCOES (MANTIDAS)
+// UTILS E SUB-FUNCOES
 window.switchTab = function(tabId, btn) { document.querySelectorAll('.module-section').forEach(el => el.classList.remove('active')); document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active')); document.getElementById(tabId).classList.add('active'); btn.classList.add('active'); if(tabId === 'dashboard') loadDashboardData(); if(tabId === 'leaderboard') loadLeaderboard(); }
 function log(msg, type='normal') { const area = document.getElementById("consoleArea"); if(!area) return; const div = document.createElement("div"); div.className = "log-entry " + (type==='success'?'log-success':type==='error'?'log-error':''); div.innerText = `> ${msg}`; area.appendChild(div); area.scrollTop = area.scrollHeight; }
 function clean(val) { return val ? val.trim() : ""; }
