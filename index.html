@@ -23,10 +23,7 @@
 <body>
 
     <div id="socialCardTemplate" class="social-card-layout">
-        <div class="card-header">
-            <span class="badge">ARC TESTNET</span>
-            <span class="card-brand">🛡️ Arc Shield</span>
-        </div>
+        <div class="card-header"><span class="badge">ARC TESTNET</span><span class="card-brand">🛡️ Arc Shield</span></div>
         <div class="card-body">
             <img id="cardTokenLogo" src="" class="card-logo-img">
             <h1 id="cardTokenSymbol">$TOKEN</h1>
@@ -39,7 +36,7 @@
     </div>
 
     <div class="hero">
-        <a href="https://faucet.circle.com/" target="_blank" class="btn-header" style="right: 120px;">Faucet</a>
+        <a href="https://faucet.circle.com/" target="_blank" class="btn-header" style="right: 120px;">Faucet USDC</a>
         <a href="https://testnet.arcscan.app/" target="_blank" class="btn-header">Explorer</a>
         
         <div id="startScreen">
@@ -53,7 +50,7 @@
         <div id="appContainer" style="display: none;">
             <div style="text-align: center; margin-bottom: 20px;">
                 <h2 style="margin:0;"><span class="gradient-text">Arc</span> <span class="shield-gradient">Shield</span></h2>
-                <p style="color:#64748b; font-size:0.9rem;">DeFi Suite V2</p>
+                <p style="color:#64748b; font-size:0.9rem;">DeFi Suite V2 + CCTP</p>
             </div>
             
             <div id="loginArea">
@@ -66,8 +63,8 @@
                 <button class="tab-btn" onclick="switchTab('multisender', this)">Multisender</button>
                 <button class="tab-btn" onclick="switchTab('locker', this)">Locker</button>
                 <button class="tab-btn" onclick="switchTab('vesting', this)">Vesting</button>
+                <button class="tab-btn" onclick="switchTab('bridge', this)">🌉 Bridge</button>
                 <button class="tab-btn" onclick="switchTab('dashboard', this)">💎 Claim</button>
-                <button class="tab-btn" onclick="switchTab('leaderboard', this)">🏆 Rank</button>
             </div>
 
             <div class="card">
@@ -102,6 +99,43 @@
                     <div class="grid-2">
                         <button class="btn-action btn-connect" onclick="approveToken('multi')">Aprovar</button>
                         <button id="btnMulti" class="btn-action btn-create" onclick="sendBatch()">Enviar</button>
+                    </div>
+                </div>
+
+                <div id="bridge" class="module-section">
+                    <div style="background: rgba(39, 117, 202, 0.1); border: 1px solid #2775CA; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                        <h3 style="margin:0 0 10px 0; font-size:1rem; color:#fff;">USDC Bridge (CCTP)</h3>
+                        <p style="margin:0; font-size:0.8rem; color:#ccc;">Sepolia ↔ Arc Testnet. Powered by Circle.</p>
+                    </div>
+
+                    <div class="nav-tabs" style="justify-content: center; margin-bottom: 20px;">
+                        <button class="tab-btn active" id="btnModeDeposit" onclick="setBridgeMode('deposit')">📤 1. Enviar (Sepolia)</button>
+                        <button class="tab-btn" id="btnModeClaim" onclick="setBridgeMode('claim')">📥 2. Receber (Arc)</button>
+                    </div>
+
+                    <div id="bridgeDepositArea">
+                        <label>Quantidade USDC (Sepolia)</label>
+                        <input type="number" id="bridgeAmount" placeholder="Ex: 10.00">
+                        <label>Destino (Sua carteira na Arc)</label>
+                        <input type="text" id="bridgeRecipient" placeholder="0x..." readonly style="opacity: 0.7; cursor: not-allowed;">
+                        <div class="grid-2">
+                            <button id="btnApproveCCTP" class="btn-action btn-connect" onclick="approveUSDC()">Aprovar USDC</button>
+                            <button id="btnBurnCCTP" class="btn-action btn-create" onclick="burnUSDC()" disabled>Queimar & Enviar</button>
+                        </div>
+                        <p style="font-size: 0.7rem; color: #666; margin-top: 10px; text-align: center;">*Você deve estar conectado na Ethereum Sepolia.</p>
+                    </div>
+
+                    <div id="bridgeClaimArea" style="display:none;">
+                        <div style="background: #222; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 0.8rem;">
+                            ℹ️ Após o envio, pegue a assinatura na <a href="https://developers.circle.com/stablecoins/docs/cctp-testnet-faucet" target="_blank" style="color: #2775CA;">Ferramenta da Circle</a> ou aguarde a API.
+                        </div>
+                        <label>Mensagem (Message Bytes)</label>
+                        <textarea id="cctpMessageBytes" placeholder="0x..." style="height: 60px;"></textarea>
+                        
+                        <label>Assinatura (Attestation)</label>
+                        <textarea id="cctpAttestation" placeholder="0x..." style="height: 60px;"></textarea>
+
+                        <button id="btnClaimCCTP" class="btn-action btn-create" onclick="mintUSDC()">🚀 Receber USDC na Arc</button>
                     </div>
                 </div>
 
@@ -165,17 +199,10 @@
             <div id="generatedCardContainer" style="display:none; margin-bottom:15px; justify-content:center;"></div>
             
             <div style="display:flex; flex-direction:column; gap:8px;">
-                <a id="downloadCardBtn" href="#" download="arc-shield-card.png" class="btn-action" style="background:#222; color:#fff; border:1px solid #444; text-decoration:none; display:none; text-align:center;">
-                    ⬇️ 1. Baixar Card
-                </a>
-                
+                <a id="downloadCardBtn" href="#" download="arc-shield-card.png" class="btn-action" style="background:#222; color:#fff; border:1px solid #444; text-decoration:none; display:none; text-align:center;">⬇️ 1. Baixar Card</a>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
-                    <button id="simpleShareBtn" class="btn-action" style="background:#000; color:#fff; border:1px solid #333; margin:0; display:none;">
-                        🐦 Postar X
-                    </button>
-                    <button id="telegramShareBtn" class="btn-action" style="background:#0088cc; color:#fff; border:none; margin:0; display:none;">
-                        ✈️ Telegram
-                    </button>
+                    <button id="simpleShareBtn" class="btn-action" style="background:#000; color:#fff; border:1px solid #333; margin:0; display:none;">🐦 Postar X</button>
+                    <button id="telegramShareBtn" class="btn-action" style="background:#0088cc; color:#fff; border:none; margin:0; display:none;">✈️ Telegram</button>
                 </div>
             </div>
 
