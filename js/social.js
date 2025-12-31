@@ -1,5 +1,5 @@
 // ==========================================
-// SOCIAL HUB & GAMIFICATION (V3.6 - Fix Banner)
+// SOCIAL HUB & GAMIFICATION (V3.7 - Contacts)
 // ==========================================
 
 window.userProfile = {
@@ -15,21 +15,17 @@ window.userProfile = {
 };
 let myChart = null;
 
-// 1. CARREGAR PERFIL
+// 1. CARREGAR PERFIL & CONTATOS
 window.loadUserProfile = async function(wallet) {
     if(!window.supabaseClient) return;
     try {
-        // Seleciona explicitamente as colunas para evitar erros de cache
         let { data: user, error } = await supabaseClient
             .from('users')
-            .select('username, bio, avatar_url, banner_url, points, tokens_created, vestings_created, locks_created, multisends_count, last_daily_claim')
+            .select('*')
             .eq('wallet_address', wallet)
             .single();
         
-        if (error && error.code !== 'PGRST116') {
-            console.error("Erro Supabase:", error);
-            return;
-        }
+        if (error && error.code !== 'PGRST116') console.error("Erro Supabase:", error);
 
         if (!user) {
             const newUser = { wallet_address: wallet, points: 0, avatar_url: `https://robohash.org/${wallet}?set=set4` };
@@ -40,7 +36,7 @@ window.loadUserProfile = async function(wallet) {
                 username: user.username || `User ${wallet.slice(0,4)}`,
                 bio: user.bio || "Sem descrição.",
                 avatar: user.avatar_url || `https://robohash.org/${wallet}?set=set4`,
-                banner: user.banner_url || null, // Carrega Banner
+                banner: user.banner_url || null, 
                 points: user.points || 0,
                 tokens: user.tokens_created || 0,
                 vestings: user.vestings_created || 0,
@@ -51,6 +47,7 @@ window.loadUserProfile = async function(wallet) {
         }
         updateProfileUI();
         checkDailyAvailability();
+        loadContacts(); // Carrega a agenda
     } catch(e) { console.error("Erro Crítico Profile:", e); }
 }
 
@@ -157,42 +154,21 @@ function renderCharts() {
     });
 }
 
-// 5. UPLOADS COM AUTO-SAVE
-// Função genérica para salvar imagens
+// 5. UPLOADS
 async function saveImageToDB(field, base64Data) {
     if(!window.userAddress) return alert("Conecte a carteira primeiro.");
+    if(base64Data.length > 3000000) return alert("Imagem muito grande! (Max 2MB)");
+
+    const updateObj = {}; updateObj[field] = base64Data;
+    document.body.style.cursor = 'wait';
     
-    // Verificação de tamanho (aprox 2MB)
-    if(base64Data.length > 3000000) {
-        return alert("Imagem muito grande! Tente uma menor que 2MB.");
-    }
-
-    const updateObj = {};
-    updateObj[field] = base64Data;
-
-    document.body.style.cursor = 'wait'; // Feedback visual
-    
-    const { error } = await supabaseClient
-        .from('users')
-        .update(updateObj)
-        .eq('wallet_address', window.userAddress);
-
+    const { error } = await supabaseClient.from('users').update(updateObj).eq('wallet_address', window.userAddress);
     document.body.style.cursor = 'default';
 
-    if(error) {
-        console.error("Erro Upload:", error);
-        if(error.message.includes('banner_url')) {
-            alert("ERRO DE BANCO: A coluna 'banner_url' não existe.\n\nPor favor, rode o comando SQL no Supabase.");
-        } else {
-            alert("Erro ao salvar imagem. Veja o console (F12).");
-        }
-    } else {
-        // Sucesso
-        if(window.confetti) window.confetti({ particleCount: 50, spread: 30, origin: { y: 0.3 } });
-    }
+    if(error) alert("Erro ao salvar imagem. Verifique a coluna no banco.");
+    else if(window.confetti) window.confetti({ particleCount: 50, spread: 30, origin: { y: 0.3 } });
 }
 
-// Upload Avatar
 window.handleAvatarUpload = function(input) {
     const file = input.files[0];
     if(file) {
@@ -200,14 +176,13 @@ window.handleAvatarUpload = function(input) {
         r.onload = function(e) { 
             const base64 = e.target.result;
             window.userProfile.avatar = base64; 
-            updateProfileUI(); // Atualiza na hora
-            saveImageToDB('avatar_url', base64); // Salva no banco
+            updateProfileUI(); 
+            saveImageToDB('avatar_url', base64); 
         };
         r.readAsDataURL(file);
     }
 }
 
-// Upload Banner
 window.handleBannerUpload = function(input) {
     const file = input.files[0];
     if(file) {
@@ -215,37 +190,26 @@ window.handleBannerUpload = function(input) {
         r.onload = function(e) { 
             const base64 = e.target.result;
             window.userProfile.banner = base64; 
-            updateProfileUI(); // Atualiza na hora
-            saveImageToDB('banner_url', base64); // Salva no banco
+            updateProfileUI(); 
+            saveImageToDB('banner_url', base64); 
         };
         r.readAsDataURL(file);
     }
 }
 
-// Salvar Textos (Nome/Bio)
 window.saveProfileData = async function() {
     const name = document.getElementById('editName').value;
     const bio = document.getElementById('editBio').value;
-    
     const up = {};
     if(name) up.username = name;
     if(bio) up.bio = bio;
-    
-    // Não enviamos imagens aqui de novo para economizar dados,
-    // já que o auto-save cuida disso.
-    
     if(Object.keys(up).length === 0) return alert("Nada para salvar nos textos.");
 
     const { error } = await supabaseClient.from('users').update(up).eq('wallet_address', userAddress);
-    
     if(error) alert("Erro ao salvar perfil.");
-    else {
-        alert("Texto Atualizado! 💾");
-        loadUserProfile(userAddress);
-    }
+    else { alert("Texto Atualizado! 💾"); loadUserProfile(userAddress); }
 }
 
-// 6. LEADERBOARD
 window.loadLeaderboard = async function() {
     const div = document.getElementById("leaderboardList");
     div.innerHTML = "Loading...";
@@ -258,4 +222,101 @@ window.loadLeaderboard = async function() {
         html += `<div class="leaderboard-row"><div class="rank-num">#${i+1}</div><div class="user-cell"><img src="${u.avatar_url||'https://robohash.org/def'}"><span>${u.username||u.wallet_address.slice(0,4)}</span></div><div class="badge-cell">${badge}</div><div style="color:#00ff9d">${u.points} XP</div></div>`;
     });
     div.innerHTML = html;
+}
+
+// 6. AGENDA DE CONTATOS (NOVO)
+
+window.toggleAddContactForm = function() {
+    const form = document.getElementById('addContactForm');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+
+window.saveContact = async function() {
+    if(!window.supabaseClient || !window.userAddress) return alert("Conecte a carteira.");
+    
+    const name = document.getElementById('newContactName').value;
+    const wallet = document.getElementById('newContactWallet').value;
+
+    if(!name || !wallet) return alert("Preencha nome e carteira.");
+    // Validação simples de endereço
+    if(!wallet.startsWith("0x") || wallet.length !== 42) return alert("Endereço de carteira inválido!");
+
+    const { error } = await supabaseClient.from('contacts').insert([{ 
+        owner_wallet: window.userAddress,
+        friend_name: name,
+        friend_wallet: wallet
+    }]);
+
+    if(error) { console.error(error); alert("Erro ao salvar contato."); } 
+    else {
+        alert("Aliado adicionado! 🤝");
+        document.getElementById('newContactName').value = "";
+        document.getElementById('newContactWallet').value = "";
+        toggleAddContactForm();
+        loadContacts(); 
+    }
+}
+
+window.loadContacts = async function() {
+    if(!window.supabaseClient || !window.userAddress) return;
+    const div = document.getElementById('contactsList');
+    
+    const { data: contacts, error } = await supabaseClient
+        .from('contacts')
+        .select('*')
+        .eq('owner_wallet', window.userAddress)
+        .order('created_at', { ascending: false });
+
+    if(error) return console.error(error);
+
+    if(!contacts || contacts.length === 0) {
+        div.innerHTML = `<p style="color:#666; text-align:center; padding:10px;">Você ainda não tem aliados salvos.</p>`;
+        return;
+    }
+
+    let html = "";
+    contacts.forEach(c => {
+        const friendAvatar = `https://robohash.org/${c.friend_wallet}?set=set4`;
+        html += `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:10px; border-radius:10px; margin-bottom:8px; border:1px solid rgba(255,255,255,0.05);">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <img src="${friendAvatar}" style="width:35px; height:35px; border-radius:50%; background:#222; object-fit:cover;">
+                <div>
+                    <div style="font-weight:bold; font-size:0.9rem;">${c.friend_name}</div>
+                    <div style="font-size:0.75rem; color:#888;">${c.friend_wallet.slice(0,6)}...${c.friend_wallet.slice(-4)}</div>
+                </div>
+            </div>
+            <div style="display:flex; gap:5px;">
+                <button class="mini-btn" onclick="copyToClip('${c.friend_wallet}')" title="Copiar">📋</button>
+                <button class="mini-btn" style="background:rgba(0, 114, 255, 0.2); color:#4dcfff; border-color:rgba(0,114,255,0.3);" onclick="sendToFriend('${c.friend_wallet}')" title="Enviar Saldo">💸 Enviar</button>
+                <button class="mini-btn" style="color:#ff6b6b;" onclick="deleteContact(${c.id})" title="Remover">❌</button>
+            </div>
+        </div>`;
+    });
+    div.innerHTML = html;
+}
+
+window.copyToClip = function(text) {
+    navigator.clipboard.writeText(text);
+    alert("Endereço copiado!");
+}
+
+window.sendToFriend = function(address) {
+    if(window.navigate) window.navigate('multisender');
+    
+    // Pequeno delay para garantir que a aba trocou
+    setTimeout(() => {
+        const csvArea = document.getElementById('csvInput');
+        if(csvArea) {
+            csvArea.value = `${address}, `; 
+            csvArea.focus();
+            alert(`Modo de envio ativado para: ${address}\n\nDigite a quantidade após a vírgula.`);
+        }
+    }, 100);
+}
+
+window.deleteContact = async function(id) {
+    if(!confirm("Remover este aliado?")) return;
+    await supabaseClient.from('contacts').delete().eq('id', id);
+    loadContacts();
 }
