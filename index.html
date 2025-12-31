@@ -6,7 +6,6 @@
     <title>Arc Shield - Infrastructure Hub</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
-    
     <link rel="stylesheet" href="css/style.css">
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -24,10 +23,7 @@
 <body>
 
     <div id="socialCardTemplate" class="social-card-layout">
-        <div class="card-header">
-            <span class="badge">ARC TESTNET</span>
-            <span class="card-brand">🛡️ Arc Shield</span>
-        </div>
+        <div class="card-header"><span class="badge">ARC TESTNET</span><span class="card-brand">🛡️ Arc Shield</span></div>
         <div class="card-body">
             <img id="cardTokenLogo" src="" class="card-logo-img">
             <h1 id="cardTokenSymbol">$TOKEN</h1>
@@ -42,6 +38,7 @@
     <div class="hero">
         <a href="https://faucet.circle.com/" target="_blank" class="btn-header" style="right: 120px;">Faucet</a>
         <a href="https://testnet.arcscan.app/" target="_blank" class="btn-header">Explorer</a>
+        
         <div id="startScreen">
             <div class="badge"><span class="dot"></span> Arc Testnet Live</div>
             <h1><span class="gradient-text">Arc</span> <span class="shield-gradient">Shield</span></h1>
@@ -49,15 +46,18 @@
             <button class="btn-hero" onclick="startApp()"><span>Iniciar DApp</span> <span>→</span></button>
             <p style="margin-top:20px; font-size:0.7rem; color:#444;">*Contratos em fase Beta. Use por sua conta e risco.</p>
         </div>
+
         <div id="appContainer" style="display: none;">
             <div style="text-align: center; margin-bottom: 20px;">
                 <h2 style="margin:0;"><span class="gradient-text">Arc</span> <span class="shield-gradient">Shield</span></h2>
                 <p style="color:#64748b; font-size:0.9rem;">DeFi Suite V2</p>
             </div>
+            
             <div id="loginArea">
                 <button id="btnConnect" class="btn-action btn-connect" onclick="connectWallet()">🦊 Conectar MetaMask / Web3</button>
                 <p id="loginStatus" style="color: #ff4d4d; font-size: 0.8rem; margin-top: 10px; display: none;"></p>
             </div>
+
             <div class="nav-tabs" id="navTabs" style="display:none;">
                 <button class="tab-btn active" onclick="switchTab('creator', this)">Launchpad</button>
                 <button class="tab-btn" onclick="switchTab('multisender', this)">Multisender</button>
@@ -66,6 +66,7 @@
                 <button class="tab-btn" onclick="switchTab('dashboard', this)">💎 Claim</button>
                 <button class="tab-btn" onclick="switchTab('leaderboard', this)">🏆 Rank</button>
             </div>
+
             <div class="card">
                 <div id="creator" class="module-section active">
                     <label>Nome do Projeto</label><input type="text" id="tokenName" placeholder="Ex: Arc Governance">
@@ -81,14 +82,64 @@
                         <summary>📝 Adicionar Descrição / Info</summary>
                         <textarea id="tokenDesc" placeholder="Descreva a utilidade do seu token..."></textarea>
                     </details>
-                    <button class="btn-action btn-create" onclick="createToken()">🚀 Criar Token (+100 Pts)</button>
+                    <button id="btnCreate" class="btn-action btn-create" onclick="createToken()">🚀 Criar Token (+100 Pts)</button>
                 </div>
-                <div id="multisender" class="module-section"><label>Token</label><input type="text" id="multiTokenAddr"><div style="display:flex; justify-content:space-between; align-items:end; margin-top:15px; margin-bottom:5px;"><label style="margin:0">Lista</label><div style="position:relative;"><input type="file" id="fileUpload" accept=".txt, .csv" style="display:none;" onchange="handleFileUpload(this)"><button class="mini-btn" onclick="document.getElementById('fileUpload').click()">📂 Upload TXT/CSV</button></div></div><textarea id="csvInput" placeholder="Ex: 0x123... 500" style="height: 150px; font-family:monospace; font-size:0.85rem;"></textarea><p id="multiSummary" style="color: #64748b; font-size: 0.8rem; text-align: right; margin-top: 5px;">Aguardando dados...</p><div class="grid-2"><button class="btn-action btn-connect" onclick="approveToken('multi')">Aprovar</button><button class="btn-action btn-create" onclick="sendBatch()">Enviar</button></div></div>
-                <div id="locker" class="module-section"><label>Token</label><input type="text" id="lockTokenAddr"><label>Qtd</label><input type="number" id="lockAmount"><label>Data</label><input type="datetime-local" id="lockDate"><div class="grid-2"><button class="btn-action btn-connect" onclick="approveToken('lock')">Aprovar</button><button class="btn-action btn-create" onclick="lockTokens()">Trancar</button></div></div>
-                <div id="vesting" class="module-section"><label>Token</label><input type="text" id="vestTokenAddr"><label>Beneficiário</label><input type="text" id="vestBeneficiary"><div class="grid-2"><input type="number" id="vestAmount"><input type="number" id="vestDuration"></div><div class="grid-2"><button class="btn-action btn-connect" onclick="approveToken('vest')">Aprovar</button><button class="btn-action btn-create" onclick="createVesting()">Criar</button></div></div>
-                <div id="dashboard" class="module-section"><div id="dashboardContent"></div><button class="btn-action btn-connect" onclick="loadDashboardData()">🔄 Atualizar</button></div>
-                <div id="leaderboard" class="module-section"><div id="leaderboardList"></div><button class="btn-action btn-connect" onclick="loadLeaderboard()">🔄 Rank</button></div>
+
+                <div id="multisender" class="module-section">
+                    <label>Token</label><input type="text" id="multiTokenAddr">
+                    <div style="display:flex; justify-content:space-between; align-items:end; margin-top:15px; margin-bottom:5px;">
+                        <label style="margin:0">Lista</label>
+                        <div style="position:relative;">
+                            <input type="file" id="fileUpload" accept=".txt, .csv" style="display:none;" onchange="handleFileUpload(this)">
+                            <button class="mini-btn" onclick="document.getElementById('fileUpload').click()">📂 Upload TXT/CSV</button>
+                        </div>
+                    </div>
+                    <textarea id="csvInput" placeholder="Ex: 0x123... 500" style="height: 150px; font-family:monospace; font-size:0.85rem;"></textarea>
+                    <p id="multiSummary" style="color: #64748b; font-size: 0.8rem; text-align: right; margin-top: 5px;">Aguardando dados...</p>
+                    <div class="grid-2">
+                        <button class="btn-action btn-connect" onclick="approveToken('multi')">Aprovar</button>
+                        <button id="btnMulti" class="btn-action btn-create" onclick="sendBatch()">Enviar</button>
+                    </div>
+                </div>
+
+                <div id="locker" class="module-section">
+                    <label>Token</label><input type="text" id="lockTokenAddr">
+                    <label>Quantidade</label><input type="number" id="lockAmount">
+                    <label>Data</label><input type="datetime-local" id="lockDate" style="color-scheme: dark;">
+                    <div class="grid-2">
+                        <button class="btn-action btn-connect" onclick="approveToken('lock')">Aprovar</button>
+                        <button id="btnLock" class="btn-action btn-create" onclick="lockTokens()">Trancar</button>
+                    </div>
+                </div>
+
+                <div id="vesting" class="module-section">
+                    <label>Token</label><input type="text" id="vestTokenAddr">
+                    <label>Beneficiário</label><input type="text" id="vestBeneficiary">
+                    <div class="grid-2">
+                        <input type="number" id="vestAmount" placeholder="Total">
+                        <input type="number" id="vestDuration" placeholder="Minutos">
+                    </div>
+                    <div class="grid-2">
+                        <button class="btn-action btn-connect" onclick="approveToken('vest')">Aprovar</button>
+                        <button id="btnVest" class="btn-action btn-create" onclick="createVesting()">Criar</button>
+                    </div>
+                </div>
+
+                <div id="dashboard" class="module-section">
+                    <div id="dashboardContent"></div>
+                    <button class="btn-action btn-connect" onclick="loadDashboardData()">🔄 Atualizar</button>
+                </div>
                 
+                <div id="leaderboard" class="module-section">
+                    <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                        <label>Seu Perfil</label>
+                        <div class="grid-2"><input type="text" id="profileName" placeholder="Nickname"><input type="text" id="profileAvatar" placeholder="URL Foto"></div>
+                        <button class="mini-btn" style="width:100%; margin-top:5px;" onclick="saveProfile()">💾 Salvar</button>
+                    </div>
+                    <div id="leaderboardList"></div>
+                    <button class="btn-action btn-connect" onclick="loadLeaderboard()">🔄 Rank</button>
+                </div>
+
                 <div id="consoleArea"><div class="log-entry">> Sistema Arc Shield Inicializado...</div></div>
             </div>
         </div>
@@ -111,17 +162,10 @@
             <div id="generatedCardContainer" style="display:none; margin-bottom:15px; justify-content:center;"></div>
             
             <div style="display:flex; flex-direction:column; gap:8px;">
-                <a id="downloadCardBtn" href="#" download="arc-shield-card.png" class="btn-action" style="background:#222; color:#fff; border:1px solid #444; text-decoration:none; display:none; text-align:center;">
-                    ⬇️ 1. Baixar Card
-                </a>
-                
+                <a id="downloadCardBtn" href="#" download="arc-shield-card.png" class="btn-action" style="background:#222; color:#fff; border:1px solid #444; text-decoration:none; display:none; text-align:center;">⬇️ 1. Baixar Card</a>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
-                    <button id="simpleShareBtn" class="btn-action" style="background:#000; color:#fff; border:1px solid #333; margin:0; display:none;">
-                        🐦 Postar X
-                    </button>
-                    <button id="telegramShareBtn" class="btn-action" style="background:#0088cc; color:#fff; border:none; margin:0; display:none;">
-                        ✈️ Telegram
-                    </button>
+                    <button id="simpleShareBtn" class="btn-action" style="background:#000; color:#fff; border:1px solid #333; margin:0; display:none;">🐦 Postar X</button>
+                    <button id="telegramShareBtn" class="btn-action" style="background:#0088cc; color:#fff; border:none; margin:0; display:none;">✈️ Telegram</button>
                 </div>
             </div>
 
