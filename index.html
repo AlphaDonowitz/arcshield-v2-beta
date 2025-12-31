@@ -1,898 +1,190 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Arc Shield - Dashboard</title>
+    <title>Arc Shield - Infrastructure Hub</title>
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
-    <style>
-        /* --- ESTILOS INSTITUCIONAIS (V44 - CLEAN-UP) --- */
-        :root {
-            --bg-deep: #0A0A0A; 
-            --text-main: #ffffff; 
-            --text-muted: #94a3b8; 
-            --accent-color: #2775CA; /* USDC Blue */
-            --card-bg: rgba(255, 255, 255, 0.05); 
-            --border-light: rgba(255, 255, 255, 0.15); 
-            --danger: #e74c3c;
-            color-scheme: dark; 
-        }
-        body { 
-            background-color: var(--bg-deep); 
-            background-image: none;
-            color: var(--text-main); 
-            font-family: 'Inter', sans-serif; 
-            margin: 0; 
-            padding: 0; 
-            overflow-x: hidden; 
-        }
-        a { text-decoration: none; transition: 0.3s; }
-        .hero { 
-            min-height: 100vh; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            padding: 40px 20px; 
-            transition: opacity 0.5s ease; 
-            position: relative; 
-            box-sizing: border-box; 
-            padding-bottom: 80px; 
-        }
-        
-        .badge { background: var(--card-bg); border: 1px solid var(--border-light); padding: 8px 20px; border-radius: 50px; font-size: 0.85rem; font-weight: 500; display: flex; align-items: center; gap: 10px; margin-bottom: 24px; backdrop-filter: blur(5px); color: white; cursor: pointer; }
-        .badge:hover { border-color: var(--accent-color); }
-        .dot { width: 8px; height: 8px; background-color: var(--accent-color); border-radius: 50%; box-shadow: 0 0 8px var(--accent-color); animation: blink 2s infinite; }
-        @keyframes blink { 0% {opacity: 1;} 50% {opacity: 0.5;} 100% {opacity: 1;} }
-        
-        h1 { font-size: 3.5rem; line-height: 1; font-weight: 800; margin: 0 0 20px 0; letter-spacing: -2px; text-align: center; }
-        
-        .gradient-text { color: var(--text-main); } 
-        .shield-gradient { color: var(--accent-color); } 
-
-        .hero-desc { color: var(--text-muted); font-size: 1.1rem; max-width: 600px; margin-bottom: 40px; text-align: center; }
-        #startScreen { 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            height: 70vh; 
-            justify-content: center; 
-            position: relative; 
-            z-index: 1; 
-        }
-
-        .btn-hero { 
-            background: var(--accent-color); 
-            color: white; 
-            padding: 18px 40px; 
-            border-radius: 12px; 
-            font-weight: 700; 
-            font-size: 1.1rem; 
-            border: 1px solid rgba(255,255,255,0.1); 
-            cursor: pointer; 
-            display: flex; 
-            align-items: center; 
-            gap: 12px; 
-            transition: all 0.3s ease; 
-            box-shadow: 0 0 20px rgba(39, 117, 202, 0.15); 
-        }
-        .btn-hero:hover { 
-            transform: translateY(-3px); 
-            background: #206bc4; 
-            box-shadow: 0 10px 30px rgba(39, 117, 202, 0.4); 
-            letter-spacing: 0.5px; 
-        }
-        .btn-hero span.arrow { display: inline-block; transition: transform 0.3s ease; }
-        .btn-hero:hover span.arrow { transform: translateX(5px); }
-
-        #appContainer { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 500px; padding-bottom: 80px; animation: fadeIn 0.8s ease forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        
-        .card { background: var(--card-bg); border: 1px solid var(--border-light); padding: 2.5rem; border-radius: 24px; width: 100%; backdrop-filter: blur(20px); box-shadow: 0 15px 30px rgba(0,0,0,0.5); margin-bottom: 30px; box-sizing: border-box; }
-        label { color: var(--text-muted); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; display: block; }
-        
-        input { width: 100%; padding: 14px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-light); border-radius: 12px; color: white; font-family: 'Inter', sans-serif; margin-bottom: 20px; outline: none; box-sizing: border-box; }
-        input:focus { border-color: var(--accent-color); }
-        input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        input[type=number] { -moz-appearance: textfield; }
-
-        .btn-action { width: 100%; padding: 16px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; transition: all 0.2s ease-in-out; } 
-        .btn-connect { background: transparent; border: 1px solid var(--border-light); color: white; margin-bottom: 10px; } 
-        .btn-connect:hover { background: rgba(255,255,255,0.05); border-color: white; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255,255,255,0.1); } 
-        .btn-create { background: var(--accent-color); color: white; }
-        .btn-create:hover:not(:disabled) { opacity: 0.9; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(39, 117, 202, 0.6); } 
-        .btn-create:disabled { background: #333; color: #666; cursor: not-allowed; }
-
-        .success-box { 
-            margin-top: 20px; padding: 15px; 
-            background: rgba(39, 117, 202, 0.1); 
-            border: 1px solid var(--accent-color); 
-            border-radius: 12px; display: none; 
-            align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap;
-        }
-        .success-box p { margin: 0; font-weight: bold; }
-        .success-box a { color: var(--accent-color); font-weight: bold; text-decoration: underline; transition: color 0.2s ease-in-out; }
-        .success-box a:hover { color: #5cb8ff; } 
-
-        .tokens-section { width: 100%; margin-top: 20px; }
-        .section-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 15px; color: white; display: flex; align-items: center; gap: 10px; }
-        .token-list { display: grid; gap: 15px; }
-        .token-card { 
-            background: var(--card-bg); 
-            border: 1px solid var(--border-light); 
-            border-radius: 16px; 
-            padding: 15px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            transition: all 0.2s ease-in-out; 
-            cursor: pointer; /* Adicionado cursor pointer para indicar clicável */
-        } 
-        .token-card:hover { 
-            border-color: var(--accent-color); 
-            background: rgba(255, 255, 255, 0.08); 
-            transform: translateY(-2px); 
-            box-shadow: 0 5px 15px rgba(39, 117, 202, 0.2); 
-        } 
-        .token-info h3 { margin: 0; font-size: 1rem; color: white; }
-        .token-info span { font-size: 0.8rem; color: var(--text-muted); font-family: monospace; }
-        .mini-btn { background: rgba(255, 255, 255, 0.1); border: none; color: var(--accent-color); padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; font-weight: 600; transition: all 0.2s ease-in-out; } 
-        .mini-btn:hover { background: var(--accent-color); color: white; transform: scale(1.05); box-shadow: 0 2px 8px rgba(39, 117, 202, 0.4); } 
-
-        /* ESTILO PARA GERENCIAMENTO DE TOKEN (V44) */
-        #tokenManagerSection { display: none; margin-top: 30px; }
-        #managerCard { 
-            padding: 2.5rem; 
-            background: var(--card-bg); 
-            border: 1px solid var(--border-light); 
-            border-radius: 24px;
-            box-shadow: 0 15px 30px rgba(0,0,0,0.5); 
-            transition: all 0.2s ease-out; 
-        }
-        .manager-info-box { 
-            background: rgba(0,0,0,0.3); 
-            padding: 15px; 
-            border-radius: 12px; 
-            margin-bottom: 25px; 
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .manager-info-box p { margin: 0; font-size: 0.95rem; }
-        .manager-info-box span { color: var(--accent-color); font-weight: 600; }
-        
-        /* Controles Percentuais */
-        .transfer-controls { 
-            display: flex; 
-            gap: 10px; 
-            margin-top: -15px; 
-            margin-bottom: 20px; 
-            flex-wrap: wrap; 
-        }
-        .transfer-controls button {
-            flex: 1; 
-            background: rgba(255,255,255,0.1);
-            border: 1px solid var(--border-light);
-            color: white;
-            padding: 10px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            font-weight: 500;
-            transition: all 0.2s ease;
-        }
-        .transfer-controls button:hover {
-            background: rgba(255,255,255,0.2);
-            border-color: var(--accent-color);
-        }
-        .transfer-controls button.active {
-            background: var(--accent-color);
-            border-color: var(--accent-color);
-            box-shadow: 0 2px 10px rgba(39, 117, 202, 0.4);
-        }
-        .transfer-controls button.active:hover {
-            background: var(--accent-color); 
-            opacity: 0.9;
-        }
-
-        /* ANIMAÇÕES */
-        .processing-spinner { 
-            border: 2px solid rgba(255,255,255,0.3); 
-            border-left-color: white; 
-            border-radius: 50%; 
-            width: 14px; 
-            height: 14px; 
-            animation: spin 1s linear infinite; 
-            display: inline-block;
-            margin-right: 8px; 
-            vertical-align: middle;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        .success-pulse { 
-            animation: pulse-success 0.5s ease-out;
-            border-color: var(--accent-color) !important; 
-            box-shadow: 0 0 15px var(--accent-color);
-        }
-        @keyframes pulse-success {
-            0% { border-color: var(--border-light); box-shadow: 0 0 0 rgba(39, 117, 202, 0); }
-            50% { border-color: var(--accent-color); box-shadow: 0 0 15px rgba(39, 117, 202, 1); }
-            100% { border-color: var(--border-light); box-shadow: 0 0 0 rgba(39, 117, 202, 0); }
-        }
-
-
-        .footer-bar { 
-            position: fixed; 
-            bottom: 0; 
-            left: 0; 
-            width: 100%; 
-            padding: 15px 25px; 
-            background: rgba(10, 10, 10, 0.9); 
-            backdrop-filter: blur(10px); 
-            font-size: 0.8rem; 
-            color: var(--text-muted); 
-            z-index: 100; 
-            box-sizing: border-box; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-        }
-        .creator-link { color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
-        .creator-link:hover { color: #fff; }
-        .spinner { border: 2px solid rgba(255,255,255,0.1); border-left-color: var(--accent-color); border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
-        
-        .explorer-link-full { display: block; width: 100%; text-align: center; padding: 12px; margin-bottom: 20px; border-radius: 12px; border: 1px solid var(--border-light); color: var(--accent-color); font-weight: 600; background: rgba(0,0,0,0.2); transition: all 0.2s ease-in-out; } 
-        .explorer-link-full:hover { border-color: var(--accent-color); color: white; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(39, 117, 202, 0.3); } 
-
-        .btn-faucet-header {
-            position: absolute; top: 25px; right: 25px; padding: 8px 16px; border-radius: 8px; font-weight: 700; font-size: 0.85rem; color: white; z-index: 10; background: var(--accent-color); box-shadow: 0 5px 15px rgba(39, 117, 202, 0.3); transition: all 0.2s ease-in-out; } 
-        .btn-faucet-header:hover { opacity: 0.9; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(39, 117, 202, 0.5); } 
-
-        /* BOTÃO DE IDIOMA */
-        .btn-lang {
-            position: absolute; top: 25px; right: 105px; 
-            padding: 8px 12px; border-radius: 8px; font-weight: 700; font-size: 0.85rem; 
-            color: white; z-index: 10; background: rgba(255,255,255,0.1); 
-            border: 1px solid rgba(255,255,255,0.2); cursor: pointer;
-            transition: all 0.2s ease-in-out; 
-        }
-        .btn-lang:hover { background: rgba(255,255,255,0.2); }
-
-        .btn-disconnect { background: var(--danger) !important; color: white !important; border-color: var(--danger) !important; }
-        .btn-disconnect:hover { background: #c0392b !important; border-color: var(--danger) !important; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(231,76,60,0.4); }
-
-        @media (max-width: 600px) { 
-            h1 { font-size: 2.5rem; } 
-            .footer-bar { flex-direction: column; gap: 10px; text-align: center; } 
-            .btn-faucet-header { position: relative; margin: 10px auto; right: auto; top: auto; } 
-            .btn-lang { 
-                position: relative; 
-                margin: 0 auto 10px auto; 
-                right: auto; top: auto; display: inline-block; 
-            }
-            .success-box { flex-direction: column; } 
-            #startScreen .btn-hero {
-                 margin-bottom: 40px; 
-            }
-            .transfer-controls { justify-content: space-between; gap: 8px; }
-            .transfer-controls button { flex-basis: 22%; padding: 8px; }
-        }
-    </style>
-</head>
-<body>
-
-    <div class="hero">
-        <button class="btn-lang" onclick="toggleLanguage()" id="btnLang">🇺🇸 EN</button>
-        <a href="https://faucet.circle.com/" target="_blank" class="btn-faucet-header">
-            Faucet
-        </a>
-        
-        <a href="https://testnet.arcscan.app/" target="_blank" class="badge">
-            <span class="dot"></span> Arc Testnet Live ↗
-        </a>
-
-        <div id="startScreen">
-            <h1><span class="gradient-text">Arc</span> <span class="shield-gradient">Shield</span></h1>
-            <p class="hero-desc" id="heroDesc">Crie tokens com velocidade e segurança na Arc Testnet da Circle</p>
-            
-            <button class="btn-hero" onclick="startApp()">
-                <span id="btnStartText">Começar Agora</span> <span class="arrow">→</span>
-            </button>
-        </div>
-
-        <div id="appContainer">
-            <div class="card">
-                <div style="text-align: center; margin-bottom: 25px;">
-                    <h2 style="margin: 0;">
-                        <span class="gradient-text">Arc</span> <span class="shield-gradient">Shield</span>
-                    </h2> 
-                    <p style="color: #64748b; font-size: 0.9rem;" id="appSubtitle">Configure seu ativo digital</p>
-                </div>
-
-                <button id="btnConnect" class="btn-action btn-connect" onclick="connectWallet()">🔌 Conectar Carteira</button>
-
-                <div id="formFields" style="opacity: 0.5; pointer-events: none;">
-                    <label id="lblProject">Nome do Projeto</label>
-                    <input type="text" id="tokenName" placeholder="Ex: Arc Governance">
-
-                    <label id="lblSymbol">Símbolo (Ticker)</label>
-                    <input type="text" id="tokenSymbol" placeholder="Ex: ARC">
-
-                    <label id="lblSupply">Supply Inicial</label>
-                    <input type="number" id="tokenSupply" placeholder="Ex: 1000000" min="1" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
-
-                    <button id="btnCreate" class="btn-action btn-create" onclick="createToken()" disabled>🚀 Criar Token</button>
-                </div>
-
-                <div id="resultArea" class="success-box">
-                    <p id="msgSuccess">🎉 Token Criado!</p>
-                    <a id="txLink" href="#" target="_blank">Ver no ArcScan ↗</a>
-                </div>
-                
-                <p id="console" style="font-family:monospace; color:#475569; font-size:0.7rem; text-align:center; margin-top:20px;">...</p>
-            </div>
-            
-            <div id="tokenManagerSection" class="tokens-section">
-                <h2 class="section-title">
-                    <span id="lblManagerTitle">⚙️ Gerenciamento de Token</span>
-                </h2>
-                <div class="card" id="managerCard">
-                    <p id="managerPlaceholder" style="color: var(--text-muted);">
-                        Selecione um token no histórico ou crie um novo para gerenciar.
-                    </p>
-
-                    <div id="tokenManagementForm" style="display:none;">
-                        
-                        <div class="manager-info-box">
-                            <p style="margin: 0 0 5px 0;"><span id="managerTokenName"></span> (<span id="managerTokenSymbol"></span>)</p>
-                            <p style="font-size: 0.95rem; margin: 0;">
-                                <span id="lblYourBalance">Seu Saldo:</span> <span id="currentBalance">...</span> 
-                            </p>
-                        </div>
-
-                        <div style="grid-column: span 2;">
-                            <label id="lblTransferAmount">Quantia a Transferir</label>
-                            <input type="number" id="transferAmount" placeholder="0.00">
-                            
-                            <div class="transfer-controls">
-                                <button onclick="setTransferAmount(25)">25%</button>
-                                <button onclick="setTransferAmount(50)">50%</button>
-                                <button onclick="setTransferAmount(75)">75%</button>
-                                <button onclick="setTransferAmount(100)">MAX</button>
-                            </div>
-
-                            <label id="lblRecipientAddress">Endereço do Destinatário</label>
-                            <input type="text" id="recipientAddress" placeholder="0x...">
-
-                            <button id="btnTransfer" class="btn-action btn-create" onclick="transferTokens()">
-                                💸 Transferir Tokens
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="tokens-section" id="myTokensSection" style="display:none;">
-                <a id="explorerLink" href="#" target="_blank" class="explorer-link-full">
-                    🌐 Ver Meus Tokens no Explorer
-                </a>
-                
-                <div class="section-title">
-                    <span id="lblMyTokens">📂 Meus Tokens Criados</span>
-                    <div id="loadingTokens" class="spinner" style="display:none;"></div>
-                </div>
-                <div id="tokensList" class="token-list">
-                    <p id="lblHistory" style="color: #64748b; font-size: 0.9rem; text-align: center;">O histórico é carregado apenas durante a sessão atual.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="footer-bar">
-        <div class="footer-left">
-             <a href="https://x.com/AlphaDonowitz" target="_blank" class="creator-link">
-                Developed by <span style="color: #fff; margin-left: 4px;">@AlphaDonowitz</span> <span style="margin-left:4px">𝕏</span>
-            </a>
-        </div>
-        <div class="footer-right" style="opacity: 0.7;">⚠️ Beta / Testnet Only</div>
-    </div>
-
+    <link rel="stylesheet" href="css/style.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
     <script>
-        /* --- SISTEMA DE TRADUÇÃO (V44) --- */
-        const translations = {
-            pt: {
-                heroDesc: "Crie tokens com velocidade e segurança na Arc Testnet da Circle",
-                btnStart: "Começar Agora",
-                appSubtitle: "Configure seu ativo digital",
-                btnConnect: "🔌 Conectar Carteira",
-                btnDisconnect: "Desconectar",
-                lblProject: "NOME DO PROJETO",
-                lblSymbol: "SÍMBOLO (TICKER)",
-                lblSupply: "SUPPLY INICIAL",
-                btnCreate: "🚀 Criar Token",
-                btnCreateAnother: "🚀 Criar Outro",
-                btnProcessing: "⏳ Processando...",
-                msgSuccess: "🎉 Token Criado!",
-                viewExplorer: "Ver no ArcScan ↗",
-                lblMyTokens: "📂 Meus Tokens Criados",
-                lblHistory: "O histórico é carregado apenas durante a sessão atual.",
-                viewMyTokens: "🌐 Ver Meus Tokens no Explorer",
-                alertFillFields: "Preencha todos os campos!",
-                alertSupplyZero: "O Supply deve ser maior que zero!",
-                logTxSent: "Transação enviada... aguardando confirmação.",
-                logSuccess: "Sucesso!",
-                logError: "Erro: ",
-                logTxCancelled: "Transação cancelada ou falha",
-                logSelectionCancelled: "Seleção cancelada.",
-                alertInstallMetaMask: "Nenhuma carteira detectada! Por favor, instale uma extensão (ex: MetaMask ou Rabby).",
-                logConnected: "Conectado:",
-                // NOVOS - MANAGER
-                lblManagerTitle: "⚙️ Gerenciamento de Token",
-                managerPlaceholder: "Selecione um token no histórico ou crie um novo para gerenciar.",
-                lblYourBalance: "Seu Saldo:",
-                lblTransferAmount: "Quantia a Transferir",
-                lblRecipientAddress: "Endereço do Destinatário",
-                btnTransfer: "💸 Transferir Tokens",
-                logTransferSent: "Transferência enviada...",
-                logTransferSuccess: "Transferência concluída!",
-                alertInvalidAddress: "Endereço de destinatário inválido.",
-                alertInsufficientBalance: "Saldo insuficiente para esta transação.",
-                alertTokenSelect: "Selecione ou crie um token para usar o gerenciador."
-            },
-            en: {
-                heroDesc: "Deploy tokens with speed and security on Circle's Arc Testnet",
-                btnStart: "Start Now",
-                appSubtitle: "Configure your digital asset",
-                btnConnect: "🔌 Connect Wallet",
-                btnDisconnect: "Disconnect",
-                lblProject: "PROJECT NAME",
-                lblSymbol: "SYMBOL (TICKER)",
-                lblSupply: "INITIAL SUPPLY",
-                btnCreate: "🚀 Deploy Token",
-                btnCreateAnother: "🚀 Deploy Another",
-                btnProcessing: "⏳ Deploying...",
-                msgSuccess: "🎉 Token Deployed!",
-                viewExplorer: "View on ArcScan ↗",
-                lblMyTokens: "📂 Created Tokens",
-                lblHistory: "History is loaded for current session only.",
-                viewMyTokens: "🌐 View My Tokens on Explorer",
-                alertFillFields: "Please fill all fields!",
-                alertSupplyZero: "Supply must be greater than zero!",
-                logTxSent: "Transaction sent... awaiting confirmation.",
-                logSuccess: "Success!",
-                logError: "Error: ",
-                logTxCancelled: "Transaction cancelled or failed",
-                logSelectionCancelled: "Selection cancelled.",
-                alertInstallMetaMask: "No wallet detected! Please install an extension (e.g., MetaMask or Rabby).",
-                logConnected: "Connected:",
-                // NOVOS - MANAGER
-                lblManagerTitle: "⚙️ Token Management",
-                managerPlaceholder: "Select a token from history or create a new one to manage.",
-                lblYourBalance: "Your Balance:",
-                lblTransferAmount: "Amount to Transfer",
-                lblRecipientAddress: "Recipient Address",
-                btnTransfer: "💸 Transfer Tokens",
-                logTransferSent: "Transfer sent...",
-                logTransferSuccess: "Transfer complete!",
-                alertInvalidAddress: "Invalid recipient address.",
-                alertInsufficientBalance: "Insufficient balance for this transaction.",
-                alertTokenSelect: "Select or create a token to use the manager."
-            }
-        };
-
-        let currentLang = 'pt';
-        let provider, signer, factoryContract;
-        let currentUserAddress;
-        
-        let tokenHistory = []; 
-        let currentManagedToken = {
-            address: null, 
-            contract: null, 
-            balance: 0, 
-            decimals: 18, 
-            symbol: ''
-        }; 
-        
-        const erc20ABI = [
-            "function transfer(address to, uint256 amount) returns (bool)",
-            "function balanceOf(address account) view returns (uint256)",
-            "function decimals() view returns (uint8)",
-            "function symbol() view returns (string)"
-        ];
-
-        const contractAddress = "0x3Ed7Fd9b5a2a77B549463ea1263516635c77eB0a";
-        const factoryContractABI = [
-            { "inputs": [ { "internalType": "string", "name": "name", "type": "string" }, { "internalType": "string", "name": "symbol", "type": "string" }, { "internalType": "uint256", "name": "initialSupply", "type": "uint256" } ], "name": "createToken", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
-            { "anonymous": false, "inputs": [ { "indexed": false, "internalType": "address", "name": "tokenAddress", "type": "address" }, { "indexed": false, "internalType": "string", "name": "name", "type": "string" }, { "indexed": false, "internalType": "string", "name": "symbol", "type": "string" }, { "indexed": false, "internalType": "address", "name": "owner", "type": "address" } ], "name": "TokenCreated", "outputs": [], "stateMutability": "nonpayable", "type": "event" }
-        ];
-
-        /* --- SISTEMA DE TRADUÇÃO & INICIALIZAÇÃO --- */
-
-        function setLanguage(lang) {
-            currentLang = lang;
-            const t = translations[lang];
-
-            const updateText = (id, text) => {
-                const el = document.getElementById(id);
-                if (el) el.innerText = text;
-            };
-
-            updateText('heroDesc', t.heroDesc);
-            updateText('btnStartText', t.btnStart);
-            updateText('appSubtitle', t.appSubtitle);
-            updateText('lblProject', t.lblProject);
-            updateText('lblSymbol', t.lblSymbol);
-            updateText('lblSupply', t.lblSupply);
-            updateText('msgSuccess', t.msgSuccess);
-            updateText('txLink', t.viewExplorer);
-            updateText('lblMyTokens', t.lblMyTokens);
-            updateText('explorerLink', t.viewMyTokens);
-            updateText('lblHistory', t.lblHistory);
-            updateText('lblManagerTitle', t.lblManagerTitle);
-            updateText('managerPlaceholder', t.managerPlaceholder);
-            updateText('lblYourBalance', t.lblYourBalance);
-            updateText('lblTransferAmount', t.lblTransferAmount);
-            updateText('lblRecipientAddress', t.lblRecipientAddress);
-            updateText('btnTransfer', t.btnTransfer);
-
-            const btnCreate = document.getElementById('btnCreate');
-            if (btnCreate) {
-                 if (btnCreate.disabled) {
-                    btnCreate.innerText = t.btnCreate; 
-                 } else if (btnCreate.innerText.includes(translations[currentLang === 'pt' ? 'en' : 'pt'].btnCreateAnother.split(' ')[1])) {
-                    btnCreate.innerText = t.btnCreateAnother;
-                 } else if (btnCreate.innerText.includes(translations[currentLang === 'pt' ? 'en' : 'pt'].btnCreate.split(' ')[1])) {
-                     btnCreate.innerText = t.btnCreate;
-                 } else if (btnCreate.innerText.includes(translations[currentLang === 'pt' ? 'en' : 'pt'].btnProcessing.split(' ')[1])) {
-                     btnCreate.innerText = t.btnProcessing;
-                 }
-            }
-            
-            const btnConnect = document.getElementById('btnConnect');
-            if (btnConnect) {
-                if (!btnConnect.classList.contains('btn-disconnect')) {
-                    btnConnect.innerText = t.btnConnect;
-                } else if (currentUserAddress) {
-                    btnConnect.innerHTML = `${t.btnDisconnect} (${currentUserAddress.slice(0,6)}...)`;
-                }
-            }
-
-            const btnLang = document.getElementById('btnLang');
-            if (btnLang) {
-                btnLang.innerText = lang === 'pt' ? '🇺🇸 EN' : '🇧🇷 PT'; 
-            }
-            
-            if (currentManagedToken.address) {
-                document.getElementById('currentBalance').innerText = `${currentManagedToken.balance} ${currentManagedToken.symbol}`;
-            }
-        }
-
-        function toggleLanguage() {
-            setLanguage(currentLang === 'pt' ? 'en' : 'pt');
-        }
-
-        /* --- DETECÇÃO AUTOMÁTICA & LÓGICA DE INICIALIZAÇÃO --- */
-        (function() {
-            const userLang = navigator.language || navigator.userLanguage;
-            if (userLang.startsWith('en')) {
-                currentLang = 'en';
-            } else {
-                currentLang = 'pt';
-            }
-            setLanguage(currentLang); 
-        })();
-
-        window.onload = async function() {
-            // FIX: VERIFICA SE O USUÁRIO DESCONECTOU MANUALMENTE
-            // Se o usuário desconectou, a flag 'userDisconnected' estará setada.
-            // Nesse caso, NÃO tentamos conectar automaticamente.
-            if (localStorage.getItem('userDisconnected') === 'true') {
-                console.log("Usuário desconectado manualmente. Aguardando conexão manual.");
-                return; // PARE AQUI. Não roda o código de baixo.
-            }
-
-            const btnConnect = document.getElementById('btnConnect');
-            if (btnConnect && !btnConnect.classList.contains('btn-disconnect')) {
-                btnConnect.innerText = translations[currentLang].btnConnect;
-            }
-
-            if (window.ethereum) {
-                // Se a flag não existir, tenta reconectar (comportamento padrão de persistência)
-                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                if (accounts && accounts.length > 0) {
-                    startApp();
-                    setupConnection(accounts[0]);
-                }
-            }
-        };
-
         function startApp() {
             document.getElementById('startScreen').style.display = 'none';
             document.getElementById('appContainer').style.display = 'flex';
         }
-
-        function log(msg) { document.getElementById("console").innerText = msg; }
-
-        async function connectWallet() {
-            if (!window.ethereum) { alert(translations[currentLang].alertInstallMetaMask); return; }
-            
-            // FIX: REMOVE A FLAG DE DESCONEXÃO AO CLICAR EM CONECTAR
-            localStorage.removeItem('userDisconnected');
-
-            try {
-                // FIX: FORÇA A SELEÇÃO DE CONTA (NUCLEAR OPTION)
-                await window.ethereum.request({
-                    method: "wallet_requestPermissions",
-                    params: [{ eth_accounts: {} }]
-                });
-
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                if (accounts && accounts.length > 0) {
-                    setupConnection(accounts[0]);
-                }
-            } catch (error) {
-                console.error("Erro Conexão:", error);
-                if (error.code === 4001) log(translations[currentLang].logSelectionCancelled);
-            }
-        }
-
-        async function setupConnection(address) {
-            currentUserAddress = address;
-            log(`${translations[currentLang].logConnected} ${currentUserAddress}`);
-
-            provider = new ethers.BrowserProvider(window.ethereum);
-            signer = await provider.getSigner();
-            factoryContract = new ethers.Contract(contractAddress, factoryContractABI, signer);
-
-            const btn = document.getElementById("btnConnect");
-            const t = translations[currentLang];
-            btn.innerHTML = `${t.btnDisconnect} (${currentUserAddress.slice(0,6)}...)`;
-            btn.onclick = disconnectWallet; 
-            btn.classList.add('btn-disconnect'); 
-            
-            const explorerLink = document.getElementById("explorerLink");
-            explorerLink.href = `https://testnet.arcscan.app/address/${currentUserAddress}?tab=tokens`;
-            explorerLink.style.display = 'block';
-
-            document.getElementById("formFields").style.opacity = "1";
-            document.getElementById("formFields").style.pointerEvents = "all";
-            
-            const btnCreate = document.getElementById("btnCreate");
-            btnCreate.disabled = false;
-            btnCreate.innerText = t.btnCreate;
-            
-            if (tokenHistory.length > 0) {
-                 renderTokenManager(tokenHistory[tokenHistory.length - 1].address);
-            }
-        }
-
-        async function disconnectWallet() { 
-            // FIX: SETA A FLAG DE DESCONEXÃO ANTES DE RECARREGAR
-            localStorage.setItem('userDisconnected', 'true');
-            sessionStorage.clear();
-            window.location.reload();
-        }
-
-        async function createToken() {
-            const name = document.getElementById("tokenName").value;
-            const symbol = document.getElementById("tokenSymbol").value;
-            const supply = document.getElementById("tokenSupply").value;
-            const btn = document.getElementById("btnCreate");
-            const t = translations[currentLang];
-
-            if(!name || !symbol || !supply) { alert(t.alertFillFields); return; }
-            if(supply <= 0) { alert(t.alertSupplyZero); return; }
-
-            btn.innerText = t.btnProcessing; btn.disabled = true;
-
-            try {
-                const tx = await factoryContract.createToken(name, symbol, supply);
-                log(t.logTxSent);
-                
-                const receipt = await tx.wait(); 
-                
-                let tokenAddress = null;
-                if (receipt.logs) {
-                    const event = receipt.logs.find(l => { 
-                        try { 
-                            return factoryContract.interface.parseLog(l).name === 'TokenCreated'; 
-                        } catch(e){ return false; } 
-                    });
-                    if(event) {
-                       const parsed = factoryContract.interface.parseLog(event);
-                       tokenAddress = parsed.args.tokenAddress;
-                       injectTokenToDashboard(tokenAddress, parsed.args.name, parsed.args.symbol);
-                    }
-                }
-                
-                btn.innerText = t.btnCreateAnother; btn.disabled = false;
-                document.getElementById("resultArea").style.display = "flex"; 
-                document.getElementById("txLink").href = `https://testnet.arcscan.app/tx/${tx.hash}`;
-                log(t.logSuccess);
-
-                if (tokenAddress) {
-                    renderTokenManager(tokenAddress);
-                }
-                
-            } catch (error) { 
-                console.error("Erro na Criação do Token:", error); 
-                const reason = error.reason || t.logTxCancelled;
-                log(`${t.logError}${reason}`); 
-                btn.innerText = t.btnCreate; btn.disabled = false; 
-            }
-        }
-        
-        async function renderTokenManager(address) {
-            if (!signer || !provider) { return; }
-
-            const tokenContract = new ethers.Contract(address, erc20ABI, signer);
-            const t = translations[currentLang];
-            
-            let balance = '...';
-            let decimals = 18; 
-            let symbol = '';
-            let name = '';
-            
-            try {
-                const balanceBN = await tokenContract.balanceOf(currentUserAddress);
-                const tokenSymbol = await tokenContract.symbol();
-                const tokenDecimals = await tokenContract.decimals();
-                
-                decimals = Number(tokenDecimals);
-                balance = ethers.formatUnits(balanceBN, decimals);
-                symbol = tokenSymbol;
-
-                const historyItem = tokenHistory.find(token => token.address === address);
-                name = historyItem ? historyItem.name : 'Token';
-
-                currentManagedToken = { 
-                    address, 
-                    contract: tokenContract, 
-                    balance: parseFloat(balance), 
-                    decimals: decimals, 
-                    symbol: symbol
-                };
-                
-            } catch (e) {
-                console.error("Erro ao buscar dados do token:", e);
-                balance = 'Erro';
-            }
-
-            document.getElementById('managerPlaceholder').style.display = 'none';
-            document.getElementById('tokenManagementForm').style.display = 'block';
-            document.getElementById('tokenManagerSection').style.display = 'block';
-
-            document.getElementById('managerTokenName').innerText = name;
-            document.getElementById('managerTokenSymbol').innerText = symbol;
-            document.getElementById('currentBalance').innerText = `${balance} ${symbol}`;
-            
-            document.getElementById('recipientAddress').value = '';
-            document.getElementById('transferAmount').value = '';
-            
-            log(t.lblManagerTitle + `: ${symbol} carregado.`);
-        }
-        
-        function setTransferAmount(percentage) {
-            if (!currentManagedToken.address) {
-                 alert(translations[currentLang].alertTokenSelect);
-                 return;
-            }
-            
-            const totalBalance = currentManagedToken.balance;
-            let amount;
-            
-            if (percentage === 100) {
-                amount = totalBalance;
-            } else {
-                amount = totalBalance * (percentage / 100);
-            }
-            
-            const roundedAmount = parseFloat(amount.toFixed(6));
-            
-            document.getElementById('transferAmount').value = roundedAmount;
-        }
-
-        // Função para Transferir Tokens (V44)
-        async function transferTokens() {
-            if (!currentManagedToken.address) { alert(translations[currentLang].alertTokenSelect); return; }
-            
-            const recipient = document.getElementById('recipientAddress').value;
-            const amountStr = document.getElementById('transferAmount').value;
-            const btnTransfer = document.getElementById('btnTransfer');
-            const managerCard = document.getElementById('managerCard');
-            const t = translations[currentLang];
-            
-            if (!ethers.isAddress(recipient)) {
-                alert(t.alertInvalidAddress);
-                return;
-            }
-            if (parseFloat(amountStr) <= 0) {
-                 alert(t.alertSupplyZero);
-                 return;
-            }
-
-            const tokenContract = currentManagedToken.contract;
-
-            // 1. INÍCIO DO PROCESSAMENTO E SPINNER
-            const originalText = btnTransfer.innerText;
-            btnTransfer.innerHTML = `<span class="processing-spinner"></span> ${t.btnProcessing}`;
-            btnTransfer.disabled = true;
-
-            try {
-                const amountToSend = ethers.parseUnits(amountStr, currentManagedToken.decimals);
-                const balanceBN = await tokenContract.balanceOf(currentUserAddress);
-                
-                if (amountToSend > balanceBN) {
-                    alert(t.alertInsufficientBalance);
-                    btnTransfer.innerHTML = originalText; 
-                    btnTransfer.disabled = false;
-                    return;
-                }
-
-                const tx = await tokenContract.transfer(recipient, amountToSend);
-                log(t.logTransferSent + ' ' + tx.hash.slice(0, 10) + '...');
-                
-                await tx.wait();
-                log(t.logTransferSuccess);
-                
-                // 2. ANIMAÇÃO DE SUCESSO (PULSO AZUL USDC)
-                managerCard.classList.add('success-pulse');
-                setTimeout(() => {
-                    managerCard.classList.remove('success-pulse');
-                }, 500); 
-
-                // 3. FINALIZAÇÃO
-                await renderTokenManager(currentManagedToken.address); 
-                
-                btnTransfer.innerHTML = originalText;
-                btnTransfer.disabled = false;
-
-
-            } catch (error) {
-                console.error("Erro na Transferência:", error);
-                const reason = error.reason || t.logTxCancelled;
-                log(`${t.logError}${reason}`); 
-                
-                btnTransfer.innerHTML = originalText;
-                btnTransfer.disabled = false;
-            }
-        }
-
-        // Função Antiga: Adiciona token ao Dashboard (V44 - REMOÇÃO DO BOTÃO GERENCIAR)
-        function injectTokenToDashboard(address, name, symbol) {
-             tokenHistory.push({ address, name, symbol });
-
-             const listDiv = document.getElementById("tokensList");
-             const card = document.createElement("div");
-             card.className = "token-card";
-             
-             // NOVO: Adiciona o evento de clique ao CARD inteiro para abrir o gerenciador
-             card.onclick = () => renderTokenManager(address);
-
-             card.innerHTML = `
-                 <div class="token-info">
-                     <h3>${name} <span style="color:#2775CA">($${symbol})</span></h3>
-                     <span>${address.slice(0,6)}...${address.slice(-4)}</span>
-                 </div>
-                 <div style="display:flex; gap:5px;">
-                     <button onclick="event.stopPropagation(); watchToken('${address}', '${symbol}')" class="mini-btn">🦊 Add</button>
-                 </div>
-             `;
-             listDiv.prepend(card);
-             
-             const placeholder = document.getElementById('lblHistory');
-             if (placeholder) placeholder.style.display = 'none';
-             
-             document.getElementById("myTokensSection").style.display = "block";
-        }
-
-        async function watchToken(address, symbol) {
-            try {
-                await window.ethereum.request({
-                    method: 'wallet_watchAsset',
-                    params: { type: 'ERC20', options: { address: address, symbol: symbol, decimals: 18 } }
-                });
-            } catch (e) { console.error(e); }
-        }
     </script>
+</head>
+<body>
+
+    <div id="socialCardTemplate" class="social-card-layout">
+        <div class="card-header">
+            <span class="badge">ARC TESTNET</span>
+            <span class="card-brand">🛡️ Arc Shield</span>
+        </div>
+        <div class="card-body">
+            <img id="cardTokenLogo" src="" class="card-logo-img">
+            <h1 id="cardTokenSymbol">$TOKEN</h1>
+            <p id="cardTokenName">Token Name</p>
+        </div>
+        <div class="card-footer">
+            <div class="stat-box"><span class="stat-label">Status</span><span class="stat-value">Deployed 🚀</span></div>
+            <div class="stat-box"><span class="stat-label">Supply</span><span class="stat-value" id="cardTokenSupply">1M</span></div>
+        </div>
+    </div>
+
+    <div class="hero">
+        <a href="https://faucet.circle.com/" target="_blank" class="btn-header" style="right: 120px;">Faucet</a>
+        <a href="https://testnet.arcscan.app/" target="_blank" class="btn-header">Explorer</a>
+        
+        <div id="startScreen">
+            <div class="badge"><span class="dot"></span> Arc Testnet Live</div>
+            <h1><span class="gradient-text">Arc</span> <span class="shield-gradient">Shield</span></h1>
+            <p class="hero-desc">Hub de Infraestrutura DeFi: Crie, Distribua e Gerencie Ativos na Rede Arc.</p>
+            <button class="btn-hero" onclick="startApp()"><span>Iniciar DApp</span> <span>→</span></button>
+            <p style="margin-top:20px; font-size:0.7rem; color:#444;">*Contratos em fase Beta. Use por sua conta e risco.</p>
+        </div>
+
+        <div id="appContainer" style="display: none;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h2 style="margin:0;"><span class="gradient-text">Arc</span> <span class="shield-gradient">Shield</span></h2>
+                <p style="color:#64748b; font-size:0.9rem;">DeFi Suite V2</p>
+            </div>
+            
+            <div id="loginArea">
+                <button id="btnConnect" class="btn-action btn-connect" onclick="connectWallet()">🦊 Conectar MetaMask / Web3</button>
+                <p id="loginStatus" style="color: #ff4d4d; font-size: 0.8rem; margin-top: 10px; display: none;"></p>
+            </div>
+
+            <div class="nav-tabs" id="navTabs" style="display:none;">
+                <button class="tab-btn active" onclick="switchTab('creator', this)">Launchpad</button>
+                <button class="tab-btn" onclick="switchTab('multisender', this)">Multisender</button>
+                <button class="tab-btn" onclick="switchTab('locker', this)">Locker</button>
+                <button class="tab-btn" onclick="switchTab('vesting', this)">Vesting</button>
+                <button class="tab-btn" onclick="switchTab('dashboard', this)">💎 Claim</button>
+                <button class="tab-btn" onclick="switchTab('leaderboard', this)">🏆 Rank</button>
+            </div>
+
+            <div class="card">
+                <div id="creator" class="module-section active">
+                    <label>Nome do Projeto</label><input type="text" id="tokenName" placeholder="Ex: Arc Governance">
+                    <label>Símbolo (Ticker)</label><input type="text" id="tokenSymbol" placeholder="Ex: ARC">
+                    <label>Supply Inicial</label><input type="number" id="tokenSupply" placeholder="Ex: 1000000">
+                    <label>Logo / PFP</label>
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px;">
+                        <input type="file" id="tokenLogoFile" accept="image/*" style="display:none;" onchange="handleLogoUpload(this)">
+                        <button class="mini-btn" onclick="document.getElementById('tokenLogoFile').click()">📂 Carregar Imagem</button>
+                        <span id="logoFileName" style="color:#666; font-size:0.8rem; font-style: italic;">Nenhum arquivo...</span>
+                    </div>
+                    <details class="advanced-options">
+                        <summary>📝 Adicionar Descrição / Info</summary>
+                        <textarea id="tokenDesc" placeholder="Descreva a utilidade do seu token..."></textarea>
+                    </details>
+                    <button id="btnCreate" class="btn-action btn-create" onclick="createToken()">🚀 Criar Token (+100 Pts)</button>
+                </div>
+
+                <div id="multisender" class="module-section">
+                    <label>Token</label><input type="text" id="multiTokenAddr">
+                    <div style="display:flex; justify-content:space-between; align-items:end; margin-top:15px; margin-bottom:5px;">
+                        <label style="margin:0">Lista</label>
+                        <div style="position:relative;">
+                            <input type="file" id="fileUpload" accept=".txt, .csv" style="display:none;" onchange="handleFileUpload(this)">
+                            <button class="mini-btn" onclick="document.getElementById('fileUpload').click()">📂 Upload TXT/CSV</button>
+                        </div>
+                    </div>
+                    <textarea id="csvInput" placeholder="Ex: 0x123... 500" style="height: 150px; font-family:monospace; font-size:0.85rem;"></textarea>
+                    <p id="multiSummary" style="color: #64748b; font-size: 0.8rem; text-align: right; margin-top: 5px;">Aguardando dados...</p>
+                    <div class="grid-2">
+                        <button class="btn-action btn-connect" onclick="approveToken('multi')">Aprovar</button>
+                        <button id="btnMulti" class="btn-action btn-create" onclick="sendBatch()">Enviar</button>
+                    </div>
+                </div>
+
+                <div id="locker" class="module-section">
+                    <label>Token</label><input type="text" id="lockTokenAddr">
+                    <label>Quantidade</label><input type="number" id="lockAmount">
+                    <label>Data</label><input type="datetime-local" id="lockDate" style="color-scheme: dark;">
+                    <div class="grid-2">
+                        <button class="btn-action btn-connect" onclick="approveToken('lock')">Aprovar</button>
+                        <button id="btnLock" class="btn-action btn-create" onclick="lockTokens()">Trancar</button>
+                    </div>
+                </div>
+
+                <div id="vesting" class="module-section">
+                    <label>Token</label><input type="text" id="vestTokenAddr">
+                    <label>Beneficiário</label><input type="text" id="vestBeneficiary">
+                    <div class="grid-2">
+                        <input type="number" id="vestAmount" placeholder="Total">
+                        <input type="number" id="vestDuration" placeholder="Minutos">
+                    </div>
+                    <div class="grid-2">
+                        <button class="btn-action btn-connect" onclick="approveToken('vest')">Aprovar</button>
+                        <button id="btnVest" class="btn-action btn-create" onclick="createVesting()">Criar</button>
+                    </div>
+                </div>
+
+                <div id="dashboard" class="module-section">
+                    <div id="dashboardContent"></div>
+                    <button class="btn-action btn-connect" onclick="loadDashboardData()">🔄 Atualizar</button>
+                </div>
+                
+                <div id="leaderboard" class="module-section">
+                    <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                        <label>Seu Perfil</label>
+                        <div class="grid-2"><input type="text" id="profileName" placeholder="Nickname"><input type="text" id="profileAvatar" placeholder="URL Foto"></div>
+                        <button class="mini-btn" style="width:100%; margin-top:5px;" onclick="saveProfile()">💾 Salvar</button>
+                    </div>
+                    <div id="leaderboardList"></div>
+                    <button class="btn-action btn-connect" onclick="loadLeaderboard()">🔄 Rank</button>
+                </div>
+
+                <div id="consoleArea"><div class="log-entry">> Sistema Arc Shield Inicializado...</div></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="successModal" class="modal-overlay">
+        <div class="success-card">
+            <span class="success-icon">🏆</span>
+            <h2 class="success-title" id="modalTitle">Sucesso!</h2>
+            <p class="success-msg" id="modalMsg">Transação confirmada.</p>
+            
+            <div id="tokenCreatedInfo" style="display:none; background:#222; padding:10px; border-radius:8px; border:1px solid #333; margin-bottom:15px; text-align:left;">
+                <label style="font-size:0.7rem; color:#888;">Endereço do Token:</label>
+                <div style="display:flex; gap:5px; align-items:center;">
+                    <code id="newContractAddr" style="font-size:0.8rem; color:#00ff9d; word-break:break-all;">0x...</code>
+                    <button class="mini-btn" onclick="copyContractAddr()" style="padding:4px 8px;">📋</button>
+                </div>
+            </div>
+
+            <div id="generatedCardContainer" style="display:none; margin-bottom:15px; justify-content:center;"></div>
+            
+            <div style="display:flex; flex-direction:column; gap:8px;">
+                <a id="downloadCardBtn" href="#" download="arc-shield-card.png" class="btn-action" style="background:#222; color:#fff; border:1px solid #444; text-decoration:none; display:none; text-align:center;">
+                    ⬇️ 1. Baixar Card
+                </a>
+                
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+                    <button id="simpleShareBtn" class="btn-action" style="background:#000; color:#fff; border:1px solid #333; margin:0; display:none;">
+                        🐦 Postar X
+                    </button>
+                    <button id="telegramShareBtn" class="btn-action" style="background:#0088cc; color:#fff; border:none; margin:0; display:none;">
+                        ✈️ Telegram
+                    </button>
+                </div>
+            </div>
+
+            <a id="explorerBtn" href="#" target="_blank" class="btn-close-modal" style="margin-top: 15px; display:block; text-align:center; text-decoration:none; border: 1px solid #333; background: #222; color: #aaa;">🔍 Ver no ArcScan</a>
+            <button class="btn-close-modal" onclick="closeSuccessModal()">Fechar</button>
+        </div>
+    </div>
+
+    <div class="footer-bar"><div>Developed by <span style="color:#fff">@AlphaDonowitz</span></div><div style="opacity:0.7">Arc Testnet Beta</div></div>
+    <script src="js/app.js"></script>
 </body>
 </html>
