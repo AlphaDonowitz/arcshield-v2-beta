@@ -44,7 +44,7 @@
                 <button class="nav-item special-nav" onclick="navigate('leaderboard', this)">👑 Social Hub</button>
             </nav>
             <div class="sidebar-footer">
-                <p>v3.5 Stable • <a href="#" onclick="disconnectWallet()" style="color:#ff6b6b; text-decoration:none;">Sair</a></p>
+                <p>v3.6 Contacts • <a href="#" onclick="disconnectWallet()" style="color:#ff6b6b; text-decoration:none;">Sair</a></p>
             </div>
         </aside>
 
@@ -159,8 +159,8 @@
                 </div>
 
                 <div id="leaderboard" class="page-section">
+                    
                     <div class="profile-header-card">
-                        
                         <div class="profile-banner" id="profileBannerDisplay">
                             <button class="edit-banner-btn" onclick="document.getElementById('profileBannerInput').click()">
                                 📷 Alterar Capa
@@ -211,6 +211,25 @@
                             <div style="height: 200px; display:flex; justify-content:center;">
                                 <canvas id="skillsChart"></canvas>
                             </div>
+                        </div>
+                    </div>
+                    
+                    <div class="glass-panel" style="margin-top: 20px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                            <h3 style="margin:0;">🤝 Meus Aliados</h3>
+                            <button class="mini-btn" onclick="toggleAddContactForm()">+ Adicionar</button>
+                        </div>
+
+                        <div id="addContactForm" style="display:none; background:rgba(255,255,255,0.05); padding:15px; border-radius:12px; margin-bottom:15px;">
+                            <div class="form-grid">
+                                <input type="text" id="newContactName" placeholder="Nome (Ex: Design Team)">
+                                <input type="text" id="newContactWallet" placeholder="Endereço (0x...)">
+                            </div>
+                            <button class="btn-primary" onclick="saveContact()">Salvar Contato</button>
+                        </div>
+
+                        <div id="contactsList">
+                            <p style="color:#666; text-align:center;">Carregando contatos...</p>
                         </div>
                     </div>
 
