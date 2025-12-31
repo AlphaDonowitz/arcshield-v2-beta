@@ -5,7 +5,6 @@ let provider, signer, userAddress;
 let currentDecimals = 18;
 let uploadedLogoData = null; 
 
-// SUPABASE APENAS PARA RANK (NÃO USA MAIS STORAGE)
 const SUPABASE_URL = 'https://jfgiiuzqyqjbfaubdhja.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmZ2lpdXpxeXFqYmZhdWJkaGphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4OTk2NzIsImV4cCI6MjA4MTQ3NTY3Mn0.4AZ_FIazsIlP5I_FPpAQh0lkIXRpBwGVfKVG3nwzxWA';
 let supabaseClient = null;
@@ -49,7 +48,7 @@ window.connectWallet = async function() {
 }
 
 // ==========================================
-// 3. UTILS (UPLOAD, CARD)
+// 3. UTILS (UPLOAD, CARD, EFFECT)
 // ==========================================
 
 window.handleLogoUpload = function(input) {
@@ -57,103 +56,91 @@ window.handleLogoUpload = function(input) {
     if(file) {
         document.getElementById('logoFileName').innerText = file.name;
         const reader = new FileReader();
-        reader.onload = function(e) {
-            uploadedLogoData = e.target.result;
-            log("Logo carregada!", 'success');
-        };
+        reader.onload = function(e) { uploadedLogoData = e.target.result; };
         reader.readAsDataURL(file);
     }
 }
 
-window.handleFileUpload = function(input) {
-    const file = input.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        document.getElementById('csvInput').value = e.target.result;
-        log(`Lista carregada: ${file.name}`, 'success');
-        updateSummary();
-    };
-    reader.readAsText(file);
+// Efeito Confete
+function triggerConfetti() {
+    if(window.confetti) {
+        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#00ff9d', '#ffffff', '#000000'] });
+    }
 }
 
-if(document.getElementById('csvInput')) {
-    document.getElementById('csvInput').addEventListener('input', updateSummary);
-}
-
-function updateSummary() {
-    const raw = document.getElementById("csvInput").value;
-    const lines = raw.split(/\r?\n/).filter(l => l.trim() !== "");
-    const count = lines.filter(l => l.includes('0x')).length;
-    document.getElementById("multiSummary").innerText = `${count} carteiras detectadas`;
-}
-
-// --- GERADOR DE CARD SOCIAL ---
 async function generateSocialCard(name, symbol, supply, logoData) {
     document.getElementById('cardTokenSymbol').innerText = "$" + symbol;
     document.getElementById('cardTokenName').innerText = name;
     document.getElementById('cardTokenSupply').innerText = supply;
     const imgEl = document.getElementById('cardTokenLogo');
     
-    if(logoData) {
-        imgEl.src = logoData;
-        imgEl.style.display = 'block';
-    } else {
-        imgEl.style.display = 'none';
-    }
+    if(logoData) { imgEl.src = logoData; imgEl.style.display = 'block'; } 
+    else { imgEl.style.display = 'none'; }
 
     const element = document.getElementById("socialCardTemplate");
     try {
         const canvas = await html2canvas(element, { backgroundColor: null, scale: 2 });
         return canvas.toDataURL("image/png");
-    } catch(e) {
-        console.error("Erro ao gerar card", e);
-        return null;
-    }
+    } catch(e) { return null; }
 }
 
-// --- FUNÇÃO SIMPLE SHARE (APENAS TEXTO) ---
 window.openSimpleShare = function(tweetText) {
-    const intentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
-    window.open(intentUrl, '_blank');
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`, '_blank');
+}
+
+window.shareToTelegram = function(text) {
+    window.open(`https://t.me/share/url?url=${encodeURIComponent("https://arcshield.vercel.app")}&text=${encodeURIComponent(text)}`, '_blank');
+}
+
+window.copyContractAddr = function() {
+    const addr = document.getElementById('newContractAddr').innerText;
+    navigator.clipboard.writeText(addr);
+    alert("Endereço copiado!");
 }
 
 // --- MODAL CONFIG ---
-window.showSuccessModal = async function(title, msg, tweetText, txHash, imageUrl = null, cardData = null) {
+window.showSuccessModal = async function(title, msg, tweetText, txHash, imageUrl = null, cardData = null, tokenAddress = null) {
     const modalTitle = document.getElementById("modalTitle");
     const modalMsg = document.getElementById("modalMsg");
     const iconSpan = document.querySelector(".success-icon");
     const cardContainer = document.getElementById("generatedCardContainer");
     const downloadBtn = document.getElementById("downloadCardBtn");
     const shareBtn = document.getElementById("simpleShareBtn");
+    const teleBtn = document.getElementById("telegramShareBtn");
+    const tokenInfoDiv = document.getElementById("tokenCreatedInfo");
 
     modalTitle.innerText = title;
     modalMsg.innerText = msg;
     
-    // Ícone Padrão ou PFP
-    if (imageUrl) {
-        iconSpan.innerHTML = `<img src="${imageUrl}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #00ff9d; box-shadow: 0 0 20px rgba(0,255,157,0.3);">`;
+    // Mostra Endereço do Token (Se houver)
+    if(tokenAddress) {
+        tokenInfoDiv.style.display = 'block';
+        document.getElementById("newContractAddr").innerText = tokenAddress;
     } else {
-        iconSpan.innerHTML = "🏆";
+        tokenInfoDiv.style.display = 'none';
     }
 
-    // Configura o Card Gerado
+    if (imageUrl) {
+        iconSpan.innerHTML = `<img src="${imageUrl}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #00ff9d; box-shadow: 0 0 20px rgba(0,255,157,0.3);">`;
+    } else { iconSpan.innerHTML = "🏆"; }
+
     if (cardData) {
-        // Mostra a imagem
         cardContainer.style.display = 'flex';
         cardContainer.innerHTML = `<img src="${cardData}" style="width: 100%; border-radius: 12px; border: 1px solid #333; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">`;
         
-        // Botão 1: Download
-        downloadBtn.href = cardData; // O href recebe a imagem Base64, permitindo download direto
+        downloadBtn.href = cardData;
         downloadBtn.style.display = 'block';
         
-        // Botão 2: Postar
         shareBtn.onclick = () => openSimpleShare(tweetText);
         shareBtn.style.display = 'block';
+
+        teleBtn.onclick = () => shareToTelegram(tweetText);
+        teleBtn.style.display = 'block';
     } else {
         cardContainer.style.display = 'none';
         shareBtn.style.display = 'none';
         downloadBtn.style.display = 'none';
+        teleBtn.style.display = 'none';
     }
     
     if (txHash) {
@@ -162,8 +149,8 @@ window.showSuccessModal = async function(title, msg, tweetText, txHash, imageUrl
         explorerBtn.href = explorerLink;
         explorerBtn.style.display = "block";
     }
-
     document.getElementById("successModal").style.display = "flex";
+    triggerConfetti(); // Dispara confetes!
 }
 
 window.closeSuccessModal = function() {
@@ -176,7 +163,7 @@ window.closeSuccessModal = function() {
 const CONTRACTS = { factory: "0x3Ed7Fd9b5a2a77B549463ea1263516635c77eB0a", multi: "0x59BcE4bE3e31B14a0528c9249a0580eEc2E59032", lock: "0x4475a197265Dd9c7CaF24Fe1f8cf63B6e9935452", vest: "0xcC8a723917b0258280Ea1647eCDe13Ffa2E1D30b" };
 const ABIS = { factory: ["function createToken(string name, string symbol, uint256 initialSupply) external", "event TokenCreated(address tokenAddress, string name, string symbol, address owner)"], multi: ["function multisendToken(address token, address[] recipients, uint256[] amounts) external payable"], lock: ["function lockTokens(address _token, uint256 _amount, uint256 _unlockTime) external", "function withdraw(uint256 _lockId) external", "function lockIdCounter() view returns (uint256)", "function locks(uint256) view returns (address owner, address token, uint256 amount, uint256 unlockTime, bool withdrawn)"], vest: ["function createVestingSchedule(address, address, uint256, uint256, uint256, uint256, bool) external", "function release(uint256) external", "function getUserScheduleCount(address) view returns (uint256)", "function getUserScheduleIdAtIndex(address, uint256) view returns (uint256)", "function schedules(uint256) view returns (uint256 scheduleId, address token, address beneficiary, uint256 amountTotal, uint256 released, uint256 start, uint256 duration)"], erc20: ["function approve(address spender, uint256 amount) external", "function decimals() view returns (uint8)", "function symbol() view returns (string)"] };
 
-// --- LAUNCHPAD ---
+// --- LAUNCHPAD (COM ENDEREÇO + CONFETE) ---
 window.createToken = async function() {
     const name = document.getElementById("tokenName").value;
     const symbol = document.getElementById("tokenSymbol").value;
@@ -190,94 +177,47 @@ window.createToken = async function() {
         log("Criando Token...", 'normal');
         
         const tx = await c.createToken(name, symbol, supply);
-        await tx.wait(); 
+        log("Aguardando confirmação...");
         
+        const receipt = await tx.wait(); // Espera a transação confirmar
+        
+        // --- PARSER PARA PEGAR O ENDEREÇO ---
+        let deployedAddr = null;
+        try {
+            // Varre os logs da transação procurando o evento 'TokenCreated'
+            for (const log of receipt.logs) {
+                try {
+                    const parsed = c.interface.parseLog(log);
+                    if (parsed.name === 'TokenCreated') {
+                        deployedAddr = parsed.args[0]; // O primeiro argumento é o endereço
+                        break;
+                    }
+                } catch (e) {}
+            }
+        } catch(e) { console.log("Erro ao parsear log", e); }
+
         log(`Token ${symbol} Criado!`, 'success');
         if(supabaseClient) addPoints(100);
 
         log("Gerando Card Social...", 'normal');
         const cardImage = await generateSocialCard(name, symbol, supply, uploadedLogoData);
 
-        const tweetDesc = desc ? desc : `Criei o token $${symbol} na #ArcTestnet com Arc Shield! 🛡️`;
-        const modalBody = `Contrato implantado com sucesso.\n${desc ? '"'+desc+'"' : ''}`;
+        const tweetDesc = desc ? desc : `Criei o token $${symbol} na #ArcTestnet com Arc Shield! 🛡️ ${deployedAddr ? 'CA: '+deployedAddr : ''}`;
+        const modalBody = `Contrato implantado com sucesso.`;
 
-        showSuccessModal(`Token ${symbol} Criado! 🚀`, modalBody, tweetDesc, tx.hash, uploadedLogoData, cardImage);
+        // Passa deployedAddr para o modal
+        showSuccessModal(`Token ${symbol} Criado! 🚀`, modalBody, tweetDesc, tx.hash, uploadedLogoData, cardImage, deployedAddr);
 
     } catch (e) { log("Erro: " + (e.reason || e.message), 'error'); }
 }
 
-// --- OUTROS MODULOS (MANTIDOS) ---
-window.sendBatch = async function() {
-    const token = clean(document.getElementById("multiTokenAddr").value);
-    const raw = document.getElementById("csvInput").value;
-    if(!token || !raw) return log("Preencha o Token e a Lista.", 'error');
-    const lines = raw.split(/\r?\n/);
-    let rec=[], amt=[];
-    for(let line of lines) {
-        let parts = line.split(/[;,\t\s]+/);
-        parts = parts.filter(p => p.trim() !== "");
-        if(parts.length >= 2) {
-            const address = parts[0].trim();
-            const value = parts[1].trim().replace(',', '.');
-            if(ethers.isAddress(address)) {
-                rec.push(address);
-                try { amt.push(ethers.parseUnits(value, currentDecimals)); } catch(e){}
-            }
-        }
-    }
-    if(rec.length === 0) return log("Nenhuma carteira válida.", 'error');
-    try {
-        const c = new ethers.Contract(CONTRACTS.multi, ABIS.multi, signer);
-        log(`Enviando para ${rec.length} carteiras...`);
-        const tx = await c.multisendToken(token, rec, amt);
-        await tx.wait();
-        log("Enviado!", 'success');
-        if(supabaseClient) addPoints(50);
-        showSuccessModal("Airdrop Concluído! 📨", `${rec.length} carteiras receberam.`, `Airdrop para ${rec.length} pessoas via Arc Shield! 🛡️`, tx.hash);
-    } catch (e) { log("Erro: " + (e.reason || e.message), 'error'); }
-}
-
-window.lockTokens = async function() {
-    const token = clean(document.getElementById("lockTokenAddr").value);
-    const amount = document.getElementById("lockAmount").value;
-    const date = document.getElementById("lockDate").value;
-    if(!token || !amount || !date) return log("Preencha todos.", 'error');
-    try {
-        const safeAmount = amount.replace(',', '.');
-        const wei = ethers.parseUnits(safeAmount, currentDecimals);
-        const time = Math.floor(new Date(date).getTime() / 1000);
-        if(time < Math.floor(Date.now()/1000)) return log("Data futura necessária!", 'error');
-        const c = new ethers.Contract(CONTRACTS.lock, ABIS.lock, signer);
-        log("Trancando...");
-        const tx = await c.lockTokens(token, wei, time);
-        await tx.wait();
-        log("Trancado!", 'success');
-        if(supabaseClient) addPoints(50);
-        showSuccessModal("Liquidez Trancada! 🔒", "Tokens seguros no Locker.", "Tranquei liquidez via Arc Shield! 🛡️", tx.hash);
-    } catch (e) { log("Erro: " + (e.reason || e.message), 'error'); }
-}
-
-window.createVesting = async function() {
-    const token = clean(document.getElementById("vestTokenAddr").value);
-    const bene = clean(document.getElementById("vestBeneficiary").value);
-    const amount = document.getElementById("vestAmount").value;
-    const dur = document.getElementById("vestDuration").value;
-    if(!token || !bene || !amount || !dur) return log("Preencha todos.", 'error');
-    try {
-        const safeAmount = amount.replace(',', '.');
-        const wei = ethers.parseUnits(safeAmount, currentDecimals);
-        const sec = parseInt(dur) * 60;
-        const c = new ethers.Contract(CONTRACTS.vest, ABIS.vest, signer);
-        log("Criando Vesting...");
-        const tx = await c.createVestingSchedule(token, bene, Math.floor(Date.now()/1000), 0, sec, wei, true);
-        await tx.wait();
-        log("Criado!", 'success');
-        if(supabaseClient) addPoints(75);
-        showSuccessModal("Vesting Criado! ⏳", "Pagamento programado.", "Criei Vesting via Arc Shield! 🛡️", tx.hash);
-    } catch (e) { log("Erro: " + e.message, 'error'); }
-}
-
-// UTILS
+// --- UTILS E OUTROS MÓDULOS (Resumidos) ---
+window.handleFileUpload = function(input) { const file = input.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = function(e) { document.getElementById('csvInput').value = e.target.result; log(`Lista carregada: ${file.name}`, 'success'); updateSummary(); }; reader.readAsText(file); }
+if(document.getElementById('csvInput')) document.getElementById('csvInput').addEventListener('input', updateSummary);
+function updateSummary() { const raw = document.getElementById("csvInput").value; const lines = raw.split(/\r?\n/).filter(l => l.trim() !== ""); const count = lines.filter(l => l.includes('0x')).length; document.getElementById("multiSummary").innerText = `${count} carteiras detectadas`; }
+window.sendBatch = async function() { const token = clean(document.getElementById("multiTokenAddr").value); const raw = document.getElementById("csvInput").value; if(!token || !raw) return log("Preencha o Token e a Lista.", 'error'); const lines = raw.split(/\r?\n/); let rec=[], amt=[]; for(let line of lines) { let parts = line.split(/[;,\t\s]+/); parts = parts.filter(p => p.trim() !== ""); if(parts.length >= 2) { const address = parts[0].trim(); const value = parts[1].trim().replace(',', '.'); if(ethers.isAddress(address)) { rec.push(address); try { amt.push(ethers.parseUnits(value, currentDecimals)); } catch(e){} } } } if(rec.length === 0) return log("Nenhuma carteira válida.", 'error'); try { const c = new ethers.Contract(CONTRACTS.multi, ABIS.multi, signer); log(`Enviando para ${rec.length} carteiras...`); const tx = await c.multisendToken(token, rec, amt); await tx.wait(); log("Enviado!", 'success'); if(supabaseClient) addPoints(50); showSuccessModal("Airdrop Concluído! 📨", `${rec.length} carteiras receberam.`, `Airdrop para ${rec.length} pessoas via Arc Shield! 🛡️`, tx.hash); } catch (e) { log("Erro: " + (e.reason || e.message), 'error'); } }
+window.lockTokens = async function() { const token = clean(document.getElementById("lockTokenAddr").value); const amount = document.getElementById("lockAmount").value; const date = document.getElementById("lockDate").value; if(!token || !amount || !date) return log("Preencha todos.", 'error'); try { const safeAmount = amount.replace(',', '.'); const wei = ethers.parseUnits(safeAmount, currentDecimals); const time = Math.floor(new Date(date).getTime() / 1000); if(time < Math.floor(Date.now()/1000)) return log("Data futura necessária!", 'error'); const c = new ethers.Contract(CONTRACTS.lock, ABIS.lock, signer); log("Trancando..."); const tx = await c.lockTokens(token, wei, time); await tx.wait(); log("Trancado!", 'success'); if(supabaseClient) addPoints(50); showSuccessModal("Liquidez Trancada! 🔒", "Tokens seguros no Locker.", "Tranquei liquidez via Arc Shield! 🛡️", tx.hash); } catch (e) { log("Erro: " + (e.reason || e.message), 'error'); } }
+window.createVesting = async function() { const token = clean(document.getElementById("vestTokenAddr").value); const bene = clean(document.getElementById("vestBeneficiary").value); const amount = document.getElementById("vestAmount").value; const dur = document.getElementById("vestDuration").value; if(!token || !bene || !amount || !dur) return log("Preencha todos.", 'error'); try { const safeAmount = amount.replace(',', '.'); const wei = ethers.parseUnits(safeAmount, currentDecimals); const sec = parseInt(dur) * 60; const c = new ethers.Contract(CONTRACTS.vest, ABIS.vest, signer); log("Criando Vesting..."); const tx = await c.createVestingSchedule(token, bene, Math.floor(Date.now()/1000), 0, sec, wei, true); await tx.wait(); log("Criado!", 'success'); if(supabaseClient) addPoints(75); showSuccessModal("Vesting Criado! ⏳", "Pagamento programado.", "Criei Vesting via Arc Shield! 🛡️", tx.hash); } catch (e) { log("Erro: " + e.message, 'error'); } }
 window.switchTab = function(tabId, btn) { document.querySelectorAll('.module-section').forEach(el => el.classList.remove('active')); document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active')); document.getElementById(tabId).classList.add('active'); btn.classList.add('active'); if(tabId === 'dashboard') loadDashboardData(); if(tabId === 'leaderboard') loadLeaderboard(); }
 function log(msg, type='normal') { const area = document.getElementById("consoleArea"); if(!area) return; const div = document.createElement("div"); div.className = "log-entry " + (type==='success'?'log-success':type==='error'?'log-error':''); div.innerText = `> ${msg}`; area.appendChild(div); area.scrollTop = area.scrollHeight; }
 function clean(val) { return val ? val.trim() : ""; }
