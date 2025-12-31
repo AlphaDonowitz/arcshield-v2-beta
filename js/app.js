@@ -10,7 +10,7 @@ const ARC_CHAIN_ID = '0x4c9a62'; // 5042002
 const ARC_RPC_URL = 'https://rpc.testnet.arc.network';
 const ARC_EXPLORER = 'https://testnet.arcscan.app';
 
-// SUPABASE CONFIG (GAMIFICATION)
+// SUPABASE CONFIG
 const SUPABASE_URL = 'https://jfgiiuzqyqjbfaubdhja.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmZ2lpdXpxeXFqYmZhdWJkaGphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4OTk2NzIsImV4cCI6MjA4MTQ3NTY3Mn0.4AZ_FIazsIlP5I_FPpAQh0lkIXRpBwGVfKVG3nwzxWA';
 let supabaseClient = null;
@@ -23,23 +23,21 @@ try {
 } catch(e) { console.log("Modo Offline"); }
 
 // ==========================================
-// 2. INICIALIZAÇÃO E AUTO-CONNECT
+// 2. INICIALIZAÇÃO
 // ==========================================
-
-// Ao carregar a página, verifica se deve reconectar automaticamente
 window.onload = async function() {
-    // Se o usuário clicou em "Desconectar" na última sessão, NÃO reconecta sozinho.
+    // Se o usuário desconectou manualmente, NÃO faz nada. Fica esperando o clique.
     if (localStorage.getItem('userDisconnected') === 'true') {
-        console.log("Usuário desconectado manualmente. Aguardando ação.");
+        console.log("Status: Desconectado manualmente.");
         return; 
     }
 
-    // Se não houve desconexão manual, tenta restaurar a sessão (persistência)
+    // Se não houve desconexão manual, tenta restaurar sessão (F5 acidental)
     if (window.ethereum) {
         try {
+            // Verifica se JÁ existe permissão sem pedir nova
             const accounts = await window.ethereum.request({ method: 'eth_accounts' });
             if (accounts && accounts.length > 0) {
-                // Reconecta silenciosamente (sem pedir permissão de novo)
                 provider = new ethers.BrowserProvider(window.ethereum);
                 signer = await provider.getSigner();
                 userAddress = await signer.getAddress();
@@ -50,38 +48,49 @@ window.onload = async function() {
 };
 
 // ==========================================
-// 3. CONEXÃO WALLET (NUCLEAR OPTION)
+// 3. CONEXÃO WALLET (STRICT MODE)
 // ==========================================
 window.connectWallet = async function() {
     const statusEl = document.getElementById("loginStatus");
     if(statusEl) statusEl.style.display = 'none';
 
-    // Remove a flag de desconexão, pois o usuário está tentando entrar
+    // Remove a flag para permitir reconexões futuras
     localStorage.removeItem('userDisconnected');
 
     try {
         if (!window.ethereum) {
-            alert("Nenhuma carteira detectada (Rabby/MetaMask)!");
+            alert("Nenhuma carteira detectada!");
             return;
         }
 
-        // --- O FIX: FORÇA A SELEÇÃO DE CONTA ---
+        // 1. TENTA FORÇAR A JANELA DE PERMISSÃO
+        // Isso diz pra wallet: "Quero novas permissões, esqueça as antigas"
         try {
             await window.ethereum.request({
                 method: "wallet_requestPermissions",
                 params: [{ eth_accounts: {} }]
             });
         } catch (permError) {
+            // Se o usuário fechar a janela da Rabby/MetaMask sem escolher nada
             if (permError.code === 4001) {
-                console.log("Seleção de conta cancelada pelo usuário.");
-                return; // Para tudo se ele cancelou
+                console.log("Usuário cancelou a seleção de conta.");
+                return; // Para tudo. Não tenta conectar a força.
             }
+            console.warn("wallet_requestPermissions falhou ou não suportado:", permError);
         }
-        // ---------------------------------------
+
+        // 2. PEDE A CONTA (Agora que a permissão foi renovada ou confirmada)
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         
+        if (!accounts || accounts.length === 0) {
+            alert("Nenhuma conta selecionada.");
+            return;
+        }
+
+        // 3. CONFIGURA PROVIDER
         provider = new ethers.BrowserProvider(window.ethereum);
         
-        // AUTO SWITCH NETWORK (Garante Arc Testnet)
+        // 4. VERIFICA E TROCA REDE
         const network = await provider.getNetwork();
         if (network.chainId !== 5042002n) { 
             try {
@@ -103,8 +112,7 @@ window.connectWallet = async function() {
                     });
                 } else { throw switchError; }
             }
-            // Recarrega provider após troca
-            provider = new ethers.BrowserProvider(window.ethereum);
+            provider = new ethers.BrowserProvider(window.ethereum); // Recarrega provider
         }
 
         signer = await provider.getSigner();
@@ -118,34 +126,43 @@ window.connectWallet = async function() {
     }
 }
 
-// Configura a tela após conectar
 function setupUIConnected() {
     const btn = document.getElementById("btnConnect");
     btn.innerText = `🔴 Desconectar: ${userAddress.slice(0,6)}...`;
     btn.classList.add('btn-disconnect');
-    btn.onclick = disconnectWallet; // Muda a função do botão para logout
+    btn.onclick = disconnectWallet; 
 
     document.getElementById("navTabs").style.display = 'flex';
-    log(`Conectado na Arc: ${userAddress}`, 'success');
+    log(`Conectado: ${userAddress}`, 'success');
     if(supabaseClient) checkRegister(userAddress);
 }
 
-// LOGOUT REAL
-window.disconnectWallet = function() {
-    // 1. Seta a flag para o window.onload saber que saímos
+// LOGOUT AGRESSIVO
+window.disconnectWallet = async function() {
+    // 1. Marca que o usuário quer sair
     localStorage.setItem('userDisconnected', 'true');
     
-    // 2. Limpa dados da sessão
+    // 2. Tenta revogar permissões (Funciona em algumas versões da MetaMask/Rabby)
+    try {
+        await window.ethereum.request({
+            method: "wallet_revokePermissions",
+            params: [{ eth_accounts: {} }]
+        });
+    } catch (e) {
+        console.log("Revoke não suportado pela carteira (normal).");
+    }
+
+    // 3. Limpa variáveis locais
     provider = null;
     signer = null;
     userAddress = null;
 
-    // 3. Recarrega a página para limpar o estado da memória da Rabby/MetaMask no navegador
+    // 4. Recarrega para limpar cache do Provider
     window.location.reload();
 }
 
 // ==========================================
-// 4. UTILS (LOADING, CARD, UI) - MANTIDOS DA V2
+// 4. UTILS E LÓGICA (MANTIDOS)
 // ==========================================
 function setLoading(btnId, isLoading) {
     const btn = document.getElementById(btnId);
@@ -253,13 +270,9 @@ window.showSuccessModal = async function(title, msg, tweetText, txHash, imageUrl
 }
 window.closeSuccessModal = function() { document.getElementById("successModal").style.display = "none"; }
 
-// ==========================================
-// 5. LÓGICA CORE (CONTRATOS V2)
-// ==========================================
 const CONTRACTS = { factory: "0x3Ed7Fd9b5a2a77B549463ea1263516635c77eB0a", multi: "0x59BcE4bE3e31B14a0528c9249a0580eEc2E59032", lock: "0x4475a197265Dd9c7CaF24Fe1f8cf63B6e9935452", vest: "0xcC8a723917b0258280Ea1647eCDe13Ffa2E1D30b" };
 const ABIS = { factory: ["function createToken(string name, string symbol, uint256 initialSupply) external", "event TokenCreated(address tokenAddress, string name, string symbol, address owner)"], multi: ["function multisendToken(address token, address[] recipients, uint256[] amounts) external payable"], lock: ["function lockTokens(address _token, uint256 _amount, uint256 _unlockTime) external", "function withdraw(uint256 _lockId) external", "function lockIdCounter() view returns (uint256)", "function locks(uint256) view returns (address owner, address token, uint256 amount, uint256 unlockTime, bool withdrawn)"], vest: ["function createVestingSchedule(address, address, uint256, uint256, uint256, uint256, bool) external", "function release(uint256) external", "function getUserScheduleCount(address) view returns (uint256)", "function getUserScheduleIdAtIndex(address, uint256) view returns (uint256)", "function schedules(uint256) view returns (uint256 scheduleId, address token, address beneficiary, uint256 amountTotal, uint256 released, uint256 start, uint256 duration)"], erc20: ["function approve(address spender, uint256 amount) external", "function decimals() view returns (uint8)", "function symbol() view returns (string)"] };
 
-// LAUNCHPAD
 window.createToken = async function() {
     const name = document.getElementById("tokenName").value;
     const symbol = document.getElementById("tokenSymbol").value;
@@ -284,7 +297,6 @@ window.createToken = async function() {
     } catch (e) { log("Erro: " + (e.reason || e.message), 'error'); } finally { setLoading('btnCreate', false); }
 }
 
-// MULTISENDER
 window.sendBatch = async function() {
     const token = clean(document.getElementById("multiTokenAddr").value);
     const raw = document.getElementById("csvInput").value;
@@ -303,7 +315,6 @@ window.sendBatch = async function() {
     } catch (e) { log("Erro: " + (e.reason || e.message), 'error'); } finally { setLoading('btnMulti', false); }
 }
 
-// LOCKER
 window.lockTokens = async function() {
     const token = clean(document.getElementById("lockTokenAddr").value);
     const amount = document.getElementById("lockAmount").value;
@@ -325,7 +336,6 @@ window.lockTokens = async function() {
     } catch (e) { log("Erro: " + (e.reason || e.message), 'error'); } finally { setLoading('btnLock', false); }
 }
 
-// VESTING
 window.createVesting = async function() {
     const token = clean(document.getElementById("vestTokenAddr").value);
     const bene = clean(document.getElementById("vestBeneficiary").value);
@@ -347,7 +357,6 @@ window.createVesting = async function() {
     } catch (e) { log("Erro: " + e.message, 'error'); } finally { setLoading('btnVest', false); }
 }
 
-// UTILS E SUB-FUNCOES
 window.handleFileUpload = function(input) { const file = input.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = function(e) { document.getElementById('csvInput').value = e.target.result; log(`Lista carregada: ${file.name}`, 'success'); updateSummary(); }; reader.readAsText(file); }
 if(document.getElementById('csvInput')) document.getElementById('csvInput').addEventListener('input', updateSummary);
 function updateSummary() { const raw = document.getElementById("csvInput").value; const lines = raw.split(/\r?\n/).filter(l => l.trim() !== ""); const count = lines.filter(l => l.includes('0x')).length; document.getElementById("multiSummary").innerText = `${count} carteiras detectadas`; }
