@@ -5,12 +5,12 @@ let provider, signer, userAddress;
 let currentDecimals = 18;
 let uploadedLogoData = null; 
 
-// ARC TESTNET CONFIG
-const ARC_CHAIN_ID = '0x4c9a62'; // 5042002 em Hex
+// ARC TESTNET
+const ARC_CHAIN_ID = '0x4c9a62'; // 5042002
 const ARC_RPC_URL = 'https://rpc.testnet.arc.network';
 const ARC_EXPLORER = 'https://testnet.arcscan.app';
 
-// SUPABASE CONFIG
+// SUPABASE (PONTOS)
 const SUPABASE_URL = 'https://jfgiiuzqyqjbfaubdhja.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmZ2lpdXpxeXFqYmZhdWJkaGphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4OTk2NzIsImV4cCI6MjA4MTQ3NTY3Mn0.4AZ_FIazsIlP5I_FPpAQh0lkIXRpBwGVfKVG3nwzxWA';
 let supabaseClient = null;
@@ -18,12 +18,12 @@ let supabaseClient = null;
 try {
     if (window.supabase) {
         supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        console.log("✅ Banco de Dados conectado.");
+        console.log("✅ DB conectado.");
     }
 } catch(e) { console.log("Modo Offline"); }
 
 // ==========================================
-// 2. CONEXÃO WALLET (COM AUTO-SWITCH)
+// 2. CONEXÃO WALLET (CONNECT & DISCONNECT)
 // ==========================================
 window.connectWallet = async function() {
     const statusEl = document.getElementById("loginStatus");
@@ -37,63 +37,74 @@ window.connectWallet = async function() {
         
         provider = new ethers.BrowserProvider(window.ethereum);
         
-        // 1. Verifica Rede
+        // AUTO SWITCH NETWORK
         const network = await provider.getNetwork();
-        if (network.chainId !== 5042002n) { // Verifica se é Arc Testnet
+        if (network.chainId !== 5042002n) { 
             try {
                 await window.ethereum.request({
                     method: 'wallet_switchEthereumChain',
                     params: [{ chainId: ARC_CHAIN_ID }],
                 });
             } catch (switchError) {
-                // Se a rede não existir, adiciona
                 if (switchError.code === 4902) {
                     await window.ethereum.request({
                         method: 'wallet_addEthereumChain',
                         params: [{
                             chainId: ARC_CHAIN_ID,
                             chainName: 'Arc Testnet',
-                            nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 6 }, // Arc usa USDC como gas?
+                            nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 6 },
                             rpcUrls: [ARC_RPC_URL],
                             blockExplorerUrls: [ARC_EXPLORER]
                         }]
                     });
-                } else {
-                    throw switchError;
-                }
+                } else { throw switchError; }
             }
-            // Recarrega provider após troca
             provider = new ethers.BrowserProvider(window.ethereum);
         }
 
         signer = await provider.getSigner();
         userAddress = await signer.getAddress();
         
+        // ESTADO: CONECTADO
         const btn = document.getElementById("btnConnect");
-        btn.innerText = `🟢 Conectado: ${userAddress.slice(0,6)}...`;
+        btn.innerText = `🔴 Desconectar: ${userAddress.slice(0,6)}...`;
         btn.classList.add('btn-disconnect');
-        btn.onclick = null; 
+        btn.onclick = disconnectWallet; // Muda a ação do botão
 
         document.getElementById("navTabs").style.display = 'flex';
-        log(`Conectado na Arc: ${userAddress}`, 'success');
+        log(`Conectado: ${userAddress}`, 'success');
         if(supabaseClient) checkRegister(userAddress);
 
     } catch (e) {
         console.error(e);
-        log("Erro Conexão: " + (e.reason || e.message), 'error');
-        if(e.code === 4001) alert("Você recusou a conexão.");
+        log("Erro: " + (e.reason || e.message), 'error');
     }
+}
+
+// LOGOUT
+window.disconnectWallet = function() {
+    provider = null;
+    signer = null;
+    userAddress = null;
+
+    const btn = document.getElementById("btnConnect");
+    btn.innerText = "🦊 Conectar MetaMask / Web3";
+    btn.classList.remove('btn-disconnect');
+    btn.onclick = connectWallet;
+
+    document.getElementById("navTabs").style.display = 'none';
+    const activeSection = document.querySelector('.module-section.active');
+    if(activeSection) activeSection.classList.remove('active');
+    
+    log("Desconectado.", 'normal');
 }
 
 // ==========================================
 // 3. UTILS (LOADING, CARD, UI)
 // ==========================================
-
-// Helper para travar botões durante transação
 function setLoading(btnId, isLoading) {
     const btn = document.getElementById(btnId);
     if(!btn) return;
-    
     if (isLoading) {
         btn.dataset.originalText = btn.innerText;
         btn.innerText = "⏳ Processando...";
@@ -119,9 +130,7 @@ window.handleLogoUpload = function(input) {
 }
 
 function triggerConfetti() {
-    if(window.confetti) {
-        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#00ff9d', '#ffffff', '#000000'] });
-    }
+    if(window.confetti) confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#00ff9d', '#ffffff', '#000000'] });
 }
 
 async function generateSocialCard(name, symbol, supply, logoData) {
@@ -129,10 +138,8 @@ async function generateSocialCard(name, symbol, supply, logoData) {
     document.getElementById('cardTokenName').innerText = name;
     document.getElementById('cardTokenSupply').innerText = supply;
     const imgEl = document.getElementById('cardTokenLogo');
-    
     if(logoData) { imgEl.src = logoData; imgEl.style.display = 'block'; } 
     else { imgEl.style.display = 'none'; }
-
     const element = document.getElementById("socialCardTemplate");
     try {
         const canvas = await html2canvas(element, { backgroundColor: null, scale: 2 });
@@ -143,18 +150,15 @@ async function generateSocialCard(name, symbol, supply, logoData) {
 window.openSimpleShare = function(tweetText) {
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`, '_blank');
 }
-
 window.shareToTelegram = function(text) {
     window.open(`https://t.me/share/url?url=${encodeURIComponent("https://arcshield.vercel.app")}&text=${encodeURIComponent(text)}`, '_blank');
 }
-
 window.copyContractAddr = function() {
     const addr = document.getElementById('newContractAddr').innerText;
     navigator.clipboard.writeText(addr);
-    alert("Endereço copiado!");
+    alert("Copiado!");
 }
 
-// --- MODAL CONFIG ---
 window.showSuccessModal = async function(title, msg, tweetText, txHash, imageUrl = null, cardData = null, tokenAddress = null) {
     const modalTitle = document.getElementById("modalTitle");
     const modalMsg = document.getElementById("modalMsg");
@@ -171,9 +175,7 @@ window.showSuccessModal = async function(title, msg, tweetText, txHash, imageUrl
     if(tokenAddress) {
         tokenInfoDiv.style.display = 'block';
         document.getElementById("newContractAddr").innerText = tokenAddress;
-    } else {
-        tokenInfoDiv.style.display = 'none';
-    }
+    } else { tokenInfoDiv.style.display = 'none'; }
 
     if (imageUrl) {
         iconSpan.innerHTML = `<img src="${imageUrl}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #00ff9d; box-shadow: 0 0 20px rgba(0,255,157,0.3);">`;
@@ -182,13 +184,10 @@ window.showSuccessModal = async function(title, msg, tweetText, txHash, imageUrl
     if (cardData) {
         cardContainer.style.display = 'flex';
         cardContainer.innerHTML = `<img src="${cardData}" style="width: 100%; border-radius: 12px; border: 1px solid #333; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">`;
-        
         downloadBtn.href = cardData;
         downloadBtn.style.display = 'block';
-        
         shareBtn.onclick = () => openSimpleShare(tweetText);
         shareBtn.style.display = 'block';
-
         teleBtn.onclick = () => shareToTelegram(tweetText);
         teleBtn.style.display = 'block';
     } else {
@@ -207,133 +206,88 @@ window.showSuccessModal = async function(title, msg, tweetText, txHash, imageUrl
     document.getElementById("successModal").style.display = "flex";
     triggerConfetti(); 
 }
-
-window.closeSuccessModal = function() {
-    document.getElementById("successModal").style.display = "none";
-}
+window.closeSuccessModal = function() { document.getElementById("successModal").style.display = "none"; }
 
 // ==========================================
-// 4. LÓGICA CORE (COM LOADING)
+// 4. LÓGICA CORE
 // ==========================================
 const CONTRACTS = { factory: "0x3Ed7Fd9b5a2a77B549463ea1263516635c77eB0a", multi: "0x59BcE4bE3e31B14a0528c9249a0580eEc2E59032", lock: "0x4475a197265Dd9c7CaF24Fe1f8cf63B6e9935452", vest: "0xcC8a723917b0258280Ea1647eCDe13Ffa2E1D30b" };
 const ABIS = { factory: ["function createToken(string name, string symbol, uint256 initialSupply) external", "event TokenCreated(address tokenAddress, string name, string symbol, address owner)"], multi: ["function multisendToken(address token, address[] recipients, uint256[] amounts) external payable"], lock: ["function lockTokens(address _token, uint256 _amount, uint256 _unlockTime) external", "function withdraw(uint256 _lockId) external", "function lockIdCounter() view returns (uint256)", "function locks(uint256) view returns (address owner, address token, uint256 amount, uint256 unlockTime, bool withdrawn)"], vest: ["function createVestingSchedule(address, address, uint256, uint256, uint256, uint256, bool) external", "function release(uint256) external", "function getUserScheduleCount(address) view returns (uint256)", "function getUserScheduleIdAtIndex(address, uint256) view returns (uint256)", "function schedules(uint256) view returns (uint256 scheduleId, address token, address beneficiary, uint256 amountTotal, uint256 released, uint256 start, uint256 duration)"], erc20: ["function approve(address spender, uint256 amount) external", "function decimals() view returns (uint8)", "function symbol() view returns (string)"] };
 
-// --- LAUNCHPAD ---
+// LAUNCHPAD
 window.createToken = async function() {
     const name = document.getElementById("tokenName").value;
     const symbol = document.getElementById("tokenSymbol").value;
     const supply = document.getElementById("tokenSupply").value;
     const desc = document.getElementById("tokenDesc").value.trim();
-    
-    if(!name || !symbol || !supply) return log("Preencha os campos obrigatórios!", 'error');
-    
-    setLoading('btnCreate', true); // TRAVA BOTÃO
-
+    if(!name || !symbol || !supply) return log("Preencha os campos!", 'error');
+    setLoading('btnCreate', true); 
     try {
         const c = new ethers.Contract(CONTRACTS.factory, ABIS.factory, signer);
         log("Criando Token...", 'normal');
-        
         const tx = await c.createToken(name, symbol, supply);
         log("Aguardando confirmação...");
-        
         const receipt = await tx.wait(); 
-        
         let deployedAddr = null;
-        try {
-            for (const log of receipt.logs) {
-                try {
-                    const parsed = c.interface.parseLog(log);
-                    if (parsed.name === 'TokenCreated') {
-                        deployedAddr = parsed.args[0];
-                        break;
-                    }
-                } catch (e) {}
-            }
-        } catch(e) {}
-
+        try { for (const log of receipt.logs) { try { const parsed = c.interface.parseLog(log); if (parsed.name === 'TokenCreated') { deployedAddr = parsed.args[0]; break; } } catch (e) {} } } catch(e) {}
         log(`Token ${symbol} Criado!`, 'success');
         if(supabaseClient) addPoints(100);
-
-        log("Gerando Card Social...", 'normal');
+        log("Gerando Card...", 'normal');
         const cardImage = await generateSocialCard(name, symbol, supply, uploadedLogoData);
-
         const tweetDesc = desc ? desc : `Criei o token $${symbol} na #ArcTestnet com Arc Shield! 🛡️ ${deployedAddr ? 'CA: '+deployedAddr : ''}`;
-        
-        showSuccessModal(`Token ${symbol} Criado! 🚀`, "Contrato implantado com sucesso.", tweetDesc, tx.hash, uploadedLogoData, cardImage, deployedAddr);
-
-    } catch (e) { 
-        log("Erro: " + (e.reason || e.message), 'error'); 
-        if(e.code === 4001) alert("Transação cancelada pelo usuário.");
-    } finally {
-        setLoading('btnCreate', false); // DESTRAVA BOTÃO
-    }
+        showSuccessModal(`Token ${symbol} Criado! 🚀`, "Sucesso!", tweetDesc, tx.hash, uploadedLogoData, cardImage, deployedAddr);
+    } catch (e) { log("Erro: " + (e.reason || e.message), 'error'); } finally { setLoading('btnCreate', false); }
 }
 
-// --- MULTISENDER ---
+// MULTISENDER
 window.sendBatch = async function() {
     const token = clean(document.getElementById("multiTokenAddr").value);
     const raw = document.getElementById("csvInput").value;
-    if(!token || !raw) return log("Preencha o Token e a Lista.", 'error');
-    
+    if(!token || !raw) return log("Preencha campos.", 'error');
     setLoading('btnMulti', true);
-
     try {
-        const lines = raw.split(/\r?\n/);
-        let rec=[], amt=[];
-        for(let line of lines) { let parts = line.split(/[;,\t\s]+/); parts = parts.filter(p => p.trim() !== ""); if(parts.length >= 2) { const address = parts[0].trim(); const value = parts[1].trim().replace(',', '.'); if(ethers.isAddress(address)) { rec.push(address); try { amt.push(ethers.parseUnits(value, currentDecimals)); } catch(e){} } } }
-        
+        const lines = raw.split(/\r?\n/); let rec=[], amt=[]; for(let line of lines) { let parts = line.split(/[;,\t\s]+/); parts = parts.filter(p => p.trim() !== ""); if(parts.length >= 2) { const address = parts[0].trim(); const value = parts[1].trim().replace(',', '.'); if(ethers.isAddress(address)) { rec.push(address); try { amt.push(ethers.parseUnits(value, currentDecimals)); } catch(e){} } } }
         if(rec.length === 0) throw new Error("Nenhuma carteira válida.");
-
         const c = new ethers.Contract(CONTRACTS.multi, ABIS.multi, signer);
-        log(`Enviando para ${rec.length} carteiras...`);
+        log(`Enviando...`);
         const tx = await c.multisendToken(token, rec, amt);
         await tx.wait();
-        
         log("Enviado!", 'success');
         if(supabaseClient) addPoints(50);
-        showSuccessModal("Airdrop Concluído! 📨", `${rec.length} carteiras receberam.`, `Airdrop para ${rec.length} pessoas via Arc Shield! 🛡️`, tx.hash);
-
-    } catch (e) { log("Erro: " + (e.reason || e.message), 'error'); } 
-    finally { setLoading('btnMulti', false); }
+        showSuccessModal("Airdrop Concluído! 📨", `${rec.length} carteiras receberam.`, `Airdrop para ${rec.length} via Arc Shield!`, tx.hash);
+    } catch (e) { log("Erro: " + (e.reason || e.message), 'error'); } finally { setLoading('btnMulti', false); }
 }
 
-// --- LOCKER ---
+// LOCKER
 window.lockTokens = async function() {
     const token = clean(document.getElementById("lockTokenAddr").value);
     const amount = document.getElementById("lockAmount").value;
     const date = document.getElementById("lockDate").value;
     if(!token || !amount || !date) return log("Preencha todos.", 'error');
-    
     setLoading('btnLock', true);
-    
     try {
         const safeAmount = amount.replace(',', '.');
         const wei = ethers.parseUnits(safeAmount, currentDecimals);
         const time = Math.floor(new Date(date).getTime() / 1000);
         if(time < Math.floor(Date.now()/1000)) throw new Error("Data futura necessária!");
-        
         const c = new ethers.Contract(CONTRACTS.lock, ABIS.lock, signer);
         log("Trancando...");
         const tx = await c.lockTokens(token, wei, time);
         await tx.wait();
-        
         log("Trancado!", 'success');
         if(supabaseClient) addPoints(50);
-        showSuccessModal("Liquidez Trancada! 🔒", "Tokens seguros no Locker.", "Tranquei liquidez via Arc Shield! 🛡️", tx.hash);
-    } catch (e) { log("Erro: " + (e.reason || e.message), 'error'); }
-    finally { setLoading('btnLock', false); }
+        showSuccessModal("Liquidez Trancada! 🔒", "Tokens seguros.", "Tranquei liquidez via Arc Shield!", tx.hash);
+    } catch (e) { log("Erro: " + (e.reason || e.message), 'error'); } finally { setLoading('btnLock', false); }
 }
 
-// --- VESTING ---
+// VESTING
 window.createVesting = async function() {
     const token = clean(document.getElementById("vestTokenAddr").value);
     const bene = clean(document.getElementById("vestBeneficiary").value);
     const amount = document.getElementById("vestAmount").value;
     const dur = document.getElementById("vestDuration").value;
     if(!token || !bene || !amount || !dur) return log("Preencha todos.", 'error');
-    
     setLoading('btnVest', true);
-    
     try {
         const safeAmount = amount.replace(',', '.');
         const wei = ethers.parseUnits(safeAmount, currentDecimals);
@@ -342,15 +296,13 @@ window.createVesting = async function() {
         log("Criando Vesting...");
         const tx = await c.createVestingSchedule(token, bene, Math.floor(Date.now()/1000), 0, sec, wei, true);
         await tx.wait();
-        
         log("Criado!", 'success');
         if(supabaseClient) addPoints(75);
-        showSuccessModal("Vesting Criado! ⏳", "Pagamento programado.", "Criei Vesting via Arc Shield! 🛡️", tx.hash);
-    } catch (e) { log("Erro: " + e.message, 'error'); }
-    finally { setLoading('btnVest', false); }
+        showSuccessModal("Vesting Criado! ⏳", "Pagamento programado.", "Criei Vesting via Arc Shield!", tx.hash);
+    } catch (e) { log("Erro: " + e.message, 'error'); } finally { setLoading('btnVest', false); }
 }
 
-// UTILS GERAIS (MANTIDOS)
+// UTILS E SUB-FUNCOES (MANTIDAS)
 window.switchTab = function(tabId, btn) { document.querySelectorAll('.module-section').forEach(el => el.classList.remove('active')); document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active')); document.getElementById(tabId).classList.add('active'); btn.classList.add('active'); if(tabId === 'dashboard') loadDashboardData(); if(tabId === 'leaderboard') loadLeaderboard(); }
 function log(msg, type='normal') { const area = document.getElementById("consoleArea"); if(!area) return; const div = document.createElement("div"); div.className = "log-entry " + (type==='success'?'log-success':type==='error'?'log-error':''); div.innerText = `> ${msg}`; area.appendChild(div); area.scrollTop = area.scrollHeight; }
 function clean(val) { return val ? val.trim() : ""; }
