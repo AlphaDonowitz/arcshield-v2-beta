@@ -1,12 +1,12 @@
 // ==========================================
-// SOCIAL HUB & GAMIFICATION (V3.5.2)
+// SOCIAL HUB & GAMIFICATION (V3.6 - Fix Banner)
 // ==========================================
 
 window.userProfile = {
     username: "Visitante", 
     bio: "", 
     avatar: null,
-    banner: null, // Campo Banner
+    banner: null, 
     points: 0, 
     tokens: 0, 
     vestings: 0, 
@@ -19,8 +19,18 @@ let myChart = null;
 window.loadUserProfile = async function(wallet) {
     if(!window.supabaseClient) return;
     try {
-        let { data: user } = await supabaseClient.from('users').select('*').eq('wallet_address', wallet).single();
+        // Seleciona explicitamente as colunas para evitar erros de cache
+        let { data: user, error } = await supabaseClient
+            .from('users')
+            .select('username, bio, avatar_url, banner_url, points, tokens_created, vestings_created, locks_created, multisends_count, last_daily_claim')
+            .eq('wallet_address', wallet)
+            .single();
         
+        if (error && error.code !== 'PGRST116') {
+            console.error("Erro Supabase:", error);
+            return;
+        }
+
         if (!user) {
             const newUser = { wallet_address: wallet, points: 0, avatar_url: `https://robohash.org/${wallet}?set=set4` };
             await supabaseClient.from('users').insert([newUser]);
@@ -41,12 +51,11 @@ window.loadUserProfile = async function(wallet) {
         }
         updateProfileUI();
         checkDailyAvailability();
-    } catch(e) { console.error("Erro Profile:", e); }
+    } catch(e) { console.error("Erro Crítico Profile:", e); }
 }
 
 // 2. ATUALIZAR INTERFACE
 function updateProfileUI() {
-    // Textos
     const ids = {
         'userDisplayName': window.userProfile.username,
         'userWalletDisplay': window.userAddress,
@@ -66,10 +75,10 @@ function updateProfileUI() {
     const img = document.getElementById('userAvatarDisplay');
     if(img) img.src = window.userProfile.avatar;
 
-    // Banner (Fundo)
+    // Banner
     const bannerDiv = document.getElementById('profileBannerDisplay');
     if(bannerDiv) {
-        if(window.userProfile.banner) {
+        if(window.userProfile.banner && window.userProfile.banner.length > 10) {
             bannerDiv.style.backgroundImage = `url('${window.userProfile.banner}')`;
         } else {
             bannerDiv.style.backgroundImage = "linear-gradient(90deg, #00C6FF, #0072FF)";
@@ -86,8 +95,7 @@ function checkDailyAvailability() {
     if(!btn) return;
 
     if(!window.userProfile.lastDaily) {
-        btn.disabled = false; timer.innerText = "Disponível!";
-        return;
+        btn.disabled = false; timer.innerText = "Disponível!"; return;
     }
     const last = new Date(window.userProfile.lastDaily).getTime();
     const diff = Date.now() - last;
@@ -116,15 +124,6 @@ window.dailyCheckIn = async function() {
     updateProfileUI();
     checkDailyAvailability();
     if(window.confetti) window.confetti();
-}
-
-window.incrementStat = async function(col, pts) {
-    if(!window.supabaseClient) return;
-    const { data: u } = await supabaseClient.from('users').select(`${col}, points`).eq('wallet_address', userAddress).single();
-    const update = { points: (u.points||0) + pts };
-    update[col] = (u[col]||0) + 1;
-    await supabaseClient.from('users').update(update).eq('wallet_address', userAddress);
-    loadUserProfile(userAddress);
 }
 
 // 4. GRÁFICOS
@@ -158,25 +157,72 @@ function renderCharts() {
     });
 }
 
-// 5. UPLOADS (AVATAR E BANNER)
+// 5. UPLOADS COM AUTO-SAVE
+// Função genérica para salvar imagens
+async function saveImageToDB(field, base64Data) {
+    if(!window.userAddress) return alert("Conecte a carteira primeiro.");
+    
+    // Verificação de tamanho (aprox 2MB)
+    if(base64Data.length > 3000000) {
+        return alert("Imagem muito grande! Tente uma menor que 2MB.");
+    }
+
+    const updateObj = {};
+    updateObj[field] = base64Data;
+
+    document.body.style.cursor = 'wait'; // Feedback visual
+    
+    const { error } = await supabaseClient
+        .from('users')
+        .update(updateObj)
+        .eq('wallet_address', window.userAddress);
+
+    document.body.style.cursor = 'default';
+
+    if(error) {
+        console.error("Erro Upload:", error);
+        if(error.message.includes('banner_url')) {
+            alert("ERRO DE BANCO: A coluna 'banner_url' não existe.\n\nPor favor, rode o comando SQL no Supabase.");
+        } else {
+            alert("Erro ao salvar imagem. Veja o console (F12).");
+        }
+    } else {
+        // Sucesso
+        if(window.confetti) window.confetti({ particleCount: 50, spread: 30, origin: { y: 0.3 } });
+    }
+}
+
+// Upload Avatar
 window.handleAvatarUpload = function(input) {
     const file = input.files[0];
     if(file) {
         const r = new FileReader();
-        r.onload = function(e) { window.userProfile.avatar = e.target.result; updateProfileUI(); };
+        r.onload = function(e) { 
+            const base64 = e.target.result;
+            window.userProfile.avatar = base64; 
+            updateProfileUI(); // Atualiza na hora
+            saveImageToDB('avatar_url', base64); // Salva no banco
+        };
         r.readAsDataURL(file);
     }
 }
 
+// Upload Banner
 window.handleBannerUpload = function(input) {
     const file = input.files[0];
     if(file) {
         const r = new FileReader();
-        r.onload = function(e) { window.userProfile.banner = e.target.result; updateProfileUI(); };
+        r.onload = function(e) { 
+            const base64 = e.target.result;
+            window.userProfile.banner = base64; 
+            updateProfileUI(); // Atualiza na hora
+            saveImageToDB('banner_url', base64); // Salva no banco
+        };
         r.readAsDataURL(file);
     }
 }
 
+// Salvar Textos (Nome/Bio)
 window.saveProfileData = async function() {
     const name = document.getElementById('editName').value;
     const bio = document.getElementById('editBio').value;
@@ -184,14 +230,22 @@ window.saveProfileData = async function() {
     const up = {};
     if(name) up.username = name;
     if(bio) up.bio = bio;
-    if(window.userProfile.avatar) up.avatar_url = window.userProfile.avatar;
-    if(window.userProfile.banner) up.banner_url = window.userProfile.banner;
     
-    await supabaseClient.from('users').update(up).eq('wallet_address', userAddress);
-    alert("Perfil Atualizado! 💾");
-    loadUserProfile(userAddress);
+    // Não enviamos imagens aqui de novo para economizar dados,
+    // já que o auto-save cuida disso.
+    
+    if(Object.keys(up).length === 0) return alert("Nada para salvar nos textos.");
+
+    const { error } = await supabaseClient.from('users').update(up).eq('wallet_address', userAddress);
+    
+    if(error) alert("Erro ao salvar perfil.");
+    else {
+        alert("Texto Atualizado! 💾");
+        loadUserProfile(userAddress);
+    }
 }
 
+// 6. LEADERBOARD
 window.loadLeaderboard = async function() {
     const div = document.getElementById("leaderboardList");
     div.innerHTML = "Loading...";
