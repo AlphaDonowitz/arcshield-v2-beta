@@ -41,10 +41,7 @@
                 <button class="nav-item" onclick="navigate('multisender', this)">📨 Multisender</button>
                 <button class="nav-item" onclick="navigate('locker', this)">🔒 Locker</button>
                 <button class="nav-item" onclick="navigate('vesting', this)">⏳ Vesting</button>
-                
-                <button class="nav-item special-nav" onclick="navigate('leaderboard', this)">
-                    👑 Social Hub
-                </button>
+                <button class="nav-item special-nav" onclick="navigate('leaderboard', this)">👑 Social Hub</button>
             </nav>
             <div class="sidebar-footer">
                 <p>v3.5 Stable • <a href="#" onclick="disconnectWallet()" style="color:#ff6b6b; text-decoration:none;">Sair</a></p>
@@ -65,18 +62,10 @@
                     <div class="glass-panel">
                         <h3>Criar Novo Token</h3>
                         <div class="form-grid">
-                            <div>
-                                <label>Nome do Projeto</label>
-                                <input type="text" id="tokenName" placeholder="Ex: Arc Gold">
-                            </div>
-                            <div>
-                                <label>Símbolo (Ticker)</label>
-                                <input type="text" id="tokenSymbol" placeholder="Ex: GOLD">
-                            </div>
+                            <div><label>Nome do Projeto</label><input type="text" id="tokenName" placeholder="Ex: Arc Gold"></div>
+                            <div><label>Símbolo (Ticker)</label><input type="text" id="tokenSymbol" placeholder="Ex: GOLD"></div>
                         </div>
-                        <label>Supply Inicial</label>
-                        <input type="number" id="tokenSupply" placeholder="Ex: 1000000">
-                        
+                        <label>Supply Inicial</label><input type="number" id="tokenSupply" placeholder="Ex: 1000000">
                         <div class="upload-area">
                             <label>Logo do Token</label>
                             <div class="file-input-wrapper">
@@ -85,10 +74,7 @@
                                 <input type="file" id="tokenLogoFile" hidden onchange="handleLogoUpload(this)">
                             </div>
                         </div>
-                        
-                        <label>Descrição (Opcional)</label>
-                        <textarea id="tokenDesc" placeholder="Descrição para o card social..."></textarea>
-                        
+                        <label>Descrição (Opcional)</label><textarea id="tokenDesc" placeholder="Descrição para o card social..."></textarea>
                         <button id="btnCreate" class="btn-primary" onclick="createToken()">🚀 Lançar Token (+100 XP)</button>
                     </div>
                 </div>
@@ -100,124 +86,93 @@
                             <button class="tab-btn active" id="btnModeDeposit" onclick="setBridgeMode('deposit')">📤 1. Enviar (Sepolia)</button>
                             <button class="tab-btn" id="btnModeClaim" onclick="setBridgeMode('claim')">📥 2. Receber (Arc)</button>
                         </div>
-
                         <div id="bridgeDepositArea">
-                            <div class="info-box">⚠️ Atenção: Você deve estar conectado na rede <b>Ethereum Sepolia</b> para enviar.</div>
-                            
-                            <label>Quantidade USDC (Sepolia)</label>
-                            <input type="number" id="bridgeAmount" placeholder="Ex: 10.00">
-                            
-                            <label>Destino (Sua carteira na Arc)</label>
-                            <input type="text" id="bridgeRecipient" readonly style="opacity:0.6; cursor:not-allowed;">
-                            
+                            <div class="info-box">⚠️ Conecte-se na <b>Ethereum Sepolia</b> para enviar.</div>
+                            <label>Quantidade USDC</label><input type="number" id="bridgeAmount" placeholder="Ex: 10.00">
+                            <label>Destino (Arc)</label><input type="text" id="bridgeRecipient" readonly style="opacity:0.6; cursor:not-allowed;">
                             <div class="action-row">
-                                <button id="btnApproveCCTP" class="btn-secondary" onclick="approveUSDC()">1. Aprovar USDC</button>
-                                <button id="btnBurnCCTP" class="btn-primary" onclick="burnUSDC()" disabled>2. Queimar & Enviar</button>
+                                <button id="btnApproveCCTP" class="btn-secondary" onclick="approveUSDC()">1. Aprovar</button>
+                                <button id="btnBurnCCTP" class="btn-primary" onclick="burnUSDC()" disabled>2. Enviar</button>
                             </div>
                         </div>
-
                         <div id="bridgeClaimArea" style="display:none;">
-                            <div class="info-box">ℹ️ Após enviar, pegue a assinatura na <a href="https://developers.circle.com/stablecoins/docs/cctp-testnet-faucet" target="_blank" style="color:#4dcfff;">Circle Testnet Tool</a> (~15min).</div>
-                            
-                            <label>Mensagem (Message Bytes)</label>
-                            <textarea id="cctpMessageBytes" placeholder="Cole os bytes da mensagem aqui..." style="height:80px;"></textarea>
-                            
-                            <label>Assinatura (Attestation)</label>
-                            <textarea id="cctpAttestation" placeholder="Cole a assinatura da Circle aqui..." style="height:80px;"></textarea>
-                            
-                            <button id="btnClaimCCTP" class="btn-primary" onclick="mintUSDC()">🚀 Receber USDC na Arc</button>
+                            <div class="info-box">ℹ️ Pegue a assinatura na <a href="https://developers.circle.com/stablecoins/docs/cctp-testnet-faucet" target="_blank" style="color:#4dcfff;">Circle Tool</a>.</div>
+                            <label>Mensagem</label><textarea id="cctpMessageBytes" placeholder="0x..." style="height:80px;"></textarea>
+                            <label>Assinatura</label><textarea id="cctpAttestation" placeholder="0x..." style="height:80px;"></textarea>
+                            <button id="btnClaimCCTP" class="btn-primary" onclick="mintUSDC()">🚀 Receber</button>
                         </div>
                     </div>
                 </div>
 
                 <div id="multisender" class="page-section">
                     <div class="glass-panel">
-                        <h3>Envio em Massa (Airdrop)</h3>
-                        <label>Endereço do Token</label>
-                        <input type="text" id="multiTokenAddr" placeholder="0x...">
-                        
+                        <h3>Envio em Massa</h3>
+                        <label>Token Address</label><input type="text" id="multiTokenAddr" placeholder="0x...">
                         <div class="flex-between" style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                            <label>Lista de Destinatários (CSV)</label>
+                            <label>Lista (CSV)</label>
                             <button class="mini-btn" onclick="document.getElementById('csvFile').click()">📂 Upload CSV</button>
                             <input type="file" id="csvFile" hidden onchange="handleFileUpload(this)">
                         </div>
-                        
                         <textarea id="csvInput" class="code-area" placeholder="0xWallet1, 100&#10;0xWallet2, 500" style="font-family:monospace; height:120px;"></textarea>
-                        <p id="multiSummary" class="hint-text" style="color:#666; font-size:0.8rem; text-align:right;">0 endereços detectados</p>
-                        
+                        <p id="multiSummary" class="hint-text" style="color:#666; font-size:0.8rem; text-align:right;">0 endereços</p>
                         <div class="action-row">
-                            <button class="btn-secondary" onclick="approveToken('multi')">1. Aprovar</button>
-                            <button id="btnMulti" class="btn-primary" onclick="sendBatch()">2. Enviar Lote</button>
+                            <button class="btn-secondary" onclick="approveToken('multi')">Aprovar</button>
+                            <button id="btnMulti" class="btn-primary" onclick="sendBatch()">Enviar</button>
                         </div>
                     </div>
                 </div>
 
                 <div id="locker" class="page-section">
                     <div class="glass-panel">
-                        <h3>Trancar Liquidez / Tokens</h3>
-                        <label>Token Address</label>
-                        <input type="text" id="lockTokenAddr">
-                        
+                        <h3>Trancar Liquidez</h3>
+                        <label>Token Address</label><input type="text" id="lockTokenAddr">
                         <div class="form-grid">
-                            <div>
-                                <label>Quantidade</label>
-                                <input type="number" id="lockAmount">
-                            </div>
-                            <div>
-                                <label>Data de Desbloqueio</label>
-                                <input type="datetime-local" id="lockDate" style="color-scheme:dark;">
-                            </div>
+                            <div><label>Qtd</label><input type="number" id="lockAmount"></div>
+                            <div><label>Data</label><input type="datetime-local" id="lockDate" style="color-scheme:dark;"></div>
                         </div>
-
                         <div class="action-row">
-                            <button class="btn-secondary" onclick="approveToken('lock')">1. Aprovar</button>
-                            <button id="btnLock" class="btn-primary" onclick="lockTokens()">2. Trancar</button>
+                            <button class="btn-secondary" onclick="approveToken('lock')">Aprovar</button>
+                            <button id="btnLock" class="btn-primary" onclick="lockTokens()">Trancar</button>
                         </div>
                     </div>
                 </div>
 
                 <div id="vesting" class="page-section">
                     <div class="glass-panel">
-                        <h3>Criar Contrato de Vesting</h3>
-                        <label>Token Address</label>
-                        <input type="text" id="vestTokenAddr">
-                        
-                        <label>Beneficiário (Carteira)</label>
-                        <input type="text" id="vestBeneficiary">
-
+                        <h3>Criar Vesting</h3>
+                        <label>Token Address</label><input type="text" id="vestTokenAddr">
+                        <label>Beneficiário</label><input type="text" id="vestBeneficiary">
                         <div class="form-grid">
-                            <div>
-                                <label>Total de Tokens</label>
-                                <input type="number" id="vestAmount">
-                            </div>
-                            <div>
-                                <label>Duração (Minutos)</label>
-                                <input type="number" id="vestDuration">
-                            </div>
+                            <div><label>Total</label><input type="number" id="vestAmount"></div>
+                            <div><label>Minutos</label><input type="number" id="vestDuration"></div>
                         </div>
-
                         <div class="action-row">
-                            <button class="btn-secondary" onclick="approveToken('vest')">1. Aprovar</button>
-                            <button id="btnVest" class="btn-primary" onclick="createVesting()">2. Criar Vesting</button>
+                            <button class="btn-secondary" onclick="approveToken('vest')">Aprovar</button>
+                            <button id="btnVest" class="btn-primary" onclick="createVesting()">Criar</button>
                         </div>
                     </div>
-                    
                     <div class="glass-panel" style="margin-top:20px;">
-                        <h3>Meus Vestings a Receber</h3>
-                        <div id="dashboardContent" style="min-height:50px; color:#888;">Nenhum dado carregado.</div>
-                        <button class="mini-btn full-width" style="margin-top:10px;" onclick="loadDashboardData()">🔄 Atualizar Lista</button>
+                        <h3>Meus Saques</h3>
+                        <div id="dashboardContent" style="min-height:50px; color:#888;">Nenhum dado.</div>
+                        <button class="mini-btn full-width" style="margin-top:10px;" onclick="loadDashboardData()">🔄 Atualizar</button>
                     </div>
                 </div>
 
                 <div id="leaderboard" class="page-section">
-                    
                     <div class="profile-header-card">
-                        <div class="profile-banner"></div>
+                        
+                        <div class="profile-banner" id="profileBannerDisplay">
+                            <button class="edit-banner-btn" onclick="document.getElementById('profileBannerInput').click()">
+                                📷 Alterar Capa
+                            </button>
+                            <input type="file" id="profileBannerInput" hidden accept="image/*" onchange="handleBannerUpload(this)">
+                        </div>
+
                         <div class="profile-info-row">
                             <div class="profile-avatar-wrapper">
                                 <img id="userAvatarDisplay" src="https://robohash.org/default?set=set4" alt="Avatar">
                                 <button class="edit-avatar-btn" onclick="document.getElementById('profileAvatarInput').click()">✏️</button>
-                                <input type="file" id="profileAvatarInput" hidden onchange="handleAvatarUpload(this)">
+                                <input type="file" id="profileAvatarInput" hidden accept="image/*" onchange="handleAvatarUpload(this)">
                             </div>
                             <div class="profile-texts">
                                 <h1 id="userDisplayName">Visitante</h1>
@@ -236,7 +191,7 @@
                             <summary>⚙️ Editar Perfil</summary>
                             <div class="form-grid" style="margin-top:10px;">
                                 <input type="text" id="editName" placeholder="Novo Nome">
-                                <input type="text" id="editBio" placeholder="Sua Bio (Ex: DeFi Degen)">
+                                <input type="text" id="editBio" placeholder="Sua Bio">
                             </div>
                             <button class="mini-btn" onclick="saveProfileData()">💾 Salvar Alterações</button>
                         </details>
@@ -251,7 +206,6 @@
                             <div class="stat-row"><span>⏳ Vestings</span> <b id="statVests">0</b></div>
                             <div class="stat-total"><span>🏆 Total XP</span> <b id="statXP" style="color:#00ff9d; font-size:1.2rem;">0</b></div>
                         </div>
-
                         <div class="glass-panel compact-panel">
                             <h3>Skill Set</h3>
                             <div style="height: 200px; display:flex; justify-content:center;">
@@ -280,21 +234,21 @@
         <div class="tutorial-card">
             <div id="tutStep1" class="tut-step active">
                 <h2>👋 Bem-vindo ao Arc Shield</h2>
-                <p>Sua plataforma tudo-em-um para a Arc Network. Vamos configurar tudo em segundos.</p>
+                <p>Plataforma tudo-em-um para Arc Network.</p>
                 <div class="tut-img">🛡️</div>
                 <button class="btn-primary" onclick="nextTutorial(2)">Próximo</button>
             </div>
             <div id="tutStep2" class="tut-step">
-                <h2>🚀 Launchpad & Bridge</h2>
-                <p>Crie tokens, envie airdrops e traga liquidez USDC da Sepolia via CCTP.</p>
+                <h2>🚀 Ferramentas DeFi</h2>
+                <p>Launchpad, Bridge, Multisender e mais.</p>
                 <div class="tut-img">🌉</div>
                 <button class="btn-primary" onclick="nextTutorial(3)">Legal</button>
             </div>
             <div id="tutStep3" class="tut-step">
                 <h2>🏆 Social Hub</h2>
-                <p>Ganhe XP a cada ação, personalize seu perfil e suba no ranking global!</p>
+                <p>Personalize seu perfil e ganhe XP.</p>
                 <div class="tut-img">📊</div>
-                <button class="btn-primary" onclick="finishTutorial()">Começar a Usar!</button>
+                <button class="btn-primary" onclick="finishTutorial()">Começar!</button>
             </div>
             <button class="skip-btn" onclick="finishTutorial()">Pular Tutorial</button>
         </div>
@@ -307,36 +261,32 @@
             <h1 id="cardTokenSymbol">$TOKEN</h1>
             <p id="cardTokenName">Token Name</p>
         </div>
-        <div class="card-footer">
-            <div class="stat-box"><span>Status</span><b>Deployed 🚀</b></div>
-            <div class="stat-box"><span>Supply</span><b id="cardTokenSupply">1M</b></div>
-        </div>
+        <div class="card-footer"><div class="stat-box"><span>Status</span><b>Deployed 🚀</b></div><div class="stat-box"><span>Supply</span><b id="cardTokenSupply">1M</b></div></div>
     </div>
 
     <div id="successModal" class="modal-overlay">
         <div class="glass-panel success-panel">
             <span class="success-icon">🎉</span>
             <h2 id="modalTitle">Sucesso!</h2>
-            <p id="modalMsg">Operação realizada com sucesso.</p>
-            
+            <p id="modalMsg">Operação realizada.</p>
             <div id="tokenCreatedInfo" style="display:none; background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; margin:10px 0;">
                 <label style="font-size:0.7rem; color:#888;">Contrato:</label><br>
-                <code id="newContractAddr" style="color:#00ff9d; word-break:break-all; font-size:0.85rem;">0x...</code>
+                <code id="newContractAddr" style="color:#00ff9d; font-size:0.85rem; word-break:break-all;">0x...</code>
                 <button onclick="copyContractAddr()" class="mini-btn" style="margin-top:5px;">Copiar</button>
             </div>
-
             <div id="generatedCardContainer" style="display:none; justify-content:center; margin:15px 0;"></div>
-            
             <div class="action-row">
                 <button id="simpleShareBtn" class="btn-secondary" style="display:none;">Compartilhar</button>
-                <a id="downloadCardBtn" href="#" class="btn-secondary" style="display:none; text-align:center; text-decoration:none;">Baixar Card</a>
+                <a id="downloadCardBtn" href="#" class="btn-secondary" style="display:none; text-align:center; text-decoration:none;">Baixar</a>
             </div>
-            
             <button class="btn-primary" onclick="document.getElementById('successModal').style.display='none'">Fechar</button>
         </div>
     </div>
-    
     <div id="consoleArea" style="display:none;"></div>
 
-    <script src="js/config.js"></script>    <script src="js/ui.js"></script>        <script src="js/social.js"></script>    <script src="js/web3.js"></script>      </body>
+    <script src="js/config.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/social.js"></script>
+    <script src="js/web3.js"></script>
+</body>
 </html>
