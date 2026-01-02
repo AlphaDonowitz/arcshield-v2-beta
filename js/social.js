@@ -1,3 +1,7 @@
+// ==========================================
+// SOCIAL HUB (V4.1 - Portfolio)
+// ==========================================
+
 window.userProfile = { username: "Visitante", bio: "", avatar: null, banner: null, points: 0, tokens: 0, vestings: 0, locks: 0, multisends: 0 };
 let myChart = null;
 
@@ -10,7 +14,7 @@ window.switchSocialTab = function(tab) {
     if(tab === 'tokens') loadTokenExplorer();
 }
 
-// PROFILE
+// PROFILE LOGIC
 window.loadUserProfile = async function(wallet) {
     if(!window.supabaseClient) return;
     let { data: user } = await supabaseClient.from('users').select('*').eq('wallet_address', wallet).single();
@@ -36,20 +40,14 @@ window.loadUserProfile = async function(wallet) {
 }
 
 function updateProfileUI() {
-    document.getElementById('userDisplayName').innerText = window.userProfile.username;
-    document.getElementById('userWalletDisplay').innerText = window.userAddress;
-    document.getElementById('userBioDisplay').innerText = window.userProfile.bio;
-    document.getElementById('statTokens').innerText = window.userProfile.tokens;
-    document.getElementById('statMulti').innerText = window.userProfile.multisends;
-    document.getElementById('statLocks').innerText = window.userProfile.locks;
-    document.getElementById('statVests').innerText = window.userProfile.vestings;
-    document.getElementById('statXP').innerText = window.userProfile.points;
-    document.getElementById('userAvatarDisplay').src = window.userProfile.avatar;
+    const ids = ['userDisplayName', 'userWalletDisplay', 'userBioDisplay', 'statTokens', 'statMulti', 'statLocks', 'statVests', 'statXP'];
+    const vals = [window.userProfile.username, window.userAddress, window.userProfile.bio, window.userProfile.tokens, window.userProfile.multisends, window.userProfile.locks, window.userProfile.vestings, window.userProfile.points];
+    ids.forEach((id, i) => { const el = document.getElementById(id); if(el) el.innerText = vals[i]; });
     
+    const img = document.getElementById('userAvatarDisplay'); if(img) img.src = window.userProfile.avatar;
     const banner = document.getElementById('profileBannerDisplay');
     if(window.userProfile.banner && window.userProfile.banner.length > 50) banner.style.backgroundImage = `url('${window.userProfile.banner}')`;
     else banner.style.backgroundImage = "linear-gradient(90deg, #00C6FF, #0072FF)";
-    
     renderCharts();
 }
 
@@ -71,10 +69,7 @@ function renderCharts() {
     const ctx = document.getElementById('skillsChart'); if(!ctx || myChart) { if(myChart) myChart.destroy(); }
     myChart = new Chart(ctx, {
         type: 'radar',
-        data: {
-            labels: ['Creator', 'Airdrop', 'Locker', 'Vesting', 'Fame'],
-            datasets: [{ label: 'Stats', data: [window.userProfile.tokens, window.userProfile.multisends, window.userProfile.locks, window.userProfile.vestings, Math.min(window.userProfile.points/100, 10)], backgroundColor: 'rgba(0,114,255,0.2)', borderColor: '#0072FF', pointBackgroundColor: '#00ff9d' }]
-        },
+        data: { labels: ['Creator', 'Airdrop', 'Locker', 'Vesting', 'Fame'], datasets: [{ label: 'Stats', data: [window.userProfile.tokens, window.userProfile.multisends, window.userProfile.locks, window.userProfile.vestings, Math.min(window.userProfile.points/100, 10)], backgroundColor: 'rgba(0,114,255,0.2)', borderColor: '#0072FF', pointBackgroundColor: '#00ff9d' }] },
         options: { responsive: true, maintainAspectRatio: false, scales: { r: { ticks: { display: false }, grid: { color: 'rgba(255,255,255,0.1)' } } }, plugins: { legend: { display: false } } }
     });
 }
@@ -82,10 +77,7 @@ function renderCharts() {
 // UPLOADS
 async function saveImage(field, data) {
     if(data.length > 3000000) return alert("Imagem muito grande (Max 2MB)");
-    document.body.style.cursor = 'wait';
-    const up = {}; up[field] = data;
-    await supabaseClient.from('users').update(up).eq('wallet_address', userAddress);
-    document.body.style.cursor = 'default';
+    const up = {}; up[field] = data; await supabaseClient.from('users').update(up).eq('wallet_address', userAddress);
 }
 window.handleAvatarUpload = function(i) { const f=i.files[0]; if(f) { const r=new FileReader(); r.onload=function(e){ window.userProfile.avatar=e.target.result; updateProfileUI(); saveImage('avatar_url', e.target.result); }; r.readAsDataURL(f); } }
 window.handleBannerUpload = function(i) { const f=i.files[0]; if(f) { const r=new FileReader(); r.onload=function(e){ window.userProfile.banner=e.target.result; updateProfileUI(); saveImage('banner_url', e.target.result); }; r.readAsDataURL(f); } }
@@ -112,15 +104,63 @@ window.loadContacts = async function() {
 }
 window.sendToFriend = function(addr) { window.navigate('multisender'); setTimeout(() => { const i=document.getElementById('csvInput'); if(i) { i.value=`${addr}, `; i.focus(); } }, 100); }
 
-// TOKEN EXPLORER
+// TOKEN EXPLORER & PORTFOLIO
 window.loadTokenExplorer = async function() {
     const myDiv = document.getElementById('myTokensList'); const globalDiv = document.getElementById('globalTokensList');
     myDiv.innerHTML = "Buscando..."; globalDiv.innerHTML = "Buscando...";
+    
+    // Meus Criados
     const { data: myT } = await supabaseClient.from('created_tokens').select('*').eq('owner_wallet', userAddress).order('created_at', {ascending:false});
     myDiv.innerHTML = (!myT || myT.length===0) ? "<p style='color:#666'>Sem tokens.</p>" : renderTokens(myT, true);
+    
+    // Global
     const { data: allT } = await supabaseClient.from('created_tokens').select('*').order('created_at', {ascending:false}).limit(20);
     globalDiv.innerHTML = (!allT || allT.length===0) ? "<p style='color:#666'>Sem tokens globais.</p>" : renderTokens(allT, false);
 }
+
+// NOVA FUNÇÃO: PORTFOLIO
+window.loadMyPortfolio = async function() {
+    const div = document.getElementById('portfolioList');
+    div.innerHTML = "<p style='color:#666'>Escaneando blockchain...</p>";
+    
+    // 1. Pega todos tokens conhecidos da plataforma
+    const { data: allTokens } = await supabaseClient.from('created_tokens').select('*').limit(50); // Limitamos a 50 para não travar
+    if(!allTokens || allTokens.length === 0) return div.innerHTML = "Nenhum token na plataforma.";
+
+    let html = "";
+    let count = 0;
+
+    // 2. Loop para checar saldo on-chain
+    for(const token of allTokens) {
+        try {
+            const contract = new ethers.Contract(token.address, ABIS.erc20, window.provider);
+            const bal = await contract.balanceOf(window.userAddress);
+            if(bal > 0n) { // Se tiver saldo
+                const formatted = ethers.formatUnits(bal, 18); // Assume 18, idealmente pegaria decimals()
+                const logo = token.logo_url || `https://robohash.org/${token.address}.png?set=set1`;
+                
+                html += `
+                <div class="token-card" style="border-color: #00ff9d;">
+                    <div class="token-header">
+                        <img src="${logo}" class="token-logo-small">
+                        <div>
+                            <div style="font-weight:bold;">${token.name}</div>
+                            <div style="font-size:0.8rem; color:#00ff9d;">Saldo: ${parseFloat(formatted).toFixed(2)}</div>
+                        </div>
+                    </div>
+                    <div class="token-actions">
+                        <button class="mini-btn" onclick="sendToFriend('${token.address}')">💸 Enviar</button>
+                        <button class="mini-btn" onclick="addMeta('${token.address}','${token.symbol}','${logo}')">🦊</button>
+                    </div>
+                </div>`;
+                count++;
+            }
+        } catch(e) { console.log("Erro lendo token", token.symbol); }
+    }
+
+    div.innerHTML = count > 0 ? html : "<p style='color:#666'>Você não possui saldo em nenhum token listado.</p>";
+}
+
 function renderTokens(list, owner) {
     let html = ""; list.forEach(t => { 
         const logo = t.logo_url || `https://robohash.org/${t.address}.png?set=set1`;
