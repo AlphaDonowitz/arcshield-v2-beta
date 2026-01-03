@@ -9,7 +9,7 @@
     
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     
-    <link rel="stylesheet" href="css/style.css?v=8.0">
+    <link rel="stylesheet" href="css/style.css?v=8.2">
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
@@ -65,7 +65,7 @@
             </div>
 
             <div class="sidebar-footer">
-                <div class="status-dot"></div> <span class="mono-text">v8.0 Gold</span>
+                <div class="status-dot"></div> <span class="mono-text">v8.2 Stable</span>
                 <a href="#" onclick="disconnectWallet()" class="logout-link"><i data-lucide="log-out"></i></a>
             </div>
         </aside>
@@ -182,7 +182,11 @@
                                         <button class="edit-avatar-mini" onclick="document.getElementById('profileAvatarInput').click()"><i data-lucide="pencil"></i></button>
                                     </div>
                                     <h2 id="userDisplayName">Anonymous</h2>
-                                    <div class="mono-badge" id="userWalletDisplay">0x000...0000</div>
+                                    
+                                    <div class="mono-badge" id="userWalletDisplay">
+                                        <span>0x...</span> <i data-lucide="copy"></i>
+                                    </div>
+
                                     <p class="bio-text" id="userBioDisplay">Sem bio.</p>
                                     <button class="btn-outline-mini" onclick="document.getElementById('editProfileDialog').showModal()">Editar</button>
                                     <div class="xp-row">
@@ -195,6 +199,7 @@
                                     <div id="dailyTimer" style="font-size:0.7rem; color:#666; margin-top:5px; text-align:center;"></div>
                                 </div>
                             </div>
+                            
                             <div class="card">
                                 <div class="card-header-simple">
                                     <h4>Contatos</h4>
@@ -261,18 +266,43 @@
             <button class="btn-primary full mt-4" onclick="document.getElementById('successModal').style.display='none'">Fechar</button>
         </div>
     </div>
-    <div id="socialCardTemplate" class="social-card-layout" style="position:fixed; left:-9999px;">
-        <div class="card-header"><span class="badge">ARC TESTNET</span><span class="card-brand">🛡️ Arc Shield</span></div>
-        <div class="card-body">
-            <img id="cardTokenLogo" src="" class="card-logo-img" style="width:100px; height:100px; border-radius:50%;">
-            <h1 id="cardTokenSymbol">$TOKEN</h1>
-            <p id="cardTokenName">Token Name</p>
-        </div>
-    </div>
+    
+    <div id="consoleArea" style="display:none;"></div>
 
     <script src="js/config.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/social.js"></script>
     <script src="js/web3.js"></script>
+    
+    <script>
+        // Inicialização Segura dos Ícones
+        window.addEventListener('load', () => {
+            if(window.lucide) {
+                lucide.createIcons();
+            }
+        });
+
+        // Navegação Segura (Evita travamentos)
+        function safeNavigate(pageId, btn) {
+            if(window.navigate) window.navigate(pageId, btn);
+            setTimeout(() => { if(window.lucide) lucide.createIcons(); }, 50);
+        }
+
+        // Controle de Abas
+        function showSubTab(name, btn) {
+            ['subTabGlobal', 'subTabMy', 'subTabPortfolio', 'subTabRanking'].forEach(id => document.getElementById(id).style.display = 'none');
+            document.querySelectorAll('.tab-clean').forEach(b => b.classList.remove('active'));
+            
+            const target = name === 'ranking' ? 'subTabRanking' : 'subTab' + name.charAt(0).toUpperCase() + name.slice(1);
+            document.getElementById(target).style.display = 'block';
+            if(btn) btn.classList.add('active');
+            
+            if(name === 'portfolio' && window.loadMyPortfolio) window.loadMyPortfolio();
+            if(name === 'ranking' && window.loadLeaderboard) window.loadLeaderboard();
+
+            // Refresh Ícones
+            setTimeout(() => { if(window.lucide) lucide.createIcons(); }, 200);
+        }
+    </script>
 </body>
 </html>
