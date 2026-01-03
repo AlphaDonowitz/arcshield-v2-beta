@@ -1,4 +1,3 @@
-// CONFIGURAÇÕES GLOBAIS
 window.ARC_CHAIN_ID = '0x4c9a62'; 
 window.ARC_RPC_URL = 'https://rpc.testnet.arc.network';
 window.ARC_EXPLORER = 'https://testnet.arcscan.app';
@@ -20,7 +19,7 @@ window.ABIS = {
     multi: ["function multisendToken(address token, address[] recipients, uint256[] amounts) external payable"], 
     lock: ["function lockTokens(address _token, uint256 _amount, uint256 _unlockTime) external", "function withdraw(uint256 _lockId) external", "function locks(uint256) view returns (address owner, address token, uint256 amount, uint256 unlockTime, bool withdrawn)"], 
     vest: ["function createVestingSchedule(address, address, uint256, uint256, uint256, uint256, bool) external", "function release(uint256) external", "function getUserScheduleCount(address) view returns (uint256)", "function getUserScheduleIdAtIndex(address, uint256) view returns (uint256)", "function schedules(uint256) view returns (uint256 scheduleId, address token, address beneficiary, uint256 amountTotal, uint256 released, uint256 start, uint256 duration)"], 
-    erc20: ["function approve(address spender, uint256 amount) external returns (bool)", "function decimals() view returns (uint8)", "function symbol() view returns (string)", "function allowance(address owner, address spender) view returns (uint256)"],
+    erc20: ["function approve(address spender, uint256 amount) external returns (bool)", "function decimals() view returns (uint8)", "function symbol() view returns (string)", "function allowance(address owner, address spender) view returns (uint256)", "function balanceOf(address) view returns (uint256)"],
     tokenMessenger: ["function depositForBurn(uint256 amount, uint32 destinationDomain, bytes32 mintRecipient, address burnToken) external returns (uint64 _nonce)"],
     messageTransmitter: ["function receiveMessage(bytes calldata message, bytes calldata attestation) external returns (bool)"]
 };
