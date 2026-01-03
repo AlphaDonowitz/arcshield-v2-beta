@@ -7,9 +7,9 @@
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     
-    <link rel="stylesheet" href="css/style.css?v=7.1">
+    <link rel="stylesheet" href="css/style.css?v=7.2">
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
@@ -40,32 +40,32 @@
             
             <div class="nav-group">
                 <label>CORE PROTOCOLS</label>
-                <button class="nav-item active" onclick="navigate('creator', this)">
+                <button class="nav-item active" onclick="safeNavigate('creator', this)">
                     <i data-lucide="rocket"></i> Launchpad
                 </button>
-                <button class="nav-item" onclick="navigate('bridge', this)">
+                <button class="nav-item" onclick="safeNavigate('bridge', this)">
                     <i data-lucide="arrow-left-right"></i> CCTP Bridge
                 </button>
-                <button class="nav-item" onclick="navigate('multisender', this)">
+                <button class="nav-item" onclick="safeNavigate('multisender', this)">
                     <i data-lucide="send"></i> Multisender
                 </button>
-                <button class="nav-item" onclick="navigate('locker', this)">
+                <button class="nav-item" onclick="safeNavigate('locker', this)">
                     <i data-lucide="lock"></i> Locker
                 </button>
-                <button class="nav-item" onclick="navigate('vesting', this)">
+                <button class="nav-item" onclick="safeNavigate('vesting', this)">
                     <i data-lucide="hourglass"></i> Vesting
                 </button>
             </div>
 
             <div class="nav-group">
                 <label>SOCIAL LAYER</label>
-                <button class="nav-item" onclick="navigate('leaderboard', this)">
+                <button class="nav-item" onclick="safeNavigate('leaderboard', this)">
                     <i data-lucide="users"></i> User Hub
                 </button>
             </div>
 
             <div class="sidebar-footer">
-                <div class="status-dot"></div> <span class="mono-text">v7.1 Stable</span>
+                <div class="status-dot"></div> <span class="mono-text">v7.2 Stable</span>
                 <a href="#" onclick="disconnectWallet()" class="logout-link"><i data-lucide="log-out"></i></a>
             </div>
         </aside>
@@ -269,29 +269,42 @@
     <script src="js/web3.js"></script>
     
     <script>
-        // Inicialização Protegida dos Ícones
+        // --- CORREÇÃO DE CRASH: REMOÇÃO DO MUTATION OBSERVER INFINITO ---
+        
+        // 1. Carrega ícones apenas 1 vez ao iniciar
         window.addEventListener('load', () => {
             if(window.lucide) {
                 lucide.createIcons();
-                // Observer para recriar ícones quando o DOM mudar (ex: carregar leaderboard)
-                const observer = new MutationObserver(() => lucide.createIcons());
-                observer.observe(document.body, { childList: true, subtree: true });
-            } else {
-                console.warn("Lucide Icons não carregou (Verifique conexão/CDN). O site continuará funcionando.");
             }
         });
 
-        // Tabs Logic
+        // 2. Função de Navegação Segura (Substitui o onclick padrão)
+        // Isso garante que ao trocar de aba, os ícones sejam renderizados sem loop infinito
+        function safeNavigate(pageId, btn) {
+            // Chama a função original do ui.js
+            if(window.navigate) window.navigate(pageId, btn);
+            
+            // Re-renderiza ícones após pequeno delay para dar tempo do DOM atualizar
+            setTimeout(() => {
+                if(window.lucide) lucide.createIcons();
+            }, 50);
+        }
+
+        // 3. Controle de Sub-Abas Seguro
         function showSubTab(name, btn) {
             ['subTabGlobal', 'subTabMy', 'subTabPortfolio', 'subTabRanking'].forEach(id => document.getElementById(id).style.display = 'none');
             document.querySelectorAll('.tab-clean').forEach(b => b.classList.remove('active'));
+            
             const target = name === 'ranking' ? 'subTabRanking' : 'subTab' + name.charAt(0).toUpperCase() + name.slice(1);
             document.getElementById(target).style.display = 'block';
             if(btn) btn.classList.add('active');
             
-            // Safe calls para funções do social.js
+            // Carrega dados dinâmicos
             if(name === 'portfolio' && window.loadMyPortfolio) window.loadMyPortfolio();
             if(name === 'ranking' && window.loadLeaderboard) window.loadLeaderboard();
+
+            // Atualiza ícones após carregar dados
+            setTimeout(() => { if(window.lucide) lucide.createIcons(); }, 200);
         }
     </script>
 </body>
