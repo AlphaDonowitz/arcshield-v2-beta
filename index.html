@@ -4,8 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Arc Shield - Infrastructure Hub</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=6.1"> <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <link rel="stylesheet" href="css/style.css?v=7.0">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
@@ -15,160 +20,228 @@
 
     <div id="landingPage">
         <div class="landing-content">
-            <div class="brand-pill">🛡️ ARC TESTNET</div>
+            <div class="brand-pill"><i data-lucide="shield-check" size="14"></i> ARC TESTNET LIVE</div>
             <h1 class="hero-title">Arc <span class="text-blue">Shield</span></h1>
-            <p class="hero-subtitle">Infraestrutura DeFi de nível institucional.</p>
-            <button class="btn-primary-lg" onclick="enterApp()">Acessar Dashboard</button>
+            <p class="hero-subtitle">Infraestrutura DeFi Institucional. Segura. Rápida.</p>
+            <button class="btn-primary-lg" onclick="enterApp()">
+                Acessar Dashboard <i data-lucide="arrow-right" size="18"></i>
+            </button>
         </div>
     </div>
 
     <div id="dashboardLayout" style="display: none;">
         
         <aside class="sidebar">
-            <div class="brand-area"><span class="brand-icon">🛡️</span> Arc Shield</div>
-            <div class="nav-group">
-                <label>PROTOCOLOS</label>
-                <button class="nav-item active" onclick="navigate('creator', this)">Launchpad</button>
-                <button class="nav-item" onclick="navigate('bridge', this)">CCTP Bridge</button>
-                <button class="nav-item" onclick="navigate('multisender', this)">Multisender</button>
-                <button class="nav-item" onclick="navigate('locker', this)">Liquidity Locker</button>
-                <button class="nav-item" onclick="navigate('vesting', this)">Vesting</button>
+            <div class="brand-area">
+                <div class="logo-box"><i data-lucide="shield"></i></div> 
+                <span>Arc Shield</span>
             </div>
+            
             <div class="nav-group">
-                <label>SOCIAL</label>
-                <button class="nav-item" onclick="navigate('leaderboard', this)">User Hub</button>
+                <label>CORE PROTOCOLS</label>
+                <button class="nav-item active" onclick="navigate('creator', this)">
+                    <i data-lucide="rocket"></i> Launchpad
+                </button>
+                <button class="nav-item" onclick="navigate('bridge', this)">
+                    <i data-lucide="arrow-left-right"></i> CCTP Bridge
+                </button>
+                <button class="nav-item" onclick="navigate('multisender', this)">
+                    <i data-lucide="send"></i> Multisender
+                </button>
+                <button class="nav-item" onclick="navigate('locker', this)">
+                    <i data-lucide="lock"></i> Liquidity Locker
+                </button>
+                <button class="nav-item" onclick="navigate('vesting', this)">
+                    <i data-lucide="hourglass"></i> Vesting
+                </button>
             </div>
-            <div class="sidebar-footer"><div class="status-dot"></div> v6.1 Pro <a href="#" onclick="disconnectWallet()" class="logout-link">Sair</a></div>
+
+            <div class="nav-group">
+                <label>SOCIAL LAYER</label>
+                <button class="nav-item" onclick="navigate('leaderboard', this)">
+                    <i data-lucide="users"></i> User Hub
+                </button>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="status-dot"></div> <span class="mono-text">v7.0 Stable</span>
+                <a href="#" onclick="disconnectWallet()" class="logout-link"><i data-lucide="log-out" size="14"></i></a>
+            </div>
         </aside>
 
         <main class="main-content">
             <header class="app-header">
-                <h2 id="pageTitle">Visão Geral</h2>
-                <button id="btnConnect" class="btn-connect" onclick="connectWallet()">Conectar Carteira</button>
+                <div>
+                    <h2 id="pageTitle">Visão Geral</h2>
+                    <p class="header-desc">Gerencie seus ativos e reputação on-chain.</p>
+                </div>
+                <button id="btnConnect" class="btn-connect" onclick="connectWallet()">
+                    <i data-lucide="wallet" size="16"></i> Conectar Carteira
+                </button>
             </header>
 
             <div class="content-container">
 
-                <div id="creator" class="page-section active"><div class="card"><h3>Deploy Token</h3><div class="form-row"><div class="input-group"><label>Nome</label><input type="text" id="tokenName"></div><div class="input-group"><label>Símbolo</label><input type="text" id="tokenSymbol"></div></div><div class="input-group"><label>Supply</label><input type="number" id="tokenSupply"></div><div class="input-group"><label>Logo</label><button onclick="document.getElementById('tokenLogoFile').click()" class="btn-secondary">Upload</button><input type="file" id="tokenLogoFile" hidden onchange="handleLogoUpload(this)"></div><button class="btn-primary full" onclick="createToken()">Criar Contrato</button></div></div>
-                <div id="bridge" class="page-section"><div class="card"><h3>Bridge</h3><div class="toggle-switch"><button class="toggle-btn active" onclick="setBridgeMode('deposit')">Enviar</button><button class="toggle-btn" onclick="setBridgeMode('claim')">Receber</button></div><div id="bridgeDepositArea" class="mt-4"><input type="number" id="bridgeAmount" placeholder="USDC Amount"><div class="action-grid"><button class="btn-secondary" onclick="approveUSDC()">Aprovar</button><button class="btn-primary" onclick="burnUSDC()">Transferir</button></div></div><div id="bridgeClaimArea" style="display:none" class="mt-4"><textarea id="cctpMessageBytes" placeholder="Bytes"></textarea><textarea id="cctpAttestation" placeholder="Sig"></textarea><button class="btn-primary full" onclick="mintUSDC()">Receber</button></div></div></div>
-                <div id="multisender" class="page-section"><div class="card"><h3>Multisender</h3><input type="text" id="multiTokenAddr" placeholder="Token"><textarea id="csvInput" placeholder="Address, Amount"></textarea><button class="btn-primary full" onclick="sendBatch()">Enviar</button></div></div>
-                <div id="locker" class="page-section"><div class="card"><h3>Locker</h3><input type="text" id="lockTokenAddr"><input type="number" id="lockAmount"><input type="datetime-local" id="lockDate"><button class="btn-primary full" onclick="lockTokens()">Trancar</button></div></div>
-                <div id="vesting" class="page-section"><div class="card"><h3>Vesting</h3><input type="text" id="vestTokenAddr"><input type="text" id="vestBeneficiary"><input type="number" id="vestAmount"><input type="number" id="vestDuration"><button class="btn-primary full" onclick="createVesting()">Criar</button></div></div>
+                <div id="creator" class="page-section active">
+                    <div class="card">
+                        <div class="card-header-icon"><i data-lucide="rocket"></i></div>
+                        <h3>Deploy Token</h3>
+                        <div class="form-row">
+                            <div class="input-group"><label>Nome</label><input type="text" id="tokenName" placeholder="Ex: Arc Dollar"></div>
+                            <div class="input-group"><label>Símbolo</label><input type="text" id="tokenSymbol" placeholder="Ex: ARCD"></div>
+                        </div>
+                        <div class="input-group"><label>Supply Inicial</label><input type="number" id="tokenSupply" placeholder="1000000"></div>
+                        <div class="file-upload-box" onclick="document.getElementById('tokenLogoFile').click()">
+                            <i data-lucide="image-plus"></i> <span id="logoFileName">Carregar Logo do Token</span>
+                            <input type="file" id="tokenLogoFile" hidden onchange="handleLogoUpload(this)">
+                        </div>
+                        <button class="btn-primary full mt-4" onclick="createToken()">Criar Contrato</button>
+                    </div>
+                </div>
+
+                <div id="bridge" class="page-section">
+                    <div class="card">
+                        <div class="card-header-icon"><i data-lucide="arrow-left-right"></i></div>
+                        <h3>Cross-Chain Bridge</h3>
+                        <div class="toggle-switch">
+                            <button class="toggle-btn active" onclick="setBridgeMode('deposit')">Enviar</button>
+                            <button class="toggle-btn" onclick="setBridgeMode('claim')">Receber</button>
+                        </div>
+                        <div id="bridgeDepositArea" class="mt-4">
+                            <input type="number" id="bridgeAmount" placeholder="Quantidade (USDC)">
+                            <div class="action-grid">
+                                <button class="btn-secondary" onclick="approveUSDC()">Aprovar</button>
+                                <button class="btn-primary" onclick="burnUSDC()">Transferir</button>
+                            </div>
+                        </div>
+                        <div id="bridgeClaimArea" style="display:none;" class="mt-4">
+                            <textarea id="cctpMessageBytes" placeholder="Message Bytes"></textarea>
+                            <textarea id="cctpAttestation" placeholder="Attestation Signature"></textarea>
+                            <button class="btn-primary full" onclick="mintUSDC()">Finalizar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="multisender" class="page-section">
+                    <div class="card">
+                        <div class="card-header-icon"><i data-lucide="send"></i></div>
+                        <h3>Multisender</h3>
+                        <input type="text" id="multiTokenAddr" placeholder="Token Address">
+                        <textarea id="csvInput" placeholder="0xAddress, Amount (separado por linha)"></textarea>
+                        <button class="btn-primary full" onclick="sendBatch()">Disparar Lote</button>
+                    </div>
+                </div>
+
+                <div id="locker" class="page-section">
+                    <div class="card">
+                        <div class="card-header-icon"><i data-lucide="lock"></i></div>
+                        <h3>Liquidity Locker</h3>
+                        <input type="text" id="lockTokenAddr" placeholder="Token Address">
+                        <div class="form-row">
+                            <input type="number" id="lockAmount" placeholder="Quantidade">
+                            <input type="datetime-local" id="lockDate">
+                        </div>
+                        <button class="btn-primary full" onclick="lockTokens()">Trancar Ativos</button>
+                    </div>
+                </div>
+
+                <div id="vesting" class="page-section">
+                    <div class="card">
+                        <div class="card-header-icon"><i data-lucide="hourglass"></i></div>
+                        <h3>Vesting</h3>
+                        <input type="text" id="vestTokenAddr" placeholder="Token">
+                        <input type="text" id="vestBeneficiary" placeholder="Beneficiário">
+                        <div class="form-row">
+                            <input type="number" id="vestAmount" placeholder="Total">
+                            <input type="number" id="vestDuration" placeholder="Minutos">
+                        </div>
+                        <button class="btn-primary full" onclick="createVesting()">Criar Contrato</button>
+                    </div>
+                </div>
 
                 <div id="leaderboard" class="page-section">
-                    
                     <div class="concept-grid">
-                        
                         <div class="left-column">
-                            
-                            <div class="concept-card profile-concept">
-                                <div class="concept-header-img" id="profileBannerDisplay">
-                                    <button class="icon-edit top-right" onclick="document.getElementById('profileBannerInput').click()">📷</button>
+                            <div class="card profile-clean-card">
+                                <div class="profile-bg-clean" id="profileBannerDisplay">
+                                    <button class="btn-icon-float" onclick="document.getElementById('profileBannerInput').click()"><i data-lucide="camera"></i></button>
                                     <input type="file" id="profileBannerInput" hidden accept="image/*" onchange="handleBannerUpload(this)">
                                 </div>
-                                
-                                <div class="concept-avatar-wrapper">
-                                    <div class="concept-avatar-ring">
+                                <div class="profile-content-clean">
+                                    <div class="avatar-clean">
                                         <img id="userAvatarDisplay" src="https://robohash.org/default?set=set4">
+                                        <div class="online-indicator"></div>
+                                        <input type="file" id="profileAvatarInput" hidden accept="image/*" onchange="handleAvatarUpload(this)">
+                                        <button class="edit-avatar-mini" onclick="document.getElementById('profileAvatarInput').click()"><i data-lucide="pencil" size="10"></i></button>
                                     </div>
-                                    <button class="icon-edit bottom-right" onclick="document.getElementById('profileAvatarInput').click()">✎</button>
-                                    <input type="file" id="profileAvatarInput" hidden accept="image/*" onchange="handleAvatarUpload(this)">
-                                </div>
-
-                                <div class="concept-profile-body">
-                                    <h2 id="userDisplayName">Carregando...</h2>
-                                    <div class="wallet-pill" id="userWalletDisplay">0x...</div>
-                                    
-                                    <div class="bio-concept">
-                                        <p id="userBioDisplay">Sem bio definida.</p>
-                                        <button class="edit-text-trigger" onclick="document.getElementById('editProfileDialog').showModal()">Editar</button>
+                                    <h2 id="userDisplayName">Anonymous</h2>
+                                    <div class="mono-badge" id="userWalletDisplay">0x000...0000</div>
+                                    <p class="bio-text" id="userBioDisplay">Sem bio.</p>
+                                    <button class="btn-outline-mini" onclick="document.getElementById('editProfileDialog').showModal()">Editar</button>
+                                    <div class="xp-row">
+                                        <div class="xp-val" id="statXP">0</div>
+                                        <div class="xp-lbl">Reputation XP</div>
                                     </div>
-
-                                    <button id="btnDailyCheckin" class="btn-primary full glow-effect" onclick="dailyCheckIn()">
-                                        ⚡ Daily Claim (+50 XP)
+                                    <button id="btnDailyCheckin" class="btn-primary full mt-2" onclick="dailyCheckIn()">
+                                        <i data-lucide="zap" size="16"></i> Daily Claim
                                     </button>
-                                    <div id="dailyTimer" class="timer-text">Disponível</div>
                                 </div>
                             </div>
-
-                            <div class="concept-card">
-                                <div class="card-title-row">
-                                    <h3>Meus Contatos</h3>
-                                    <button class="btn-icon-add" onclick="toggleAddContactForm()">+</button>
+                            <div class="card">
+                                <div class="card-header-simple">
+                                    <h4>Contatos</h4>
+                                    <button onclick="toggleAddContactForm()"><i data-lucide="plus"></i></button>
                                 </div>
-                                
-                                <div id="addContactForm" style="display:none; margin-bottom:15px; border-bottom:1px solid #333; padding-bottom:15px;">
+                                <div id="addContactForm" style="display:none; margin-bottom:10px;">
                                     <input type="text" id="newContactName" placeholder="Nome" class="mb-2">
                                     <input type="text" id="newContactWallet" placeholder="0x..." class="mb-2">
                                     <button class="btn-primary full small" onclick="saveContact()">Salvar</button>
                                 </div>
-
-                                <div id="contactsList" class="contacts-list-scroll">
-                                    </div>
+                                <div id="contactsList" class="contacts-list-scroll"></div>
                             </div>
                         </div>
 
                         <div class="right-column">
-                            
-                            <div class="concept-card metrics-panel">
-                                <h3>Minhas Métricas</h3>
-                                <div class="metrics-grid">
-                                    <div class="metric-box">
-                                        <span class="m-icon">🪙</span>
-                                        <span class="m-label">Tokens</span>
-                                        <b id="statTokens">0</b>
-                                    </div>
-                                    <div class="metric-box">
-                                        <span class="m-icon">📨</span>
-                                        <span class="m-label">Multisends</span>
-                                        <b id="statMulti">0</b>
-                                    </div>
-                                    <div class="metric-box">
-                                        <span class="m-icon">🔒</span>
-                                        <span class="m-label">Liquidez</span>
-                                        <b id="statLocks">$0</b>
-                                    </div>
-                                    <div class="metric-box">
-                                        <span class="m-icon">⏳</span>
-                                        <span class="m-label">Vestings</span>
-                                        <b id="statVests">0</b>
-                                    </div>
-                                    <div class="metric-box xp-box">
-                                        <span class="m-icon">🏆</span>
-                                        <span class="m-label">Total XP</span>
-                                        <b id="statXP" class="text-blue">0</b>
-                                    </div>
+                            <div class="card stats-strip">
+                                <div class="stat-item">
+                                    <span class="lbl">Tokens</span>
+                                    <b class="val" id="statTokens">0</b>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="lbl">Multisends</span>
+                                    <b class="val" id="statMulti">0</b>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="lbl">Locks</span>
+                                    <b class="val" id="statLocks">0</b>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="lbl">Vestings</span>
+                                    <b class="val" id="statVests">0</b>
                                 </div>
                             </div>
 
-                            <div class="concept-card content-panel">
-                                <div class="tabs-header">
-                                    <button class="concept-tab active" onclick="showSubTab('global', this)">Global Explorer</button>
-                                    <button class="concept-tab" onclick="showSubTab('my', this)">Meus Tokens</button>
-                                    <button class="concept-tab" onclick="showSubTab('portfolio', this)">Portfolio</button>
-                                    <button class="concept-tab" onclick="showSubTab('ranking', this)">Ranking</button>
+                            <div class="card content-panel-clean">
+                                <div class="tabs-clean">
+                                    <button class="tab-clean active" onclick="showSubTab('global', this)">Explorer</button>
+                                    <button class="tab-clean" onclick="showSubTab('my', this)">Meus Tokens</button>
+                                    <button class="tab-clean" onclick="showSubTab('portfolio', this)">Portfolio</button>
+                                    <button class="tab-clean" onclick="showSubTab('ranking', this)">Ranking</button>
                                 </div>
-
-                                <div class="tab-body">
-                                    <div id="subTabGlobal">
-                                        <div id="globalTokensList" class="token-grid"></div>
-                                    </div>
-                                    <div id="subTabMy" style="display:none;">
-                                        <div id="myTokensList" class="token-grid"></div>
-                                    </div>
+                                <div class="tab-body-clean">
+                                    <div id="subTabGlobal"><div id="globalTokensList" class="token-grid"></div></div>
+                                    <div id="subTabMy" style="display:none;"><div id="myTokensList" class="token-grid"></div></div>
                                     <div id="subTabPortfolio" style="display:none;">
-                                        <div class="alert-blue">Seus saldos na rede Arc.</div>
                                         <div id="portfolioList" class="token-grid"></div>
-                                        <button class="btn-secondary full mt-2" onclick="loadMyPortfolio()">Atualizar Saldos</button>
+                                        <button class="btn-secondary full mt-4" onclick="loadMyPortfolio()">Atualizar</button>
                                     </div>
                                     <div id="subTabRanking" style="display:none;">
-                                        <div class="table-header"><span>Rank</span> <span>User</span> <span style="text-align:right;">XP</span></div>
-                                        <div id="leaderboardList" class="leaderboard-scroll"></div>
-                                        <button class="btn-secondary full mt-2" onclick="loadLeaderboard()">Atualizar</button>
+                                        <div class="tbl-head"><span>Rank</span><span>User</span><span style="text-align:right">XP</span></div>
+                                        <div id="leaderboardList"></div>
+                                        <button class="btn-secondary full mt-4" onclick="loadLeaderboard()">Atualizar</button>
                                     </div>
                                 </div>
                             </div>
-
                         </div>
                     </div>
                 </div>
@@ -183,24 +256,34 @@
         <input type="text" id="editBio" placeholder="Bio">
         <div class="modal-actions"><button class="btn-secondary" onclick="document.getElementById('editProfileDialog').close()">Cancelar</button><button class="btn-primary" onclick="saveProfileData(); document.getElementById('editProfileDialog').close()">Salvar</button></div>
     </dialog>
-    <div id="successModal" class="modal-overlay" style="display:none;"><div class="card success-card"><div class="success-icon">✓</div><h2 id="modalTitle">Sucesso</h2><p id="modalMsg">.</p><div id="tokenCreatedInfo" style="display:none;" class="code-block"><code id="newContractAddr">0x...</code></div><button class="btn-primary full mt-4" onclick="document.getElementById('successModal').style.display='none'">Fechar</button></div></div>
+    <div id="successModal" class="modal-overlay" style="display:none;">
+        <div class="card success-card">
+            <div class="success-icon"><i data-lucide="check-circle" size="48"></i></div>
+            <h2 id="modalTitle">Sucesso</h2>
+            <p id="modalMsg">.</p>
+            <div id="tokenCreatedInfo" style="display:none;" class="code-block"><code id="newContractAddr">0x...</code></div>
+            <button class="btn-primary full mt-4" onclick="document.getElementById('successModal').style.display='none'">Fechar</button>
+        </div>
+    </div>
 
     <script src="js/config.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/social.js"></script>
     <script src="js/web3.js"></script>
     <script>
+        // Inicializa ícones Lucide
+        lucide.createIcons();
+        
+        // Re-inicializa ícones ao mudar de aba (para conteúdo dinâmico)
+        const observer = new MutationObserver(() => lucide.createIcons());
+        observer.observe(document.body, { childList: true, subtree: true });
+
         function showSubTab(name, btn) {
-            // Esconde todas as abas
             ['subTabGlobal', 'subTabMy', 'subTabPortfolio', 'subTabRanking'].forEach(id => document.getElementById(id).style.display = 'none');
-            // Remove active dos botões
-            document.querySelectorAll('.concept-tab').forEach(b => b.classList.remove('active'));
-            
-            // Ativa o alvo
+            document.querySelectorAll('.tab-clean').forEach(b => b.classList.remove('active'));
             const target = name === 'ranking' ? 'subTabRanking' : 'subTab' + name.charAt(0).toUpperCase() + name.slice(1);
             document.getElementById(target).style.display = 'block';
             if(btn) btn.classList.add('active');
-
             if(name === 'portfolio') loadMyPortfolio();
             if(name === 'ranking') loadLeaderboard();
         }
