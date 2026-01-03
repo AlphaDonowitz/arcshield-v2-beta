@@ -1,32 +1,57 @@
 window.enterApp = function() {
     document.getElementById('landingPage').style.display = 'none';
     document.getElementById('dashboardLayout').style.display = 'flex';
-    if (!localStorage.getItem('arcShieldTutorial')) document.getElementById('tutorialOverlay').style.display = 'flex';
 }
+
+// 1. Navegação Segura com Refresh de Ícones
+window.safeNavigate = function(pageId, btn) {
+    window.navigate(pageId, btn);
+    setTimeout(() => { if(window.lucide) window.lucide.createIcons(); }, 50);
+}
+
 window.navigate = function(pageId, btnElement) {
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
     if(btnElement) btnElement.classList.add('active');
     document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
     document.getElementById(pageId).classList.add('active');
-    const titles = { 'creator': 'Launchpad', 'multisender': 'Multisender', 'locker': 'Locker', 'vesting': 'Vesting', 'bridge': 'Bridge', 'leaderboard': 'Social Hub' };
+    
+    // Atualiza título da Header
+    const titles = { 'creator': 'Launchpad', 'multisender': 'Multisender', 'locker': 'Liquidity Locker', 'vesting': 'Vesting Schedule', 'bridge': 'CCTP Bridge', 'leaderboard': 'User Hub' };
     document.getElementById('pageTitle').innerText = titles[pageId] || 'Dashboard';
 }
-window.nextTutorial = function(step) {
-    document.querySelectorAll('.tut-step').forEach(el => el.classList.remove('active'));
-    document.getElementById(`tutStep${step}`).classList.add('active');
-}
-window.finishTutorial = function() {
-    document.getElementById('tutorialOverlay').style.display = 'none';
-    localStorage.setItem('arcShieldTutorial', 'true');
-}
-window.handleLogoUpload = function(input) {
-    if(input.files && input.files[0]) {
-        document.getElementById('logoFileName').innerText = input.files[0].name;
+
+// 2. COMPRESSÃO DE IMAGEM (NOVO!)
+window.compressImage = function(file) {
+    return new Promise((resolve) => {
         const reader = new FileReader();
-        reader.onload = function(e) { window.uploadedLogoData = e.target.result; };
-        reader.readAsDataURL(input.files[0]);
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                // Redimensiona para max 300px
+                const scale = 300 / Math.max(img.width, img.height);
+                canvas.width = img.width * scale;
+                canvas.height = img.height * scale;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                // Retorna JPG leve
+                resolve(canvas.toDataURL('image/jpeg', 0.7)); 
+            };
+        };
+    });
+}
+
+// Upload Handlers com Compressão
+window.handleLogoUpload = async function(input) {
+    if(input.files && input.files[0]) {
+        document.getElementById('logoFileName').innerText = "Processando...";
+        window.uploadedLogoData = await window.compressImage(input.files[0]);
+        document.getElementById('logoFileName').innerText = input.files[0].name;
     }
 }
+
 window.handleFileUpload = function(input) {
     const file = input.files[0];
     if(!file) return;
@@ -34,7 +59,19 @@ window.handleFileUpload = function(input) {
     reader.onload = function(e) { document.getElementById('csvInput').value = e.target.result; };
     reader.readAsText(file);
 }
+
 window.copyContractAddr = function() {
     navigator.clipboard.writeText(document.getElementById('newContractAddr').innerText);
     alert("Copiado!");
+}
+
+window.setBridgeMode = function(mode) {
+    document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('bridgeDepositArea').style.display = mode === 'deposit' ? 'block' : 'none';
+    document.getElementById('bridgeClaimArea').style.display = mode === 'claim' ? 'block' : 'none';
+}
+
+window.renderIcons = function() {
+    if(window.lucide) window.lucide.createIcons();
 }
