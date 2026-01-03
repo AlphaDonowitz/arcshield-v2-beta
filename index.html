@@ -6,9 +6,10 @@
     <title>Arc Shield - Infrastructure Hub</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
     
-    <link rel="stylesheet" href="css/style.css?v=7.0">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <link rel="stylesheet" href="css/style.css?v=7.1">
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
@@ -20,11 +21,11 @@
 
     <div id="landingPage">
         <div class="landing-content">
-            <div class="brand-pill"><i data-lucide="shield-check" size="14"></i> ARC TESTNET LIVE</div>
+            <div class="brand-pill"><i data-lucide="shield-check"></i> ARC TESTNET LIVE</div>
             <h1 class="hero-title">Arc <span class="text-blue">Shield</span></h1>
             <p class="hero-subtitle">Infraestrutura DeFi Institucional. Segura. Rápida.</p>
             <button class="btn-primary-lg" onclick="enterApp()">
-                Acessar Dashboard <i data-lucide="arrow-right" size="18"></i>
+                Acessar Dashboard <i data-lucide="arrow-right"></i>
             </button>
         </div>
     </div>
@@ -49,7 +50,7 @@
                     <i data-lucide="send"></i> Multisender
                 </button>
                 <button class="nav-item" onclick="navigate('locker', this)">
-                    <i data-lucide="lock"></i> Liquidity Locker
+                    <i data-lucide="lock"></i> Locker
                 </button>
                 <button class="nav-item" onclick="navigate('vesting', this)">
                     <i data-lucide="hourglass"></i> Vesting
@@ -64,8 +65,8 @@
             </div>
 
             <div class="sidebar-footer">
-                <div class="status-dot"></div> <span class="mono-text">v7.0 Stable</span>
-                <a href="#" onclick="disconnectWallet()" class="logout-link"><i data-lucide="log-out" size="14"></i></a>
+                <div class="status-dot"></div> <span class="mono-text">v7.1 Stable</span>
+                <a href="#" onclick="disconnectWallet()" class="logout-link"><i data-lucide="log-out"></i></a>
             </div>
         </aside>
 
@@ -76,7 +77,7 @@
                     <p class="header-desc">Gerencie seus ativos e reputação on-chain.</p>
                 </div>
                 <button id="btnConnect" class="btn-connect" onclick="connectWallet()">
-                    <i data-lucide="wallet" size="16"></i> Conectar Carteira
+                    <i data-lucide="wallet"></i> Conectar Carteira
                 </button>
             </header>
 
@@ -157,6 +158,11 @@
                         </div>
                         <button class="btn-primary full" onclick="createVesting()">Criar Contrato</button>
                     </div>
+                    <div class="card mt-4">
+                        <h3>Meus Saques</h3>
+                        <div id="dashboardContent" class="empty-state">Sem dados.</div>
+                        <button class="btn-secondary full mt-2" onclick="loadDashboardData()">Atualizar</button>
+                    </div>
                 </div>
 
                 <div id="leaderboard" class="page-section">
@@ -172,7 +178,7 @@
                                         <img id="userAvatarDisplay" src="https://robohash.org/default?set=set4">
                                         <div class="online-indicator"></div>
                                         <input type="file" id="profileAvatarInput" hidden accept="image/*" onchange="handleAvatarUpload(this)">
-                                        <button class="edit-avatar-mini" onclick="document.getElementById('profileAvatarInput').click()"><i data-lucide="pencil" size="10"></i></button>
+                                        <button class="edit-avatar-mini" onclick="document.getElementById('profileAvatarInput').click()"><i data-lucide="pencil"></i></button>
                                     </div>
                                     <h2 id="userDisplayName">Anonymous</h2>
                                     <div class="mono-badge" id="userWalletDisplay">0x000...0000</div>
@@ -183,8 +189,9 @@
                                         <div class="xp-lbl">Reputation XP</div>
                                     </div>
                                     <button id="btnDailyCheckin" class="btn-primary full mt-2" onclick="dailyCheckIn()">
-                                        <i data-lucide="zap" size="16"></i> Daily Claim
+                                        <i data-lucide="zap"></i> Daily Claim
                                     </button>
+                                    <div id="dailyTimer" style="font-size:0.7rem; color:#666; margin-top:5px; text-align:center;"></div>
                                 </div>
                             </div>
                             <div class="card">
@@ -203,28 +210,16 @@
 
                         <div class="right-column">
                             <div class="card stats-strip">
-                                <div class="stat-item">
-                                    <span class="lbl">Tokens</span>
-                                    <b class="val" id="statTokens">0</b>
-                                </div>
-                                <div class="stat-item">
-                                    <span class="lbl">Multisends</span>
-                                    <b class="val" id="statMulti">0</b>
-                                </div>
-                                <div class="stat-item">
-                                    <span class="lbl">Locks</span>
-                                    <b class="val" id="statLocks">0</b>
-                                </div>
-                                <div class="stat-item">
-                                    <span class="lbl">Vestings</span>
-                                    <b class="val" id="statVests">0</b>
-                                </div>
+                                <div class="stat-item"><span class="lbl">Tokens</span><b class="val" id="statTokens">0</b></div>
+                                <div class="stat-item"><span class="lbl">Sends</span><b class="val" id="statMulti">0</b></div>
+                                <div class="stat-item"><span class="lbl">Locks</span><b class="val" id="statLocks">0</b></div>
+                                <div class="stat-item"><span class="lbl">Vests</span><b class="val" id="statVests">0</b></div>
                             </div>
 
                             <div class="card content-panel-clean">
                                 <div class="tabs-clean">
                                     <button class="tab-clean active" onclick="showSubTab('global', this)">Explorer</button>
-                                    <button class="tab-clean" onclick="showSubTab('my', this)">Meus Tokens</button>
+                                    <button class="tab-clean" onclick="showSubTab('my', this)">Meus</button>
                                     <button class="tab-clean" onclick="showSubTab('portfolio', this)">Portfolio</button>
                                     <button class="tab-clean" onclick="showSubTab('ranking', this)">Ranking</button>
                                 </div>
@@ -258,34 +253,45 @@
     </dialog>
     <div id="successModal" class="modal-overlay" style="display:none;">
         <div class="card success-card">
-            <div class="success-icon"><i data-lucide="check-circle" size="48"></i></div>
+            <div class="success-icon"><i data-lucide="check-circle"></i></div>
             <h2 id="modalTitle">Sucesso</h2>
             <p id="modalMsg">.</p>
             <div id="tokenCreatedInfo" style="display:none;" class="code-block"><code id="newContractAddr">0x...</code></div>
             <button class="btn-primary full mt-4" onclick="document.getElementById('successModal').style.display='none'">Fechar</button>
         </div>
     </div>
+    
+    <div id="consoleArea" style="display:none;"></div>
 
     <script src="js/config.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/social.js"></script>
     <script src="js/web3.js"></script>
+    
     <script>
-        // Inicializa ícones Lucide
-        lucide.createIcons();
-        
-        // Re-inicializa ícones ao mudar de aba (para conteúdo dinâmico)
-        const observer = new MutationObserver(() => lucide.createIcons());
-        observer.observe(document.body, { childList: true, subtree: true });
+        // Inicialização Protegida dos Ícones
+        window.addEventListener('load', () => {
+            if(window.lucide) {
+                lucide.createIcons();
+                // Observer para recriar ícones quando o DOM mudar (ex: carregar leaderboard)
+                const observer = new MutationObserver(() => lucide.createIcons());
+                observer.observe(document.body, { childList: true, subtree: true });
+            } else {
+                console.warn("Lucide Icons não carregou (Verifique conexão/CDN). O site continuará funcionando.");
+            }
+        });
 
+        // Tabs Logic
         function showSubTab(name, btn) {
             ['subTabGlobal', 'subTabMy', 'subTabPortfolio', 'subTabRanking'].forEach(id => document.getElementById(id).style.display = 'none');
             document.querySelectorAll('.tab-clean').forEach(b => b.classList.remove('active'));
             const target = name === 'ranking' ? 'subTabRanking' : 'subTab' + name.charAt(0).toUpperCase() + name.slice(1);
             document.getElementById(target).style.display = 'block';
             if(btn) btn.classList.add('active');
-            if(name === 'portfolio') loadMyPortfolio();
-            if(name === 'ranking') loadLeaderboard();
+            
+            // Safe calls para funções do social.js
+            if(name === 'portfolio' && window.loadMyPortfolio) window.loadMyPortfolio();
+            if(name === 'ranking' && window.loadLeaderboard) window.loadLeaderboard();
         }
     </script>
 </body>
