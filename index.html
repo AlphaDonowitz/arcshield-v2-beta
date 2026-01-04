@@ -86,17 +86,28 @@
                 <div id="creator" class="page-section active">
                     <div class="card">
                         <div class="card-header-icon"><i data-lucide="rocket"></i></div>
-                        <h3>Deploy Token</h3>
+                        <h3>Launchpad</h3>
+                        
+                        <div class="toggle-switch" style="margin-bottom: 20px;">
+                            <button class="toggle-btn active" onclick="setLaunchpadMode('token')">Token (ERC20)</button>
+                            <button class="toggle-btn" onclick="setLaunchpadMode('nft')">NFT (ERC721)</button>
+                        </div>
+
                         <div class="form-row">
                             <div class="input-group"><label>Nome</label><input type="text" id="tokenName" placeholder="Ex: Arc Dollar"></div>
                             <div class="input-group"><label>Símbolo</label><input type="text" id="tokenSymbol" placeholder="Ex: ARCD"></div>
                         </div>
-                        <div class="input-group"><label>Supply Inicial</label><input type="number" id="tokenSupply" placeholder="1000000"></div>
+                        
+                        <div class="input-group" id="supplyGroup">
+                            <label>Supply Inicial</label>
+                            <input type="number" id="tokenSupply" placeholder="1000000">
+                        </div>
+
                         <div class="file-upload-box" onclick="document.getElementById('tokenLogoFile').click()">
                             <i data-lucide="image-plus"></i> <span id="logoFileName">Carregar Logo do Token</span>
                             <input type="file" id="tokenLogoFile" hidden onchange="handleLogoUpload(this)">
                         </div>
-                        <button class="btn-primary full mt-4" onclick="createToken()">Criar Contrato</button>
+                        <button class="btn-primary full mt-4" onclick="handleCreateDeploy()">Criar Contrato</button>
                     </div>
                 </div>
 
