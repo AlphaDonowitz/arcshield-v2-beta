@@ -18,6 +18,24 @@ window.navigate = function(pageId, btnElement) {
     document.getElementById('pageTitle').innerText = titles[pageId] || 'Dashboard';
 }
 
+// LOGICA DE INTERFACE DO LAUNCHPAD (TOKEN vs NFT)
+window.launchpadMode = 'token'; // default
+window.setLaunchpadMode = function(mode) {
+    window.launchpadMode = mode;
+    // Atualiza botões
+    const container = document.querySelector('#creator .toggle-switch');
+    if(container) {
+        const btns = container.querySelectorAll('.toggle-btn');
+        if(btns.length >= 2) {
+            btns[0].classList.toggle('active', mode === 'token');
+            btns[1].classList.toggle('active', mode === 'nft');
+        }
+    }
+    // Esconde/Mostra Supply
+    const supplyGroup = document.getElementById('supplyGroup');
+    if(supplyGroup) supplyGroup.style.display = mode === 'token' ? 'block' : 'none';
+}
+
 // COMPRESSÃO DE IMAGENS
 window.compressImage = function(file) {
     return new Promise((resolve) => {
