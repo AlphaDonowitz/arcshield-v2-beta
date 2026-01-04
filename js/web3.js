@@ -51,26 +51,59 @@ async function ensureNetwork(key) {
     window.signer = await window.provider.getSigner();
 }
 
-// 1. LAUNCHPAD
-window.createToken = async function() {
+// 1. LAUNCHPAD (TOKEN E NFT)
+window.handleCreateDeploy = async function() {
     await ensureNetwork('arc');
     const name = document.getElementById("tokenName").value;
     const symbol = document.getElementById("tokenSymbol").value;
-    const supply = document.getElementById("tokenSupply").value;
-    if(!name || !symbol || !supply) return alert("Preencha tudo!");
     
+    if(!name || !symbol) return alert("Preencha Nome e Símbolo!");
+
     try {
         const c = new ethers.Contract(CONTRACTS.factory, ABIS.factory, signer);
-        const tx = await c.createToken(name, symbol, supply);
+        let tx;
+        let typeStr = "ERC20";
+        let supplyVal = '0';
+
+        if (window.launchpadMode === 'token') {
+            const supply = document.getElementById("tokenSupply").value;
+            if(!supply) return alert("Preencha o Supply!");
+            supplyVal = supply;
+            tx = await c.createToken(name, symbol, supply);
+        } else {
+            typeStr = "ERC721";
+            tx = await c.createNFTCollection(name, symbol);
+        }
+
+        showSuccessModal("Confirmando...", "Aguarde a transação na blockchain.");
+        
         const receipt = await tx.wait();
-        let addr = null; try { if(receipt.logs[0]) addr = receipt.logs[0].address; } catch(e){}
+        
+        let addr = null;
+        for(const log of receipt.logs) {
+            try {
+                const parsed = c.interface.parseLog(log);
+                if(parsed.name === 'TokenCreated') {
+                    addr = parsed.args[0];
+                    break;
+                }
+            } catch(e) {}
+        }
         
         if(window.supabaseClient && addr) {
-            await window.supabaseClient.from('created_tokens').insert([{ name, symbol, address: addr, owner_wallet: userAddress, initial_supply: supply, logo_url: window.uploadedLogoData, bonus_claimed: false }]);
+            await window.supabaseClient.from('created_tokens').insert([{ 
+                name, 
+                symbol, 
+                address: addr, 
+                owner_wallet: userAddress, 
+                initial_supply: supplyVal, 
+                logo_url: window.uploadedLogoData, 
+                bonus_claimed: false 
+            }]);
         }
         await incrementStat('tokens_created', 100);
-        showSuccessModal(`Token ${symbol} Criado!`, `Contrato: ${addr}`, addr);
-    } catch(e) { alert("Erro: " + e.message); }
+        showSuccessModal(`${typeStr} Criado!`, `Contrato: ${addr}`, addr);
+    } catch(e) { alert("Erro: " + (e.reason || e.message)); }
 }
 
 // 2. MULTISENDER
