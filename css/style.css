@@ -1,9 +1,9 @@
 :root {
-    --bg-app: #09090b;       /* Zinc 950 */
-    --bg-sidebar: #09090b;
-    --bg-card: #121215;      /* Zinc 900 */
-    --border-color: #27272a; /* Zinc 800 */
-    --primary-blue: #3b82f6; /* Blue 500 */
+    --bg-app: #09090b;       /* Fundo Principal */
+    --bg-sidebar: #09090b;   /* Fundo Menu */
+    --bg-card: #121215;      /* Fundo Cards */
+    --border-color: #27272a; /* Bordas Cinza Escuro */
+    --primary-blue: #3b82f6; /* USDC Blue */
     --primary-hover: #2563eb;
     --text-primary: #f4f4f5;
     --text-secondary: #a1a1aa;
@@ -53,7 +53,7 @@ body {
 .btn-connect { background: #000; border: 1px solid var(--border-color); color: #fff; padding: 10px 16px; border-radius: var(--radius-sm); font-weight: 500; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: 0.2s; }
 .btn-connect:hover { border-color: #fff; }
 
-/* SECTIONS & CARDS */
+/* CARDS E ELEMENTOS */
 .page-section { display: none; animation: slideUp 0.3s ease; }
 .page-section.active { display: block; }
 @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -62,7 +62,7 @@ body {
 .card-header-icon { width: 40px; height: 40px; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; margin-bottom: 16px; }
 .card h3 { margin: 0 0 24px 0; font-size: 1.25rem; font-weight: 600; color: #fff; }
 
-/* FORMS & INPUTS */
+/* INPUTS */
 .input-group { margin-bottom: 16px; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 label { display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px; font-weight: 500; }
@@ -71,7 +71,7 @@ input:focus { border-color: var(--primary-blue); outline: none; background: #272
 .file-upload-box { border: 2px dashed var(--border-color); border-radius: var(--radius-md); padding: 24px; text-align: center; cursor: pointer; color: var(--text-secondary); display: flex; flex-direction: column; align-items: center; gap: 8px; transition: 0.2s; }
 .file-upload-box:hover { border-color: var(--primary-blue); color: #fff; background: rgba(59, 130, 246, 0.05); }
 
-/* BUTTONS */
+/* BOTÕES */
 .btn-primary { background: #fff; color: #000; border: none; padding: 12px; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; }
 .btn-primary:hover { background: #e4e4e7; }
 .btn-secondary { background: transparent; border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: var(--radius-sm); cursor: pointer; }
@@ -80,7 +80,7 @@ input:focus { border-color: var(--primary-blue); outline: none; background: #272
 .mt-4 { margin-top: 24px; }
 .action-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 15px; }
 
-/* SOCIAL HUB */
+/* SOCIAL HUB (PERFIL) */
 .concept-grid { display: grid; grid-template-columns: 320px 1fr; gap: 24px; align-items: start; }
 .profile-clean-card { padding: 0; overflow: hidden; }
 .profile-bg-clean { height: 120px; background: linear-gradient(to right, #27272a, #3f3f46); position: relative; }
@@ -91,7 +91,7 @@ input:focus { border-color: var(--primary-blue); outline: none; background: #272
 .online-indicator { width: 12px; height: 12px; background: #22c55e; border: 2px solid var(--bg-card); border-radius: 50%; position: absolute; bottom: 5px; right: 5px; }
 .edit-avatar-mini { position: absolute; top: 0; right: 0; background: #000; border: 1px solid #333; color: #fff; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
-/* === AQUI ESTÁ O ESTILO DO BOTÃO DE CARTEIRA (Corrigido) === */
+/* === BADGE DE CARTEIRA (BOTÃO DE COPIAR) === */
 .mono-badge { 
     font-family: var(--font-mono); 
     font-size: 0.8rem; 
@@ -100,7 +100,7 @@ input:focus { border-color: var(--primary-blue); outline: none; background: #272
     padding: 6px 12px; 
     border-radius: 6px; 
     color: var(--text-secondary); 
-    display: inline-flex; /* Garante que ícone e texto fiquem alinhados */
+    display: inline-flex; 
     align-items: center; 
     justify-content: center;
     gap: 8px; 
@@ -113,10 +113,7 @@ input:focus { border-color: var(--primary-blue); outline: none; background: #272
     color: #fff;
     border-color: #fff;
 }
-.mono-badge i {
-    width: 14px;
-    height: 14px;
-}
+.mono-badge i { width: 14px; height: 14px; }
 
 .bio-text { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 16px; }
 .btn-outline-mini { background: transparent; border: 1px solid var(--border-color); color: #fff; padding: 4px 12px; border-radius: 100px; font-size: 0.75rem; cursor: pointer; }
@@ -124,7 +121,7 @@ input:focus { border-color: var(--primary-blue); outline: none; background: #272
 .xp-val { font-size: 1.5rem; font-weight: 700; color: #fff; font-family: var(--font-mono); }
 .xp-lbl { font-size: 0.7rem; text-transform: uppercase; color: #666; letter-spacing: 1px; }
 
-/* Stats Strip & Tabs */
+/* ESTATÍSTICAS E ABAS */
 .stats-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 16px; }
 .stat-item { text-align: center; border-right: 1px solid var(--border-color); }
 .stat-item:last-child { border-right: none; }
