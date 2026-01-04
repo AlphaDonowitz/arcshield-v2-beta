@@ -1,142 +1,154 @@
-window.userProfile = { username: "Anonymous", bio: "", avatar: null, banner: null, points: 0, tokens: 0, vestings: 0, locks: 0, multisends: 0 };
-
-window.loadUserProfile = async function(wallet) {
-    if(!window.supabaseClient) return;
-    let { data: user } = await supabaseClient.from('users').select('*').eq('wallet_address', wallet).single();
-    if (!user) {
-        const newUser = { wallet_address: wallet, points: 0, avatar_url: `https://robohash.org/${wallet}?set=set4` };
-        await supabaseClient.from('users').insert([newUser]);
-        window.userProfile = { ...window.userProfile, ...newUser };
-    } else {
-        window.userProfile = {
-            username: user.username || `User ${wallet.slice(0,4)}`,
-            bio: user.bio || "Sem bio.",
-            avatar: user.avatar_url || `https://robohash.org/${wallet}?set=set4`,
-            banner: user.banner_url,
-            points: user.points || 0,
-            tokens: user.tokens_created || 0,
-            vestings: user.vestings_created || 0,
-            locks: user.locks_created || 0,
-            multisends: user.multisends_count || 0,
-            lastDaily: user.last_daily_claim
-        };
-    }
-    updateProfileUI(); checkDailyAvailability(); loadContacts();
+:root {
+    --bg-app: #09090b;       /* Zinc 950 */
+    --bg-sidebar: #09090b;
+    --bg-card: #121215;      /* Zinc 900 */
+    --border-color: #27272a; /* Zinc 800 */
+    --primary-blue: #3b82f6; /* Blue 500 */
+    --primary-hover: #2563eb;
+    --text-primary: #f4f4f5;
+    --text-secondary: #a1a1aa;
+    --font-ui: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --radius-sm: 6px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --sidebar-width: 250px;
 }
 
-function updateProfileUI() {
-    document.getElementById('userDisplayName').innerText = window.userProfile.username;
-    
-    // --- LÓGICA DO BADGE DE CARTEIRA CLICÁVEL ---
-    const wallet = window.userAddress;
-    const shortWallet = wallet.slice(0, 6) + "..." + wallet.slice(-4);
-    const badge = document.getElementById('userWalletDisplay');
-    
-    // Injeta HTML com ícone
-    badge.innerHTML = `<span>${shortWallet}</span> <i data-lucide="copy"></i>`;
-    
-    // Adiciona evento de clique
-    badge.onclick = function() {
-        navigator.clipboard.writeText(wallet);
-        // Feedback visual
-        badge.innerHTML = `<span>${shortWallet}</span> <i data-lucide="check" style="color:#22c55e"></i>`;
-        if(window.lucide) window.lucide.createIcons();
-        
-        setTimeout(() => {
-            badge.innerHTML = `<span>${shortWallet}</span> <i data-lucide="copy"></i>`;
-            if(window.lucide) window.lucide.createIcons();
-        }, 2000);
-    };
-    // Atualiza ícone imediatamente
-    if(window.lucide) window.lucide.createIcons();
-    // ---------------------------------------------
+* { box-sizing: border-box; }
 
-    document.getElementById('userBioDisplay').innerText = window.userProfile.bio;
-    document.getElementById('statTokens').innerText = window.userProfile.tokens;
-    document.getElementById('statMulti').innerText = window.userProfile.multisends;
-    document.getElementById('statLocks').innerText = window.userProfile.locks;
-    document.getElementById('statVests').innerText = window.userProfile.vestings;
-    document.getElementById('statXP').innerText = window.userProfile.points;
-    document.getElementById('userAvatarDisplay').src = window.userProfile.avatar;
-    const banner = document.getElementById('profileBannerDisplay');
-    if(window.userProfile.banner) banner.style.backgroundImage = `url('${window.userProfile.banner}')`;
+body { 
+    margin: 0; padding: 0; font-family: var(--font-ui); 
+    background-color: var(--bg-app); color: var(--text-primary); 
+    background-image: radial-gradient(#27272a 1px, transparent 1px);
+    background-size: 32px 32px;
+    min-height: 100vh;
 }
 
-function checkDailyAvailability() {
-    const btn = document.getElementById('btnDailyCheckin'); const timer = document.getElementById('dailyTimer');
-    if(!window.userProfile.lastDaily) { btn.disabled = false; timer.innerText = "Disponível!"; return; }
-    const diff = Date.now() - new Date(window.userProfile.lastDaily).getTime();
-    if (diff > 86400000) { btn.disabled = false; timer.innerText = "Disponível!"; } 
-    else { btn.disabled = true; timer.innerText = `Volte em ${Math.floor((86400000 - diff) / 3600000)}h`; }
+/* LANDING PAGE */
+#landingPage { height: 100vh; width: 100%; display: flex; align-items: center; justify-content: center; background: #000; text-align: center; position: fixed; top: 0; left: 0; z-index: 99999; }
+.brand-pill { background: rgba(59, 130, 246, 0.1); color: var(--primary-blue); padding: 8px 16px; border-radius: 100px; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 24px; border: 1px solid rgba(59, 130, 246, 0.2); }
+.hero-title { font-size: 4rem; font-weight: 800; margin: 0; line-height: 1.1; }
+.text-blue { color: var(--primary-blue); }
+.hero-subtitle { color: var(--text-secondary); margin: 20px 0 40px 0; font-size: 1.2rem; }
+.btn-primary-lg { background: #fff; color: #000; border: none; padding: 16px 32px; font-size: 1rem; font-weight: 600; border-radius: 100px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
+.btn-primary-lg:hover { transform: scale(1.05); }
+
+/* SIDEBAR */
+#dashboardLayout { display: flex; min-height: 100vh; width: 100%; }
+.sidebar { width: var(--sidebar-width); background: var(--bg-sidebar); border-right: 1px solid var(--border-color); padding: 24px; position: fixed; height: 100vh; z-index: 100; display: flex; flex-direction: column; }
+.brand-area { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1.1rem; margin-bottom: 40px; color: #fff; }
+.logo-box { width: 32px; height: 32px; background: var(--primary-blue); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; }
+.nav-group { margin-bottom: 32px; }
+.nav-group label { font-size: 0.7rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px; display: block; padding-left: 12px; }
+.nav-item { width: 100%; text-align: left; background: transparent; border: none; color: var(--text-secondary); padding: 10px 12px; margin-bottom: 2px; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.9rem; font-weight: 500; display: flex; align-items: center; gap: 10px; transition: 0.2s; }
+.nav-item:hover { color: #fff; background: rgba(255,255,255,0.03); }
+.nav-item.active { background: #fff; color: #000; font-weight: 600; }
+.sidebar-footer { margin-top: auto; border-top: 1px solid var(--border-color); padding-top: 20px; font-size: 0.8rem; display: flex; justify-content: space-between; align-items: center; }
+
+/* MAIN CONTENT */
+.main-content { margin-left: var(--sidebar-width); flex-grow: 1; padding: 40px; width: calc(100% - var(--sidebar-width)); }
+.app-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; }
+.header-desc { color: var(--text-secondary); margin: 5px 0 0 0; font-size: 0.9rem; }
+.btn-connect { background: #000; border: 1px solid var(--border-color); color: #fff; padding: 10px 16px; border-radius: var(--radius-sm); font-weight: 500; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: 0.2s; }
+.btn-connect:hover { border-color: #fff; }
+
+/* SECTIONS & CARDS */
+.page-section { display: none; animation: slideUp 0.3s ease; }
+.page-section.active { display: block; }
+@keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.content-container { max-width: 1100px; margin: 0 auto; }
+.card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 24px; position: relative; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+.card-header-icon { width: 40px; height: 40px; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; margin-bottom: 16px; }
+.card h3 { margin: 0 0 24px 0; font-size: 1.25rem; font-weight: 600; color: #fff; }
+
+/* FORMS & INPUTS */
+.input-group { margin-bottom: 16px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+label { display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px; font-weight: 500; }
+input, textarea, select { width: 100%; background: #18181b; border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: var(--radius-sm); font-family: var(--font-ui); transition: 0.2s; }
+input:focus { border-color: var(--primary-blue); outline: none; background: #27272a; }
+.file-upload-box { border: 2px dashed var(--border-color); border-radius: var(--radius-md); padding: 24px; text-align: center; cursor: pointer; color: var(--text-secondary); display: flex; flex-direction: column; align-items: center; gap: 8px; transition: 0.2s; }
+.file-upload-box:hover { border-color: var(--primary-blue); color: #fff; background: rgba(59, 130, 246, 0.05); }
+
+/* BUTTONS */
+.btn-primary { background: #fff; color: #000; border: none; padding: 12px; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; }
+.btn-primary:hover { background: #e4e4e7; }
+.btn-secondary { background: transparent; border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: var(--radius-sm); cursor: pointer; }
+.btn-secondary:hover { background: #27272a; }
+.full { width: 100%; }
+.mt-4 { margin-top: 24px; }
+.action-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 15px; }
+
+/* SOCIAL HUB */
+.concept-grid { display: grid; grid-template-columns: 320px 1fr; gap: 24px; align-items: start; }
+.profile-clean-card { padding: 0; overflow: hidden; }
+.profile-bg-clean { height: 120px; background: linear-gradient(to right, #27272a, #3f3f46); position: relative; }
+.btn-icon-float { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.5); border: none; color: #fff; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.profile-content-clean { padding: 24px; text-align: center; margin-top: -50px; }
+.avatar-clean { width: 90px; height: 90px; margin: 0 auto 16px auto; position: relative; }
+.avatar-clean img { width: 100%; height: 100%; border-radius: 50%; border: 4px solid var(--bg-card); object-fit: cover; background: #000; }
+.online-indicator { width: 12px; height: 12px; background: #22c55e; border: 2px solid var(--bg-card); border-radius: 50%; position: absolute; bottom: 5px; right: 5px; }
+.edit-avatar-mini { position: absolute; top: 0; right: 0; background: #000; border: 1px solid #333; color: #fff; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+/* === AQUI ESTÁ O ESTILO DO BOTÃO DE CARTEIRA (Corrigido) === */
+.mono-badge { 
+    font-family: var(--font-mono); 
+    font-size: 0.8rem; 
+    background: #18181b; 
+    border: 1px solid var(--border-color); 
+    padding: 6px 12px; 
+    border-radius: 6px; 
+    color: var(--text-secondary); 
+    display: inline-flex; /* Garante que ícone e texto fiquem alinhados */
+    align-items: center; 
+    justify-content: center;
+    gap: 8px; 
+    margin-bottom: 12px; 
+    cursor: pointer;
+    transition: 0.2s;
+}
+.mono-badge:hover {
+    background: #27272a;
+    color: #fff;
+    border-color: #fff;
+}
+.mono-badge i {
+    width: 14px;
+    height: 14px;
 }
 
-window.dailyCheckIn = async function() {
-    const now = new Date().toISOString(); const pts = window.userProfile.points + 50;
-    await supabaseClient.from('users').update({ points: pts, last_daily_claim: now }).eq('wallet_address', userAddress);
-    alert("+50 XP!"); window.userProfile.points = pts; window.userProfile.lastDaily = now; updateProfileUI(); checkDailyAvailability();
-}
+.bio-text { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 16px; }
+.btn-outline-mini { background: transparent; border: 1px solid var(--border-color); color: #fff; padding: 4px 12px; border-radius: 100px; font-size: 0.75rem; cursor: pointer; }
+.xp-row { display: flex; flex-direction: column; align-items: center; margin: 20px 0; padding: 16px; background: #09090b; border-radius: 8px; }
+.xp-val { font-size: 1.5rem; font-weight: 700; color: #fff; font-family: var(--font-mono); }
+.xp-lbl { font-size: 0.7rem; text-transform: uppercase; color: #666; letter-spacing: 1px; }
 
-async function saveImage(field, data) {
-    const up = {}; up[field] = data;
-    await supabaseClient.from('users').update(up).eq('wallet_address', userAddress);
-}
-window.handleAvatarUpload = async function(i) { 
-    if(i.files && i.files[0]) { 
-        const data = await window.compressImage(i.files[0]); 
-        window.userProfile.avatar = data; updateProfileUI(); saveImage('avatar_url', data); 
-    } 
-}
-window.handleBannerUpload = async function(i) { 
-    if(i.files && i.files[0]) { 
-        const data = await window.compressImage(i.files[0]); 
-        window.userProfile.banner = data; updateProfileUI(); saveImage('banner_url', data); 
-    } 
-}
-window.saveProfileData = async function() {
-    const name = document.getElementById('editName').value; const bio = document.getElementById('editBio').value;
-    const up = {}; if(name) up.username = name; if(bio) up.bio = bio;
-    if(Object.keys(up).length > 0) { await supabaseClient.from('users').update(up).eq('wallet_address', userAddress); loadUserProfile(userAddress); }
-}
+/* Stats Strip & Tabs */
+.stats-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 16px; }
+.stat-item { text-align: center; border-right: 1px solid var(--border-color); }
+.stat-item:last-child { border-right: none; }
+.stat-item .lbl { font-size: 0.7rem; color: #666; text-transform: uppercase; display: block; margin-bottom: 4px; }
+.stat-item .val { font-size: 1.1rem; font-family: var(--font-mono); color: #fff; }
+.content-panel-clean { padding: 0; min-height: 400px; }
+.tabs-clean { display: flex; border-bottom: 1px solid var(--border-color); padding: 0 16px; overflow-x: auto; }
+.tab-clean { background: none; border: none; color: var(--text-secondary); padding: 16px; font-size: 0.9rem; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+.tab-clean.active { color: #fff; border-bottom-color: var(--primary-blue); }
+.tab-body-clean { padding: 24px; }
 
-window.toggleAddContactForm = function() { const f = document.getElementById('addContactForm'); f.style.display = f.style.display==='none'?'block':'none'; }
-window.saveContact = async function() {
-    const n = document.getElementById('newContactName').value; const w = document.getElementById('newContactWallet').value;
-    if(!n || !w) return alert("Preencha tudo");
-    await supabaseClient.from('contacts').insert([{ owner_wallet: userAddress, friend_name: n, friend_wallet: w }]);
-    loadContacts();
-}
-window.loadContacts = async function() {
-    const div = document.getElementById('contactsList');
-    const { data: c } = await supabaseClient.from('contacts').select('*').eq('owner_wallet', userAddress);
-    if(!c || c.length===0) return div.innerHTML = "<p style='color:#666; font-size:0.8rem;'>Sem contatos.</p>";
-    let html = ""; c.forEach(x => { html += `<div style="display:flex;justify-content:space-between;padding:8px;border-bottom:1px solid #222;font-size:0.9rem;"><span>${x.friend_name}</span> <span style="font-family:monospace;color:#666">${x.friend_wallet.slice(0,6)}...</span></div>`; });
-    div.innerHTML = html;
-}
-window.loadTokenExplorer = async function() { }
-window.loadMyPortfolio = async function() {
-    const div = document.getElementById('portfolioList');
-    div.innerHTML = "<p style='color:#666'>Escaneando...</p>";
-    const { data: allTokens } = await supabaseClient.from('created_tokens').select('*').limit(50);
-    let html = ""; let count = 0;
-    for(const token of allTokens) {
-        try {
-            const contract = new ethers.Contract(token.address, ABIS.erc20, window.provider);
-            const bal = await contract.balanceOf(window.userAddress);
-            if(bal > 0n) {
-                const logo = token.logo_url || `https://robohash.org/${token.address}.png?set=set1`;
-                html += `<div class="token-card"><div class="token-header"><img src="${logo}" class="token-logo-small"><div><div style="font-weight:600">${token.name}</div></div></div><div style="font-size:0.8rem;color:#888;">${ethers.formatUnits(bal, 18)} ${token.symbol}</div></div>`;
-                count++;
-            }
-        } catch(e) {}
-    }
-    div.innerHTML = count > 0 ? html : "<p style='color:#666'>Nenhum saldo.</p>";
-}
-window.loadLeaderboard = async function() {
-    const div = document.getElementById("leaderboardList"); div.innerHTML = "Loading...";
-    const { data: u } = await supabaseClient.from('users').select('*').order('points', { ascending: false }).limit(10);
-    let html = ""; 
-    u.forEach((x, i) => { 
-        html += `<div class="leaderboard-row" style="display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid #222;"><div style="width:30px;">#${i+1}</div><div style="flex-grow:1; display:flex; align-items:center; gap:10px;"><img src="${x.avatar_url||'https://robohash.org/def'}" style="width:20px;height:20px;border-radius:50%"> ${x.username||x.wallet_address.slice(0,4)}</div><div style="font-family:monospace">${x.points}</div></div>`; 
-    });
-    div.innerHTML = html;
-}
+/* UTILS */
+.token-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+.token-card { background: #09090b; border: 1px solid var(--border-color); padding: 16px; border-radius: var(--radius-sm); transition: 0.2s; }
+.token-card:hover { border-color: #555; }
+.card-header-simple { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; }
+.card-header-simple h4 { margin: 0; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); }
+.card-header-simple button { background: none; border: none; color: #fff; cursor: pointer; }
+.contacts-list-scroll { max-height: 200px; overflow-y: auto; }
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); z-index: 2000; display: flex; align-items: center; justify-content: center; }
+.modal-dialog { background: var(--bg-card); border: 1px solid var(--border-color); padding: 24px; border-radius: var(--radius-lg); width: 100%; max-width: 400px; color: #fff; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
+.modal-actions { display: flex; gap: 12px; margin-top: 24px; }
+.success-icon { font-size: 3rem; color: #22c55e; margin-bottom: 16px; display: block; text-align: center; }
+.code-block { background: #000; padding: 10px; border-radius: 4px; word-break: break-all; font-family: monospace; border: 1px solid #222; }
+
+@media (max-width: 1024px) { .concept-grid { grid-template-columns: 1fr; } }
+@media (max-width: 768px) { #dashboardLayout { flex-direction: column; } .sidebar { width: 100%; height: auto; position: relative; padding: 16px; flex-direction: row; justify-content: space-between; overflow-x: auto; } .nav-group, .sidebar-footer { display: none; } .main-content { margin-left: 0; padding: 20px; width: 100%; } }
