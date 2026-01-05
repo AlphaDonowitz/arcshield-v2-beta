@@ -21,34 +21,27 @@ window.loadUserProfile = async function(wallet) {
             lastDaily: user.last_daily_claim
         };
     }
-    updateProfileUI(); checkDailyAvailability(); loadContacts();
+    updateProfileUI(); checkDailyAvailability(); loadContacts(); loadMyCreations();
 }
 
 function updateProfileUI() {
     document.getElementById('userDisplayName').innerText = window.userProfile.username;
     
-    // --- LÓGICA DO BOTÃO DE COPIAR ---
+    // Badge de Copiar
     const wallet = window.userAddress;
     const shortWallet = wallet.slice(0, 6) + "..." + wallet.slice(-4);
     const badge = document.getElementById('userWalletDisplay');
-    
-    // Injeta HTML (Texto + Ícone)
     badge.innerHTML = `<span>${shortWallet}</span> <i data-lucide="copy"></i>`;
-    
-    // Evento de Clique
     badge.onclick = function() {
         navigator.clipboard.writeText(wallet);
-        // Feedback Visual
         badge.innerHTML = `<span>${shortWallet}</span> <i data-lucide="check" style="color:#22c55e"></i>`;
         if(window.lucide) window.lucide.createIcons();
-        
         setTimeout(() => {
             badge.innerHTML = `<span>${shortWallet}</span> <i data-lucide="copy"></i>`;
             if(window.lucide) window.lucide.createIcons();
         }, 2000);
     };
     if(window.lucide) window.lucide.createIcons();
-    // ---------------------------------
 
     document.getElementById('userBioDisplay').innerText = window.userProfile.bio;
     document.getElementById('statTokens').innerText = window.userProfile.tokens;
@@ -111,24 +104,72 @@ window.loadContacts = async function() {
     let html = ""; c.forEach(x => { html += `<div style="display:flex;justify-content:space-between;padding:8px;border-bottom:1px solid #222;font-size:0.9rem;"><span>${x.friend_name}</span> <span style="font-family:monospace;color:#666">${x.friend_wallet.slice(0,6)}...</span></div>`; });
     div.innerHTML = html;
 }
-window.loadMyPortfolio = async function() {
-    const div = document.getElementById('portfolioList');
-    div.innerHTML = "<p style='color:#666'>Escaneando...</p>";
-    const { data: allTokens } = await supabaseClient.from('created_tokens').select('*').limit(50);
-    let html = ""; let count = 0;
-    for(const token of allTokens) {
-        try {
-            const contract = new ethers.Contract(token.address, ABIS.erc20, window.provider);
-            const bal = await contract.balanceOf(window.userAddress);
-            if(bal > 0n) {
-                const logo = token.logo_url || `https://robohash.org/${token.address}.png?set=set1`;
-                html += `<div class="token-card"><div class="token-header"><img src="${logo}" class="token-logo-small"><div><div style="font-weight:600">${token.name}</div></div></div><div style="font-size:0.8rem;color:#888;">${ethers.formatUnits(bal, 18)} ${token.symbol}</div></div>`;
-                count++;
-            }
-        } catch(e) {}
+
+// --- FUNÇÃO NOVA: CARREGAR MEUS PROJETOS ---
+window.loadMyCreations = async function() {
+    const div = document.getElementById('myTokensList');
+    div.innerHTML = "<p style='color:#666'>Carregando...</p>";
+    
+    // Busca Tokens criados pelo usuário
+    const { data: tokens } = await supabaseClient
+        .from('created_tokens')
+        .select('*')
+        .eq('owner_wallet', window.userAddress)
+        .order('created_at', { ascending: false });
+
+    if(!tokens || tokens.length === 0) {
+        div.innerHTML = "<p style='color:#666'>Você ainda não criou nenhum ativo.</p>";
+        return;
     }
-    div.innerHTML = count > 0 ? html : "<p style='color:#666'>Nenhum saldo.</p>";
+
+    let html = "";
+    tokens.forEach(t => {
+        const isNFT = t.contract_type === 'ERC721';
+        const logo = t.logo_url || `https://robohash.org/${t.address}.png?set=set1`;
+        
+        // Renderiza card diferente para NFT e Token
+        html += `
+        <div class="token-card" style="position:relative;">
+            <div class="token-header">
+                <img src="${logo}" class="token-logo-small" style="width:40px;height:40px;border-radius:8px;">
+                <div>
+                    <div style="font-weight:600; font-size:0.95rem;">${t.name}</div>
+                    <div style="font-size:0.75rem; color:#888;">${t.symbol} • ${isNFT ? 'NFT Collection' : 'ERC20 Token'}</div>
+                </div>
+            </div>
+            
+            <div style="margin-top:12px; font-size:0.8rem; background:#18181b; padding:8px; border-radius:6px; font-family:monospace;">
+                ${t.address.slice(0,6)}...${t.address.slice(-4)} <i data-lucide="copy" style="width:10px; cursor:pointer;" onclick="navigator.clipboard.writeText('${t.address}')"></i>
+            </div>
+
+            <div style="margin-top:12px;">
+                ${isNFT 
+                    ? `<button class="btn-primary full small" onclick="openNFTManager('${t.address}', '${t.name}', '${t.symbol}', '${logo}', '${t.initial_supply}', '${t.mint_price || 0}')">Gerenciar</button>` 
+                    : `<a href="${window.ARC_EXPLORER}/address/${t.address}" target="_blank" class="btn-secondary full small" style="text-align:center; display:block; text-decoration:none;">Ver no Explorer</a>`
+                }
+            </div>
+        </div>`;
+    });
+
+    div.innerHTML = html;
+    if(window.lucide) window.lucide.createIcons();
 }
+
+// --- LÓGICA DO MODAL MANAGER ---
+window.openNFTManager = async function(addr, name, sym, logo, supply, price) {
+    document.getElementById('mgrAddress').value = addr;
+    document.getElementById('mgrName').innerText = name;
+    document.getElementById('mgrSymbol').innerText = sym;
+    document.getElementById('mgrLogo').src = logo;
+    document.getElementById('mgrSupply').innerText = `.../${supply}`; // Será atualizado via blockchain
+    document.getElementById('mgrPrice').innerText = price;
+    
+    document.getElementById('nftManagerDialog').showModal();
+    
+    // Atualiza dados da blockchain
+    if(window.refreshManagerData) window.refreshManagerData(addr);
+}
+
 window.loadLeaderboard = async function() {
     const div = document.getElementById("leaderboardList"); div.innerHTML = "Loading...";
     const { data: u } = await supabaseClient.from('users').select('*').order('points', { ascending: false }).limit(10);
