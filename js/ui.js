@@ -8,32 +8,46 @@ window.safeNavigate = function(pageId, btn) {
     setTimeout(() => { if(window.lucide) window.lucide.createIcons(); }, 50);
 }
 
+// LÓGICA DO MENU LATERAL (SUBMENU ACCORDION)
+window.toggleSubmenu = function(submenuId, parentBtn) {
+    // 1. Alterna visibilidade do submenu
+    const menu = document.getElementById(submenuId);
+    menu.classList.toggle('open');
+    
+    // 2. Gira o ícone chevron se quiser (opcional)
+    // 3. Remove classe active de outros items principais
+    document.querySelectorAll('.nav-item').forEach(el => {
+        if(!el.closest('.submenu') && el !== parentBtn) el.classList.remove('active');
+    });
+    if(parentBtn) parentBtn.classList.add('active');
+}
+
 window.navigate = function(pageId, btnElement) {
-    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-    if(btnElement) btnElement.classList.add('active');
+    // Se o clique veio de um submenu, mantém o pai ativo
+    if(btnElement && !btnElement.closest('.submenu')) {
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        if(btnElement) btnElement.classList.add('active');
+    }
+    // Se veio do submenu, destaca apenas o filho
+    if(btnElement && btnElement.closest('.submenu')) {
+        document.querySelectorAll('.submenu .nav-item').forEach(el => el.classList.remove('active'));
+        btnElement.classList.add('active');
+    }
+
+    // Navegação de Telas
     document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
     document.getElementById(pageId).classList.add('active');
     
-    const titles = { 'creator': 'Launchpad', 'multisender': 'Multisender', 'locker': 'Liquidity Locker', 'vesting': 'Vesting Schedule', 'bridge': 'CCTP Bridge', 'leaderboard': 'User Hub' };
+    const titles = { 
+        'token-launcher': 'Lançar Token', 
+        'nft-launcher': 'Criar Coleção NFT', 
+        'multisender': 'Multisender', 
+        'locker': 'Liquidity Locker', 
+        'vesting': 'Vesting Schedule', 
+        'bridge': 'CCTP Bridge', 
+        'leaderboard': 'User Hub' 
+    };
     document.getElementById('pageTitle').innerText = titles[pageId] || 'Dashboard';
-}
-
-// LOGICA DE INTERFACE DO LAUNCHPAD (TOKEN vs NFT)
-window.launchpadMode = 'token'; // default
-window.setLaunchpadMode = function(mode) {
-    window.launchpadMode = mode;
-    // Atualiza botões
-    const container = document.querySelector('#creator .toggle-switch');
-    if(container) {
-        const btns = container.querySelectorAll('.toggle-btn');
-        if(btns.length >= 2) {
-            btns[0].classList.toggle('active', mode === 'token');
-            btns[1].classList.toggle('active', mode === 'nft');
-        }
-    }
-    // Esconde/Mostra Supply
-    const supplyGroup = document.getElementById('supplyGroup');
-    if(supplyGroup) supplyGroup.style.display = mode === 'token' ? 'block' : 'none';
 }
 
 // COMPRESSÃO DE IMAGENS
@@ -57,11 +71,12 @@ window.compressImage = function(file) {
     });
 }
 
-window.handleLogoUpload = async function(input) {
+// Upload Genérico para lidar com ID do texto
+window.handleLogoUpload = async function(input, textId) {
     if(input.files && input.files[0]) {
-        document.getElementById('logoFileName').innerText = "Processando...";
+        document.getElementById(textId).innerText = "Processando...";
         window.uploadedLogoData = await window.compressImage(input.files[0]);
-        document.getElementById('logoFileName').innerText = input.files[0].name;
+        document.getElementById(textId).innerText = input.files[0].name;
     }
 }
 
