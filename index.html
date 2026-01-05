@@ -6,7 +6,7 @@
     <title>Arc Shield - Infrastructure Hub</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-    <link rel="stylesheet" href="css/style.css?v=9.2">
+    <link rel="stylesheet" href="css/style.css?v=9.3">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
@@ -68,7 +68,7 @@
             </div>
 
             <div class="sidebar-footer">
-                <div class="status-dot"></div> <span class="mono-text">v9.2 Fixed</span>
+                <div class="status-dot"></div> <span class="mono-text">v9.3 Stable</span>
                 <a href="#" onclick="disconnectWallet()" class="logout-link"><i data-lucide="log-out"></i></a>
             </div>
         </aside>
@@ -263,6 +263,11 @@
                                         <div id="leaderboardList"></div>
                                         <button class="btn-secondary full mt-4" onclick="loadLeaderboard()">Atualizar</button>
                                     </div>
+                                    
+                                    <div id="subTabPortfolio" style="display:none;">
+                                        <div id="portfolioList" class="token-grid"></div>
+                                        <button class="btn-secondary full mt-4" onclick="loadMyPortfolio()">Atualizar</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -328,46 +333,8 @@
     <script src="js/web3.js"></script>
     
     <script>
+        // Apenas inicialização simples
         window.addEventListener('load', () => { if(window.lucide) lucide.createIcons(); });
-
-        // Inicialização Segura dos Ícones
-        window.addEventListener('load', () => {
-            if(window.lucide) {
-                lucide.createIcons();
-            }
-        });
-
-        // Navegação Segura
-        function safeNavigate(pageId, btn) {
-            if(window.navigate) window.navigate(pageId, btn);
-            setTimeout(() => { if(window.lucide) lucide.createIcons(); }, 50);
-        }
-
-        // --- CORREÇÃO AQUI: LÓGICA DE ABAS ---
-        function showSubTab(name, btn) {
-            // Esconde todas as abas
-            ['subTabGlobal', 'subTabMy', 'subTabPortfolio', 'subTabRanking'].forEach(id => {
-                const el = document.getElementById(id);
-                if(el) el.style.display = 'none';
-            });
-            
-            // Remove active dos botões
-            document.querySelectorAll('.tab-clean').forEach(b => b.classList.remove('active'));
-            
-            // Mostra a aba alvo
-            const target = name === 'ranking' ? 'subTabRanking' : 'subTab' + name.charAt(0).toUpperCase() + name.slice(1);
-            const targetEl = document.getElementById(target);
-            if(targetEl) targetEl.style.display = 'block';
-            
-            if(btn) btn.classList.add('active');
-            
-            // --- GATILHOS DE CARREGAMENTO ---
-            if(name === 'my' && window.loadMyCreations) window.loadMyCreations(); // <--- O FIX ESTÁ AQUI
-            if(name === 'ranking' && window.loadLeaderboard) window.loadLeaderboard();
-
-            // Refresh Ícones
-            setTimeout(() => { if(window.lucide) lucide.createIcons(); }, 200);
-        }
     </script>
 </body>
 </html>
