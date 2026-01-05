@@ -6,25 +6,21 @@
     <title>Arc Shield - Infrastructure Hub</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-    <link rel="stylesheet" href="css/style.css?v=9.4">
+    <link rel="stylesheet" href="css/style.css?v=10.0">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
 
     <div id="landingPage">
-        <div class="landing-content">
-            <div class="brand-pill"><i data-lucide="shield-check"></i> ARC TESTNET LIVE</div>
+        <div class="landing-content" style="text-align: center;">
+            <div style="margin-bottom: 20px; color: #3b82f6; font-weight: 600;">ARC TESTNET LIVE</div>
             <h1 class="hero-title">Arc <span class="text-blue">Shield</span></h1>
-            <p class="hero-subtitle">Infraestrutura DeFi Institucional. Segura. Rápida.</p>
-            <button class="btn-primary-lg" onclick="enterApp()">
-                Acessar Dashboard <i data-lucide="arrow-right"></i>
+            <button class="btn-primary-lg" style="margin-top: 30px;" onclick="enterApp()">
+                Acessar Dashboard
             </button>
         </div>
     </div>
@@ -33,347 +29,150 @@
         
         <aside class="sidebar">
             <div class="brand-area">
-                <div class="logo-box"><i data-lucide="shield"></i></div> 
-                <span>Arc Shield</span>
+                <i data-lucide="shield" style="color:#3b82f6"></i> <span>Arc Shield</span>
             </div>
             
-            <div class="nav-group">
-                <label>CORE PROTOCOLS</label>
+            <div style="margin-bottom: 30px;">
+                <label style="font-size:0.7rem; color:#666; font-weight:700; display:block; margin-bottom:10px; padding-left:10px;">FERRAMENTAS</label>
                 
-                <button class="nav-item nav-parent" onclick="toggleSubmenu('launchpad-submenu', this)">
-                    <div style="display:flex;align-items:center;gap:10px;"><i data-lucide="rocket"></i> Launchpad</div>
-                    <i data-lucide="chevron-down" style="width:14px;"></i>
+                <button class="nav-item" onclick="toggleSubmenu('launchpad-menu', this)">
+                    <i data-lucide="rocket"></i> Launchpad
                 </button>
-                <div id="launchpad-submenu" class="submenu">
-                    <button class="nav-item" onclick="safeNavigate('token-launcher', this)">Criar Token (ERC20)</button>
-                    <button class="nav-item" onclick="safeNavigate('nft-launcher', this)">Criar NFT (ERC721)</button>
+                <div id="launchpad-menu" class="submenu">
+                    <button class="nav-item" onclick="navigate('token-launcher', this)">Token ERC20</button>
+                    <button class="nav-item" onclick="navigate('nft-launcher', this)">NFT Collection</button>
                 </div>
 
-                <button class="nav-item" onclick="safeNavigate('studio', this)">
-                    <i data-lucide="palette"></i> Arc Studio
+                <button class="nav-item" onclick="navigate('studio', this)">
+                    <i data-lucide="palette"></i> Arc Studio <span class="badge" style="margin-left:auto; background:#3b82f6; color:#000;">NEW</span>
                 </button>
 
-                <button class="nav-item" onclick="safeNavigate('bridge', this)">
-                    <i data-lucide="arrow-left-right"></i> CCTP Bridge
-                </button>
-                <button class="nav-item" onclick="safeNavigate('multisender', this)">
-                    <i data-lucide="send"></i> Multisender
-                </button>
-                <button class="nav-item" onclick="safeNavigate('locker', this)">
-                    <i data-lucide="lock"></i> Locker
-                </button>
-                <button class="nav-item" onclick="safeNavigate('vesting', this)">
-                    <i data-lucide="hourglass"></i> Vesting
-                </button>
+                <button class="nav-item" onclick="navigate('multisender', this)"><i data-lucide="send"></i> Multisender</button>
+                <button class="nav-item" onclick="navigate('locker', this)"><i data-lucide="lock"></i> Locker</button>
+                <button class="nav-item" onclick="navigate('vesting', this)"><i data-lucide="hourglass"></i> Vesting</button>
+                <button class="nav-item" onclick="navigate('bridge', this)"><i data-lucide="arrow-left-right"></i> Bridge</button>
             </div>
 
-            <div class="nav-group">
-                <label>SOCIAL LAYER</label>
-                <button class="nav-item" onclick="safeNavigate('leaderboard', this)">
-                    <i data-lucide="users"></i> User Hub
-                </button>
+            <div>
+                <label style="font-size:0.7rem; color:#666; font-weight:700; display:block; margin-bottom:10px; padding-left:10px;">SOCIAL</label>
+                <button class="nav-item" onclick="navigate('leaderboard', this)"><i data-lucide="users"></i> User Hub</button>
             </div>
 
-            <div class="sidebar-footer">
-                <div class="status-dot"></div> <span class="mono-text">v9.4 Studio</span>
-                <a href="#" onclick="disconnectWallet()" class="logout-link"><i data-lucide="log-out"></i></a>
+            <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid #27272a; display:flex; justify-content:space-between; align-items:center;">
+                <div class="btn-connect" id="btnConnect" onclick="connectWallet()">Connect</div>
             </div>
         </aside>
 
         <main class="main-content">
-            <header class="app-header">
-                <div>
-                    <h2 id="pageTitle">Visão Geral</h2>
-                    <p class="header-desc">Gerencie seus ativos e reputação on-chain.</p>
-                </div>
-                <button id="btnConnect" class="btn-connect" onclick="connectWallet()">
-                    <i data-lucide="wallet"></i> Conectar Carteira
-                </button>
-            </header>
-
-            <div class="content-container">
-
-                <div id="studio" class="page-section">
-                    <div class="card">
-                        <div class="card-header-icon"><i data-lucide="palette"></i></div>
-                        <h3>Gerador de Coleção (Generative Art)</h3>
-                        <p class="bio-text">Crie milhares de NFTs únicos combinando camadas de imagens (traits).</p>
-                        
-                        <div class="studio-layout">
-                            <div>
-                                <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-                                    <label>Camadas (Layers)</label>
-                                    <button class="btn-icon-only" onclick="studioAddLayer()"><i data-lucide="plus"></i></button>
-                                </div>
-                                <div id="layersList" class="layer-list">
-                                    <div style="text-align:center; padding:20px; border:1px dashed #333; color:#666; border-radius:8px;">
-                                        Adicione camadas (ex: Fundo, Corpo, Olhos)
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label>Preview em Tempo Real</label>
-                                <div class="preview-area">
-                                    <canvas id="previewCanvas" width="500" height="500"></canvas>
-                                </div>
-                                <div style="margin-top:16px;">
-                                    <button class="btn-secondary full" onclick="studioGeneratePreview()">Gerar Preview Aleatório</button>
-                                </div>
-                                
-                                <hr style="border:0; border-top:1px solid #222; margin:20px 0;">
-                                
-                                <label>Geração Final</label>
-                                <div class="form-row">
-                                    <div class="input-group">
-                                        <label>Quantidade</label>
-                                        <input type="number" id="genCount" value="100">
-                                    </div>
-                                    <div class="input-group">
-                                        <label>Resolução</label>
-                                        <select id="genRes">
-                                            <option value="500">500x500 px</option>
-                                            <option value="1000">1000x1000 px</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                
-                                <div id="genProgress" class="progress-bar-container">
-                                    <div id="genProgressBar" class="progress-bar-fill"></div>
-                                </div>
-                                <p id="genStatus" style="font-size:0.8rem; color:#666; text-align:center; margin-top:5px;"></p>
-
-                                <button class="btn-primary full mt-4" onclick="studioStartGeneration()">
-                                    <i data-lucide="download"></i> Gerar Coleção & Baixar ZIP
-                                </button>
-                            </div>
+            
+            <div id="studio" class="page-section">
+                <div class="studio-wrapper">
+                    
+                    <div class="studio-sidebar">
+                        <div class="layers-header">
+                            <span>CAMADAS</span>
+                            <button class="btn-secondary" style="padding:4px 8px;" onclick="studioAddLayer()"><i data-lucide="plus" style="width:14px;"></i></button>
+                        </div>
+                        <div id="layersList" class="layers-list">
+                            <div style="padding:20px; text-align:center; color:#666; font-size:0.8rem;">Adicione uma camada.</div>
                         </div>
                     </div>
-                </div>
 
+                    <div class="studio-workspace">
+                        <div class="workspace-header">
+                            <h3 id="activeLayerTitle" style="margin:0; font-size:1.2rem;">Selecione uma Camada</h3>
+                            <span id="activeLayerCount" class="badge">0 itens</span>
+                        </div>
+                        
+                        <div id="traitGrid" class="trait-grid">
+                            </div>
+                        
+                        <div id="emptyStateWorkspace" class="empty-state-studio">
+                            <i data-lucide="layers" style="width:48px; height:48px; margin-bottom:10px; opacity:0.5;"></i>
+                            <p>Selecione ou crie uma camada à esquerda para começar.</p>
+                        </div>
+                    </div>
+
+                    <div class="studio-preview-col">
+                        <label style="font-size:0.7rem; font-weight:700; margin-bottom:10px; display:block;">PREVIEW TEMPO REAL</label>
+                        <div class="preview-box">
+                            <canvas id="previewCanvas" width="500" height="500"></canvas>
+                        </div>
+                        <button class="btn-secondary full" onclick="studioGeneratePreview()" style="margin-bottom:20px;">
+                            <i data-lucide="refresh-cw" style="width:14px; margin-right:6px;"></i> Randomize
+                        </button>
+
+                        <hr style="border:0; border-top:1px solid #27272a; margin-bottom:20px;">
+
+                        <label style="font-size:0.7rem; font-weight:700; margin-bottom:10px; display:block;">CONFIGURAÇÃO DE EXPORTAÇÃO</label>
+                        <div style="margin-bottom:10px;">
+                            <label style="font-size:0.8rem; color:#888;">Quantidade</label>
+                            <input type="number" id="genCount" value="50">
+                        </div>
+                        <div style="margin-bottom:20px;">
+                            <label style="font-size:0.8rem; color:#888;">Resolução</label>
+                            <select id="genRes">
+                                <option value="500">500x500 px</option>
+                                <option value="1000">1000x1000 px</option>
+                                <option value="2000">2000x2000 px</option>
+                            </select>
+                        </div>
+
+                        <div id="genProgress" class="progress-container">
+                            <div style="display:flex; justify-content:space-between; font-size:0.7rem; margin-bottom:4px;">
+                                <span id="genStatusText">Gerando...</span>
+                                <span id="genPct">0%</span>
+                            </div>
+                            <div class="progress-bar"><div id="genBar" class="progress-fill"></div></div>
+                        </div>
+
+                        <button class="btn-primary" onclick="studioStartGeneration()" style="margin-top:auto;">
+                            <i data-lucide="download"></i> Gerar Coleção
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="content-container">
                 <div id="token-launcher" class="page-section">
                     <div class="card">
-                        <div class="card-header-icon"><i data-lucide="coins"></i></div>
-                        <h3>Criar Token (ERC20)</h3>
-                        <p class="bio-text">Lançamento de tokens fungíveis padrão.</p>
-                        <div class="form-row">
-                            <div class="input-group"><label>Nome</label><input type="text" id="tokenName" placeholder="Ex: Arc Dollar"></div>
-                            <div class="input-group"><label>Símbolo</label><input type="text" id="tokenSymbol" placeholder="Ex: ARCD"></div>
+                        <h3>Criar Token ERC20</h3>
+                        <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                            <div><label>Nome</label><input id="tokenName"></div>
+                            <div><label>Símbolo</label><input id="tokenSymbol"></div>
                         </div>
-                        <div class="input-group"><label>Supply Inicial</label><input type="number" id="tokenSupply" placeholder="Ex: 1000000"></div>
-                        <div class="file-upload-box" onclick="document.getElementById('tokenLogoFile').click()">
-                            <i data-lucide="image-plus"></i> <span id="tokenFileName">Carregar Logo</span>
-                            <input type="file" id="tokenLogoFile" hidden onchange="handleLogoUpload(this, 'tokenFileName')">
-                        </div>
-                        <button class="btn-primary full mt-4" onclick="deployToken()">Criar Token</button>
+                        <label>Supply</label><input id="tokenSupply" type="number">
+                        <button class="btn-primary mt-4" onclick="deployToken()">Criar</button>
                     </div>
                 </div>
 
                 <div id="nft-launcher" class="page-section">
                     <div class="card">
-                        <div class="card-header-icon"><i data-lucide="image"></i></div>
                         <h3>Criar Coleção NFT</h3>
-                        <p class="bio-text">Lançamento profissional com gestão de fases.</p>
-                        <div class="form-row">
-                            <div class="input-group"><label>Nome da Coleção</label><input type="text" id="nftName" placeholder="Ex: Cyber Onis"></div>
-                            <div class="input-group"><label>Símbolo</label><input type="text" id="nftSymbol" placeholder="Ex: ONI"></div>
+                        <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                            <div><label>Nome</label><input id="nftName"></div>
+                            <div><label>Símbolo</label><input id="nftSymbol"></div>
                         </div>
-                        <div class="form-row">
-                            <div class="input-group"><label>Quantidade (Max)</label><input type="number" id="nftSupply" placeholder="Ex: 5000"></div>
-                            <div class="input-group"><label>Preço Mint</label><input type="number" id="nftPrice" placeholder="Ex: 0.05"></div>
+                        <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                            <div><label>Max Supply</label><input id="nftSupply" type="number"></div>
+                            <div><label>Preço</label><input id="nftPrice" type="number"></div>
                         </div>
-                        <div class="file-upload-box" onclick="document.getElementById('nftLogoFile').click()">
-                            <i data-lucide="camera"></i> <span id="nftFileName">Carregar Capa</span>
-                            <input type="file" id="nftLogoFile" hidden onchange="handleLogoUpload(this, 'nftFileName')">
-                        </div>
-                        <button class="btn-primary full mt-4" onclick="deployNFT()">Lançar Coleção</button>
+                        <button class="btn-primary mt-4" onclick="deployNFT()">Criar</button>
                     </div>
                 </div>
-
-                <div id="bridge" class="page-section">
-                    <div class="card">
-                        <div class="card-header-icon"><i data-lucide="arrow-left-right"></i></div>
-                        <h3>Cross-Chain Bridge</h3>
-                        <div class="toggle-switch">
-                            <button class="toggle-btn active" onclick="setBridgeMode('deposit')">Enviar</button>
-                            <button class="toggle-btn" onclick="setBridgeMode('claim')">Receber</button>
-                        </div>
-                        <div id="bridgeDepositArea" class="mt-4">
-                            <input type="number" id="bridgeAmount" placeholder="Quantidade (USDC)">
-                            <div class="action-grid">
-                                <button class="btn-secondary" onclick="approveUSDC()">Aprovar</button>
-                                <button class="btn-primary" onclick="burnUSDC()">Transferir</button>
-                            </div>
-                        </div>
-                        <div id="bridgeClaimArea" style="display:none;" class="mt-4">
-                            <textarea id="cctpMessageBytes" placeholder="Message Bytes"></textarea>
-                            <textarea id="cctpAttestation" placeholder="Attestation Signature"></textarea>
-                            <button class="btn-primary full" onclick="mintUSDC()">Finalizar</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="multisender" class="page-section">
-                    <div class="card">
-                        <div class="card-header-icon"><i data-lucide="send"></i></div>
-                        <h3>Multisender</h3>
-                        <input type="text" id="multiTokenAddr" placeholder="Token Address">
-                        <textarea id="csvInput" placeholder="0xAddress, Amount (separado por linha)"></textarea>
-                        <button class="btn-primary full" onclick="sendBatch()">Disparar Lote</button>
-                    </div>
-                </div>
-
-                <div id="locker" class="page-section">
-                    <div class="card">
-                        <div class="card-header-icon"><i data-lucide="lock"></i></div>
-                        <h3>Liquidity Locker</h3>
-                        <input type="text" id="lockTokenAddr" placeholder="Token Address">
-                        <div class="form-row">
-                            <input type="number" id="lockAmount" placeholder="Quantidade">
-                            <input type="datetime-local" id="lockDate">
-                        </div>
-                        <button class="btn-primary full" onclick="lockTokens()">Trancar Ativos</button>
-                    </div>
-                </div>
-
-                <div id="vesting" class="page-section">
-                    <div class="card">
-                        <div class="card-header-icon"><i data-lucide="hourglass"></i></div>
-                        <h3>Vesting</h3>
-                        <input type="text" id="vestTokenAddr" placeholder="Token">
-                        <input type="text" id="vestBeneficiary" placeholder="Beneficiário">
-                        <div class="form-row">
-                            <input type="number" id="vestAmount" placeholder="Total">
-                            <input type="number" id="vestDuration" placeholder="Minutos">
-                        </div>
-                        <button class="btn-primary full" onclick="createVesting()">Criar Contrato</button>
-                    </div>
-                    <div class="card mt-4">
-                        <h3>Meus Saques</h3>
-                        <div id="dashboardContent" class="empty-state">Sem dados.</div>
-                        <button class="btn-secondary full mt-2" onclick="loadDashboardData()">Atualizar</button>
-                    </div>
-                </div>
-
-                <div id="leaderboard" class="page-section">
-                    <div class="concept-grid">
-                        <div class="left-column">
-                            <div class="card profile-clean-card">
-                                <div class="profile-bg-clean" id="profileBannerDisplay">
-                                    <button class="btn-icon-float" onclick="document.getElementById('profileBannerInput').click()"><i data-lucide="camera"></i></button>
-                                    <input type="file" id="profileBannerInput" hidden accept="image/*" onchange="handleBannerUpload(this)">
-                                </div>
-                                <div class="profile-content-clean">
-                                    <div class="avatar-clean">
-                                        <img id="userAvatarDisplay" src="https://robohash.org/default?set=set4">
-                                        <div class="online-indicator"></div>
-                                        <input type="file" id="profileAvatarInput" hidden accept="image/*" onchange="handleAvatarUpload(this)">
-                                        <button class="edit-avatar-mini" onclick="document.getElementById('profileAvatarInput').click()"><i data-lucide="pencil"></i></button>
-                                    </div>
-                                    <h2 id="userDisplayName">Anonymous</h2>
-                                    <div class="mono-badge" id="userWalletDisplay">
-                                        <span>0x...</span> <i data-lucide="copy"></i>
-                                    </div>
-                                    <p class="bio-text" id="userBioDisplay">Sem bio.</p>
-                                    <button class="btn-outline-mini" onclick="document.getElementById('editProfileDialog').showModal()">Editar</button>
-                                    <div class="xp-row">
-                                        <div class="xp-val" id="statXP">0</div>
-                                        <div class="xp-lbl">Reputation XP</div>
-                                    </div>
-                                    <button id="btnDailyCheckin" class="btn-primary full mt-2" onclick="dailyCheckIn()">
-                                        <i data-lucide="zap"></i> Daily Claim
-                                    </button>
-                                    <div id="dailyTimer" style="font-size:0.7rem; color:#666; margin-top:5px; text-align:center;"></div>
-                                </div>
-                            </div>
-                            <div class="card">
-                                <div class="card-header-simple">
-                                    <h4>Contatos</h4>
-                                    <button onclick="toggleAddContactForm()"><i data-lucide="plus"></i></button>
-                                </div>
-                                <div id="addContactForm" style="display:none; margin-bottom:10px;">
-                                    <input type="text" id="newContactName" placeholder="Nome" class="mb-2">
-                                    <input type="text" id="newContactWallet" placeholder="0x..." class="mb-2">
-                                    <button class="btn-primary full small" onclick="saveContact()">Salvar</button>
-                                </div>
-                                <div id="contactsList" class="contacts-list-scroll"></div>
-                            </div>
-                        </div>
-                        <div class="right-column">
-                            <div class="card content-panel-clean">
-                                <div class="tabs-clean">
-                                    <button class="tab-clean active" onclick="showSubTab('global', this)">Explorer</button>
-                                    <button class="tab-clean" onclick="showSubTab('my', this)">Meus Projetos</button>
-                                    <button class="tab-clean" onclick="showSubTab('ranking', this)">Ranking</button>
-                                </div>
-                                <div class="tab-body-clean">
-                                    <div id="subTabGlobal"><div id="globalTokensList" class="token-grid"></div></div>
-                                    <div id="subTabMy" style="display:none;">
-                                        <h4 style="color:#666; font-size:0.8rem; margin-bottom:15px; text-transform:uppercase;">Gerenciamento de Ativos</h4>
-                                        <div id="myTokensList" class="token-grid"></div>
-                                        <button class="btn-secondary full mt-4" onclick="loadMyCreations()">Atualizar Lista</button>
-                                    </div>
-                                    <div id="subTabRanking" style="display:none;">
-                                        <div class="tbl-head"><span>Rank</span><span>User</span><span style="text-align:right">XP</span></div>
-                                        <div id="leaderboardList"></div>
-                                        <button class="btn-secondary full mt-4" onclick="loadLeaderboard()">Atualizar</button>
-                                    </div>
-                                    <div id="subTabPortfolio" style="display:none;">
-                                        <div id="portfolioList" class="token-grid"></div>
-                                        <button class="btn-secondary full mt-4" onclick="loadMyPortfolio()">Atualizar</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                
+                <div id="leaderboard" class="page-section"><div class="card"><h3>User Hub</h3><div id="myTokensList"></div></div></div>
+                <div id="multisender" class="page-section"><div class="card"><h3>Multisender</h3><p>Coming soon visual update.</p></div></div>
             </div>
+
         </main>
     </div>
 
-    <dialog id="editProfileDialog" class="modal-dialog">
-        <h3>Editar Perfil</h3>
-        <input type="text" id="editName" placeholder="Nome">
-        <input type="text" id="editBio" placeholder="Bio">
-        <div class="modal-actions"><button class="btn-secondary" onclick="document.getElementById('editProfileDialog').close()">Cancelar</button><button class="btn-primary" onclick="saveProfileData(); document.getElementById('editProfileDialog').close()">Salvar</button></div>
-    </dialog>
-    <dialog id="nftManagerDialog" class="modal-dialog" style="max-width: 500px;">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h3>Gerenciar Coleção</h3>
-            <button onclick="document.getElementById('nftManagerDialog').close()" style="background:none;border:none;color:#fff;cursor:pointer;"><i data-lucide="x"></i></button>
-        </div>
-        <div id="mgrHeader" style="display:flex; gap:15px; margin-bottom:20px; align-items:center;">
-            <img id="mgrLogo" src="" style="width:60px; height:60px; border-radius:8px; object-fit:cover; background:#222;">
-            <div><h2 id="mgrName" style="margin:0; font-size:1.2rem;">Nome</h2><div style="color:#666; font-size:0.9rem;" id="mgrSymbol">SYM</div></div>
-        </div>
-        <div class="stats-strip" style="margin-bottom:20px; background:#09090b; border-radius:8px;">
-            <div class="stat-item"><span class="lbl">Supply</span><b class="val" id="mgrSupply">0/0</b></div>
-            <div class="stat-item"><span class="lbl">Preço</span><b class="val" id="mgrPrice">0</b></div>
-            <div class="stat-item"><span class="lbl">Saldo</span><b class="val" id="mgrBalance">0 ETH</b></div>
-        </div>
-        <h4 style="color:#666; font-size:0.8rem; text-transform:uppercase;">Fases de Venda</h4>
-        <div class="action-grid" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom:20px;">
-            <button class="btn-secondary small" onclick="setNFTPhase(0)">Pausar</button>
-            <button class="btn-secondary small" onclick="setNFTPhase(1)">Whitelist</button>
-            <button class="btn-secondary small" onclick="setNFTPhase(2)" style="border-color:#22c55e; color:#22c55e;">Público</button>
-        </div>
-        <h4 style="color:#666; font-size:0.8rem; text-transform:uppercase;">Financeiro</h4>
-        <button class="btn-primary full" onclick="withdrawNFTFunds()">Sacar Fundos</button>
-        <input type="hidden" id="mgrAddress">
-    </dialog>
-    <div id="successModal" class="modal-overlay" style="display:none;">
-        <div class="card success-card">
-            <div class="success-icon"><i data-lucide="check-circle"></i></div>
-            <h2 id="modalTitle">Sucesso</h2>
-            <p id="modalMsg">.</p>
-            <div id="tokenCreatedInfo" style="display:none;" class="code-block"><code id="newContractAddr">0x...</code></div>
-            <button class="btn-primary full mt-4" onclick="document.getElementById('successModal').style.display='none'">Fechar</button>
-        </div>
-    </div>
-    
     <script src="js/config.js"></script>
     <script src="js/ui.js"></script>
-    <script src="js/studio.js"></script> <script src="js/social.js"></script>
+    <script src="js/studio.js"></script>
+    <script src="js/social.js"></script>
     <script src="js/web3.js"></script>
     <script>window.addEventListener('load', () => { if(window.lucide) lucide.createIcons(); });</script>
 </body>
