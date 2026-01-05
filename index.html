@@ -4,13 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Arc Shield - Infrastructure Hub</title>
-    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-    
-    <link rel="stylesheet" href="css/style.css?v=8.2">
-    
+    <link rel="stylesheet" href="css/style.css?v=9.0">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
@@ -40,9 +36,15 @@
             
             <div class="nav-group">
                 <label>CORE PROTOCOLS</label>
-                <button class="nav-item active" onclick="safeNavigate('creator', this)">
-                    <i data-lucide="rocket"></i> Launchpad
+                
+                <button class="nav-item nav-parent" onclick="toggleSubmenu('launchpad-submenu', this)">
+                    <div style="display:flex;align-items:center;gap:10px;"><i data-lucide="rocket"></i> Launchpad</div>
+                    <i data-lucide="chevron-down" style="width:14px;"></i>
                 </button>
+                <div id="launchpad-submenu" class="submenu">
+                    <button class="nav-item" onclick="safeNavigate('token-launcher', this)">Criar Token (ERC20)</button>
+                    <button class="nav-item" onclick="safeNavigate('nft-launcher', this)">Criar NFT (ERC721)</button>
+                </div>
                 <button class="nav-item" onclick="safeNavigate('bridge', this)">
                     <i data-lucide="arrow-left-right"></i> CCTP Bridge
                 </button>
@@ -65,7 +67,7 @@
             </div>
 
             <div class="sidebar-footer">
-                <div class="status-dot"></div> <span class="mono-text">v8.2 Stable</span>
+                <div class="status-dot"></div> <span class="mono-text">v9.0 Pro</span>
                 <a href="#" onclick="disconnectWallet()" class="logout-link"><i data-lucide="log-out"></i></a>
             </div>
         </aside>
@@ -83,31 +85,50 @@
 
             <div class="content-container">
 
-                <div id="creator" class="page-section active">
+                <div id="token-launcher" class="page-section">
                     <div class="card">
-                        <div class="card-header-icon"><i data-lucide="rocket"></i></div>
-                        <h3>Launchpad</h3>
+                        <div class="card-header-icon"><i data-lucide="coins"></i></div>
+                        <h3>Criar Token (ERC20)</h3>
+                        <p class="bio-text">Lançamento de tokens fungíveis padrão. Ideal para moedas de utilidade.</p>
                         
-                        <div class="toggle-switch" style="margin-bottom: 20px;">
-                            <button class="toggle-btn active" onclick="setLaunchpadMode('token')">Token (ERC20)</button>
-                            <button class="toggle-btn" onclick="setLaunchpadMode('nft')">NFT (ERC721)</button>
-                        </div>
-
                         <div class="form-row">
                             <div class="input-group"><label>Nome</label><input type="text" id="tokenName" placeholder="Ex: Arc Dollar"></div>
                             <div class="input-group"><label>Símbolo</label><input type="text" id="tokenSymbol" placeholder="Ex: ARCD"></div>
                         </div>
-                        
-                        <div class="input-group" id="supplyGroup">
+                        <div class="input-group">
                             <label>Supply Inicial</label>
-                            <input type="number" id="tokenSupply" placeholder="1000000">
+                            <input type="number" id="tokenSupply" placeholder="Ex: 1000000">
+                        </div>
+                        <div class="file-upload-box" onclick="document.getElementById('tokenLogoFile').click()">
+                            <i data-lucide="image-plus"></i> <span id="tokenFileName">Carregar Logo do Token</span>
+                            <input type="file" id="tokenLogoFile" hidden onchange="handleLogoUpload(this, 'tokenFileName')">
+                        </div>
+                        <button class="btn-primary full mt-4" onclick="deployToken()">Criar Token</button>
+                    </div>
+                </div>
+
+                <div id="nft-launcher" class="page-section">
+                    <div class="card">
+                        <div class="card-header-icon"><i data-lucide="image"></i></div>
+                        <h3>Criar Coleção NFT</h3>
+                        <p class="bio-text">Lançamento de coleções com gestão de whitelist, preço e fases.</p>
+
+                        <div class="form-row">
+                            <div class="input-group"><label>Nome da Coleção</label><input type="text" id="nftName" placeholder="Ex: Cyber Onis"></div>
+                            <div class="input-group"><label>Símbolo</label><input type="text" id="nftSymbol" placeholder="Ex: ONI"></div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="input-group"><label>Quantidade Total (Max Supply)</label><input type="number" id="nftSupply" placeholder="Ex: 5000"></div>
+                            <div class="input-group"><label>Preço do Mint (ETH/Arc)</label><input type="number" id="nftPrice" placeholder="Ex: 0.05"></div>
                         </div>
 
-                        <div class="file-upload-box" onclick="document.getElementById('tokenLogoFile').click()">
-                            <i data-lucide="image-plus"></i> <span id="logoFileName">Carregar Logo do Token</span>
-                            <input type="file" id="tokenLogoFile" hidden onchange="handleLogoUpload(this)">
+                        <div class="file-upload-box" onclick="document.getElementById('nftLogoFile').click()">
+                            <i data-lucide="camera"></i> <span id="nftFileName">Carregar Capa da Coleção</span>
+                            <input type="file" id="nftLogoFile" hidden onchange="handleLogoUpload(this, 'nftFileName')">
                         </div>
-                        <button class="btn-primary full mt-4" onclick="handleCreateDeploy()">Criar Contrato</button>
+
+                        <button class="btn-primary full mt-4" onclick="deployNFT()">Lançar Coleção</button>
                     </div>
                 </div>
 
@@ -178,7 +199,6 @@
 
                 <div id="leaderboard" class="page-section">
                     <div class="concept-grid">
-                        
                         <div class="left-column">
                             <div class="card profile-clean-card">
                                 <div class="profile-bg-clean" id="profileBannerDisplay">
@@ -193,11 +213,9 @@
                                         <button class="edit-avatar-mini" onclick="document.getElementById('profileAvatarInput').click()"><i data-lucide="pencil"></i></button>
                                     </div>
                                     <h2 id="userDisplayName">Anonymous</h2>
-                                    
                                     <div class="mono-badge" id="userWalletDisplay">
                                         <span>0x...</span> <i data-lucide="copy"></i>
                                     </div>
-
                                     <p class="bio-text" id="userBioDisplay">Sem bio.</p>
                                     <button class="btn-outline-mini" onclick="document.getElementById('editProfileDialog').showModal()">Editar</button>
                                     <div class="xp-row">
@@ -210,7 +228,6 @@
                                     <div id="dailyTimer" style="font-size:0.7rem; color:#666; margin-top:5px; text-align:center;"></div>
                                 </div>
                             </div>
-                            
                             <div class="card">
                                 <div class="card-header-simple">
                                     <h4>Contatos</h4>
@@ -224,7 +241,6 @@
                                 <div id="contactsList" class="contacts-list-scroll"></div>
                             </div>
                         </div>
-
                         <div class="right-column">
                             <div class="card stats-strip">
                                 <div class="stat-item"><span class="lbl">Tokens</span><b class="val" id="statTokens">0</b></div>
@@ -232,7 +248,6 @@
                                 <div class="stat-item"><span class="lbl">Locks</span><b class="val" id="statLocks">0</b></div>
                                 <div class="stat-item"><span class="lbl">Vests</span><b class="val" id="statVests">0</b></div>
                             </div>
-
                             <div class="card content-panel-clean">
                                 <div class="tabs-clean">
                                     <button class="tab-clean active" onclick="showSubTab('global', this)">Explorer</button>
@@ -257,7 +272,6 @@
                         </div>
                     </div>
                 </div>
-
             </div>
         </main>
     </div>
@@ -278,42 +292,13 @@
         </div>
     </div>
     
-    <div id="consoleArea" style="display:none;"></div>
-
     <script src="js/config.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/social.js"></script>
     <script src="js/web3.js"></script>
     
     <script>
-        // Inicialização Segura dos Ícones
-        window.addEventListener('load', () => {
-            if(window.lucide) {
-                lucide.createIcons();
-            }
-        });
-
-        // Navegação Segura (Evita travamentos)
-        function safeNavigate(pageId, btn) {
-            if(window.navigate) window.navigate(pageId, btn);
-            setTimeout(() => { if(window.lucide) lucide.createIcons(); }, 50);
-        }
-
-        // Controle de Abas
-        function showSubTab(name, btn) {
-            ['subTabGlobal', 'subTabMy', 'subTabPortfolio', 'subTabRanking'].forEach(id => document.getElementById(id).style.display = 'none');
-            document.querySelectorAll('.tab-clean').forEach(b => b.classList.remove('active'));
-            
-            const target = name === 'ranking' ? 'subTabRanking' : 'subTab' + name.charAt(0).toUpperCase() + name.slice(1);
-            document.getElementById(target).style.display = 'block';
-            if(btn) btn.classList.add('active');
-            
-            if(name === 'portfolio' && window.loadMyPortfolio) window.loadMyPortfolio();
-            if(name === 'ranking' && window.loadLeaderboard) window.loadLeaderboard();
-
-            // Refresh Ícones
-            setTimeout(() => { if(window.lucide) lucide.createIcons(); }, 200);
-        }
+        window.addEventListener('load', () => { if(window.lucide) lucide.createIcons(); });
     </script>
 </body>
 </html>
