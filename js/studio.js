@@ -1,106 +1,158 @@
+// ARC STUDIO 2.0 - LÓGICA MODERNA
+window.layers = []; 
+window.activeLayerIndex = null;
 
-// ARC STUDIO - MOTOR DE GERAÇÃO DE NFT
-window.layers = []; // Estrutura: [{ id, name, traits: [{ file, name, weight, imgObj }] }]
-
-// 1. GERENCIAMENTO DE CAMADAS
+// 1. GERENCIAMENTO DE CAMADAS (SIDEBAR)
 window.studioAddLayer = function() {
-    const id = Date.now();
-    const name = prompt("Nome da Camada (ex: Fundo, Olhos):") || `Layer ${window.layers.length + 1}`;
+    const name = prompt("Nome da Camada (ex: Background, Body, Head):");
+    if(!name) return;
     
-    window.layers.push({ id, name, traits: [] });
-    renderLayers();
+    window.layers.push({ id: Date.now(), name: name, traits: [] });
+    // Seleciona automaticamente a nova camada
+    window.activeLayerIndex = window.layers.length - 1;
+    renderStudioUI();
 }
 
-function renderLayers() {
+window.selectLayer = function(index) {
+    window.activeLayerIndex = index;
+    renderStudioUI();
+}
+
+window.deleteLayer = function(index, event) {
+    if(event) event.stopPropagation();
+    if(confirm("Deletar camada e todas as imagens?")) {
+        window.layers.splice(index, 1);
+        if(window.activeLayerIndex === index) window.activeLayerIndex = null;
+        if(window.activeLayerIndex > index) window.activeLayerIndex--;
+        renderStudioUI();
+    }
+}
+
+// 2. RENDERIZAÇÃO DA UI (LISTA E WORKSPACE)
+function renderStudioUI() {
     const list = document.getElementById('layersList');
-    if(!list) return;
-    
+    const grid = document.getElementById('traitGrid');
+    const emptyState = document.getElementById('emptyStateWorkspace');
+    const title = document.getElementById('activeLayerTitle');
+    const count = document.getElementById('activeLayerCount');
+
+    // Render Sidebar List
     if(window.layers.length === 0) {
-        list.innerHTML = `<div style="text-align:center; padding:20px; border:1px dashed #333; color:#666; border-radius:8px;">Adicione camadas para começar.</div>`;
-        return;
+        list.innerHTML = `<div style="padding:20px; text-align:center; color:#666; font-size:0.8rem;">Clique em + para adicionar.</div>`;
+    } else {
+        let html = "";
+        window.layers.forEach((l, i) => {
+            const isActive = i === window.activeLayerIndex ? 'active' : '';
+            html += `
+            <div class="layer-item ${isActive}" onclick="selectLayer(${i})">
+                <span style="font-weight:500">${i+1}. ${l.name}</span>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span class="layer-count">${l.traits.length}</span>
+                    <i data-lucide="trash-2" style="width:14px; cursor:pointer; color:#666;" onclick="deleteLayer(${i}, event)"></i>
+                </div>
+            </div>`;
+        });
+        list.innerHTML = html;
     }
 
-    let html = "";
-    window.layers.forEach((layer, index) => {
-        html += `
-        <div class="layer-box">
-            <div class="layer-header" onclick="toggleLayerContent(${layer.id})">
-                <h4>${index + 1}. ${layer.name} <span style="color:#666; font-size:0.8rem">(${layer.traits.length} itens)</span></h4>
-                <div style="display:flex; gap:10px">
-                    <button class="btn-icon-only" style="width:24px;height:24px" onclick="event.stopPropagation(); document.getElementById('upload_${layer.id}').click()"><i data-lucide="upload"></i></button>
-                    <button class="btn-icon-only" style="width:24px;height:24px;background:#ef4444" onclick="event.stopPropagation(); removeLayer(${index})"><i data-lucide="trash"></i></button>
-                </div>
-                <input type="file" id="upload_${layer.id}" hidden multiple accept="image/png" onchange="handleTraitUpload(this, ${index})">
-            </div>
-            <div class="layer-content" id="content_${layer.id}" style="display:none">
-                ${layer.traits.map((t, tIndex) => `
-                    <div class="trait-item">
-                        <img src="${t.file}" class="trait-thumb">
-                        <div style="flex-grow:1; margin:0 10px;">
-                            <div style="font-size:0.8rem; margin-bottom:4px;">${t.name}</div>
-                            <input type="range" min="1" max="100" value="${t.weight}" style="width:100%; height:4px;" onchange="updateWeight(${index}, ${tIndex}, this.value)">
-                        </div>
-                        <span style="font-size:0.75rem; color:#666; min-width:30px; text-align:right;">${t.weight}%</span>
+    // Render Workspace Grid
+    if(window.activeLayerIndex === null) {
+        grid.style.display = 'none';
+        emptyState.style.display = 'block';
+        title.innerText = "Studio";
+        count.innerText = "";
+    } else {
+        grid.style.display = 'grid';
+        emptyState.style.display = 'none';
+        
+        const currentLayer = window.layers[window.activeLayerIndex];
+        title.innerText = currentLayer.name;
+        count.innerText = `${currentLayer.traits.length} assets`;
+
+        let gridHtml = "";
+        
+        // Render Traits Cards
+        currentLayer.traits.forEach((t, tIndex) => {
+            gridHtml += `
+            <div class="trait-card">
+                <button class="btn-delete-trait" onclick="deleteTrait(${tIndex})"><i data-lucide="x" style="width:14px;"></i></button>
+                <div class="trait-img-box"><img src="${t.file}"></div>
+                <div class="trait-info">
+                    <div class="trait-name" title="${t.name}">${t.name}</div>
+                    <div style="display:flex; justify-content:space-between; color:#666; font-size:0.7rem;">
+                        <span>Rarity</span>
+                        <span id="weightVal_${tIndex}">${t.weight}%</span>
                     </div>
-                `).join('')}
-                ${layer.traits.length === 0 ? '<div style="font-size:0.8rem; color:#666; font-style:italic">Nenhuma imagem. Upload PNGs com fundo transparente.</div>' : ''}
-            </div>
+                    <input type="range" class="trait-slider" min="1" max="100" value="${t.weight}" 
+                        oninput="document.getElementById('weightVal_${tIndex}').innerText = this.value + '%'"
+                        onchange="updateTraitWeight(${tIndex}, this.value)">
+                </div>
+            </div>`;
+        });
+
+        // Add Drop Zone at the end
+        gridHtml += `
+        <div class="drop-zone" onclick="document.getElementById('hiddenUpload').click()" ondrop="handleDrop(event)" ondragover="event.preventDefault()">
+            <i data-lucide="upload-cloud" style="width:32px; height:32px; margin-bottom:10px;"></i>
+            <span style="font-size:0.8rem;">Drag images or Click</span>
+            <input type="file" id="hiddenUpload" hidden multiple accept="image/png" onchange="handleFiles(this.files)">
         </div>`;
-    });
-    
-    list.innerHTML = html;
+
+        grid.innerHTML = gridHtml;
+    }
+
     if(window.lucide) window.lucide.createIcons();
 }
 
-window.toggleLayerContent = function(id) {
-    const el = document.getElementById(`content_${id}`);
-    if(el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+// 3. MANIPULAÇÃO DE ARQUIVOS (DRAG & DROP)
+window.handleDrop = function(e) {
+    e.preventDefault();
+    if(e.dataTransfer.files) handleFiles(e.dataTransfer.files);
 }
 
-window.removeLayer = function(index) {
-    if(confirm("Remover esta camada?")) {
-        window.layers.splice(index, 1);
-        renderLayers();
-    }
+window.handleFiles = function(files) {
+    if(window.activeLayerIndex === null) return;
+    
+    Array.from(files).forEach(file => {
+        if(!file.type.match('image.*')) return;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.src = e.target.result;
+            
+            // Adiciona ao layer ativo
+            window.layers[window.activeLayerIndex].traits.push({
+                file: e.target.result,
+                name: file.name.split('.')[0],
+                weight: 50,
+                imgObj: img
+            });
+            renderStudioUI();
+            studioGeneratePreview(); // Atualiza preview auto
+        };
+        reader.readAsDataURL(file);
+    });
 }
 
-window.handleTraitUpload = function(input, layerIndex) {
-    if(input.files) {
-        Array.from(input.files).forEach(file => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = new Image();
-                img.src = e.target.result;
-                // Salva o objeto de imagem carregado para desenhar rápido depois
-                window.layers[layerIndex].traits.push({
-                    file: e.target.result,
-                    name: file.name.split('.')[0],
-                    weight: 50, // Raridade padrão
-                    imgObj: img
-                });
-                renderLayers();
-            };
-            reader.readAsDataURL(file);
-        });
-    }
+window.deleteTrait = function(traitIndex) {
+    window.layers[window.activeLayerIndex].traits.splice(traitIndex, 1);
+    renderStudioUI();
+    studioGeneratePreview();
 }
 
-window.updateWeight = function(lIndex, tIndex, val) {
-    window.layers[lIndex].traits[tIndex].weight = parseInt(val);
-    renderLayers(); // Re-renderiza para mostrar o numero atualizado
-    // (O ideal seria atualizar só o texto, mas assim é mais seguro pra manter sync)
+window.updateTraitWeight = function(tIndex, val) {
+    window.layers[window.activeLayerIndex].traits[tIndex].weight = parseInt(val);
 }
 
-// 2. PREVIEW LÓGICA
+// 4. PREVIEW SYSTEM
 window.studioGeneratePreview = function() {
     const canvas = document.getElementById('previewCanvas');
     if(!canvas) return;
     const ctx = canvas.getContext('2d');
-    
-    // Limpa
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Para cada camada, escolhe um trait baseado na raridade
+    // Desenha em ordem das camadas
     window.layers.forEach(layer => {
         if(layer.traits.length > 0) {
             const trait = pickWeighted(layer.traits);
@@ -112,83 +164,68 @@ window.studioGeneratePreview = function() {
 }
 
 function pickWeighted(traits) {
-    // Algoritmo de Roleta Ponderada
-    const totalWeight = traits.reduce((sum, t) => sum + t.weight, 0);
-    let random = Math.random() * totalWeight;
-    
+    const total = traits.reduce((sum, t) => sum + t.weight, 0);
+    let r = Math.random() * total;
     for(const t of traits) {
-        if(random < t.weight) return t;
-        random -= t.weight;
+        if(r < t.weight) return t;
+        r -= t.weight;
     }
-    return traits[0]; // Fallback
+    return traits[0];
 }
 
-// 3. GERAÇÃO EM MASSA (O PESADO)
+// 5. GERAÇÃO FINAL (ZIP)
 window.studioStartGeneration = async function() {
     if(window.layers.length === 0) return alert("Adicione camadas primeiro!");
     
     const count = parseInt(document.getElementById('genCount').value) || 10;
     const res = parseInt(document.getElementById('genRes').value) || 500;
-    const btn = document.querySelector('#studio .btn-primary');
-    const status = document.getElementById('genStatus');
-    const bar = document.getElementById('genProgressBar');
-    const container = document.getElementById('genProgress');
-    
-    btn.disabled = true;
-    container.style.display = 'block';
-    
+    const bar = document.getElementById('genBar');
+    const txt = document.getElementById('genStatusText');
+    const pctTxt = document.getElementById('genPct');
+    document.getElementById('genProgress').style.display = 'block';
+
     const zip = new JSZip();
-    const folderImages = zip.folder("images");
-    const folderJson = zip.folder("metadata");
+    const folderImg = zip.folder("images");
+    const folderMeta = zip.folder("metadata");
     
-    // Canvas temporário na resolução final
     const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = res;
+    tempCanvas.width = res; 
     tempCanvas.height = res;
     const ctx = tempCanvas.getContext('2d');
-    
-    // Loop assíncrono para não travar o navegador
+
     for(let i = 1; i <= count; i++) {
         ctx.clearRect(0, 0, res, res);
-        let attributes = [];
+        let attrs = [];
         
-        // Desenha camadas
         for(const layer of window.layers) {
             if(layer.traits.length > 0) {
                 const trait = pickWeighted(layer.traits);
                 if(trait && trait.imgObj) {
                     ctx.drawImage(trait.imgObj, 0, 0, res, res);
-                    attributes.push({ trait_type: layer.name, value: trait.name });
+                    attrs.push({ trait_type: layer.name, value: trait.name });
                 }
             }
         }
-        
-        // 1. Salva Imagem no ZIP
+
+        // Salvar Blob
         const blob = await new Promise(r => tempCanvas.toBlob(r, 'image/png'));
-        folderImages.file(`${i}.png`, blob);
+        folderImg.file(`${i}.png`, blob);
         
-        // 2. Salva Metadata no ZIP (Padrão OpenSea)
-        const meta = {
-            name: `Arc NFT #${i}`,
-            description: "Generated via Arc Studio",
-            image: `ipfs://YOUR_CID_HERE/${i}.png`, // Placeholder pro usuário substituir
-            attributes: attributes
-        };
-        folderJson.file(`${i}.json`, JSON.stringify(meta, null, 2));
-        
-        // Atualiza UI
-        const pct = (i / count) * 100;
+        // Metadata
+        const meta = { name: `Arc NFT #${i}`, image: `ipfs://CID/${i}.png`, attributes: attrs };
+        folderMeta.file(`${i}.json`, JSON.stringify(meta, null, 2));
+
+        // Update UI
+        const pct = Math.floor((i / count) * 100);
         bar.style.width = `${pct}%`;
-        status.innerText = `Gerando ${i}/${count}...`;
+        pctTxt.innerText = `${pct}%`;
+        txt.innerText = `Gerando ${i}/${count}...`;
         
-        // Pequena pausa para a UI respirar a cada 10 imagens
-        if(i % 10 === 0) await new Promise(r => setTimeout(r, 10));
+        if(i % 5 === 0) await new Promise(r => setTimeout(r, 0));
     }
-    
-    status.innerText = "Compactando ZIP... (Isso pode demorar)";
-    const zipBlob = await zip.generateAsync({type:"blob"});
-    saveAs(zipBlob, "arc_collection.zip");
-    
-    status.innerText = "Concluído! Verifique seus downloads.";
-    btn.disabled = false;
+
+    txt.innerText = "Compactando ZIP...";
+    const content = await zip.generateAsync({type:"blob"});
+    saveAs(content, "arc_collection.zip");
+    txt.innerText = "Download Iniciado!";
 }
