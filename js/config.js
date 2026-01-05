@@ -8,18 +8,22 @@ window.CCTP_CONFIG = {
 };
 
 window.CONTRACTS = { 
-    factory: "0x2B1dD3cABF65EbB89E03E3e89cBEadc361A01487", 
+    tokenFactory: "0x0A16cfAd6f186fc97d8534eF403f1aB9FB94a5BE", // Novo Factory de Tokens
+    nftFactory: "0x5139fd59Bd7c023785af99F02b55D2FFEFE8A51A",   // Novo Factory de NFTs
     multi: "0x59BcE4bE3e31B14a0528c9249a0580eEc2E59032", 
     lock: "0x4475a197265Dd9c7CaF24Fe1f8cf63B6e9935452", 
     vest: "0xcC8a723917b0258280Ea1647eCDe13Ffa2E1D30b" 
 };
 
 window.ABIS = { 
-    factory: [
+    tokenFactory: [
         "function createToken(string name, string symbol, uint256 initialSupply) external returns (address)", 
-        "function createNFTCollection(string name, string symbol) external returns (address)",
-        "event TokenCreated(address contractAddress, string name, string symbol, string typeStr, address owner)"
-    ], 
+        "event TokenCreated(address indexed contractAddress, string name, string symbol, string typeStr, address indexed owner, uint256 initialSupply)"
+    ],
+    nftFactory: [
+        "function createNFTCollection(string name, string symbol, uint256 maxSupply, uint256 mintPrice) external returns (address)",
+        "event CollectionCreated(address indexed contractAddress, string name, string symbol, string typeStr, address indexed owner, uint256 maxSupply, uint256 cost)"
+    ],
     multi: ["function multisendToken(address token, address[] recipients, uint256[] amounts) external payable"], 
     lock: ["function lockTokens(address _token, uint256 _amount, uint256 _unlockTime) external", "function withdraw(uint256 _lockId) external", "function locks(uint256) view returns (address owner, address token, uint256 amount, uint256 unlockTime, bool withdrawn)"], 
     vest: ["function createVestingSchedule(address, address, uint256, uint256, uint256, uint256, bool) external", "function release(uint256) external", "function getUserScheduleCount(address) view returns (uint256)", "function getUserScheduleIdAtIndex(address, uint256) view returns (uint256)", "function schedules(uint256) view returns (uint256 scheduleId, address token, address beneficiary, uint256 amountTotal, uint256 released, uint256 start, uint256 duration)"], 
