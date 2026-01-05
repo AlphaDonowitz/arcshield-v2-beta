@@ -6,7 +6,7 @@
     <title>Arc Shield - Infrastructure Hub</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-    <link rel="stylesheet" href="css/style.css?v=9.0">
+    <link rel="stylesheet" href="css/style.css?v=9.1">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
@@ -45,6 +45,7 @@
                     <button class="nav-item" onclick="safeNavigate('token-launcher', this)">Criar Token (ERC20)</button>
                     <button class="nav-item" onclick="safeNavigate('nft-launcher', this)">Criar NFT (ERC721)</button>
                 </div>
+
                 <button class="nav-item" onclick="safeNavigate('bridge', this)">
                     <i data-lucide="arrow-left-right"></i> CCTP Bridge
                 </button>
@@ -67,7 +68,7 @@
             </div>
 
             <div class="sidebar-footer">
-                <div class="status-dot"></div> <span class="mono-text">v9.0 Pro</span>
+                <div class="status-dot"></div> <span class="mono-text">v9.1 Manager</span>
                 <a href="#" onclick="disconnectWallet()" class="logout-link"><i data-lucide="log-out"></i></a>
             </div>
         </aside>
@@ -89,7 +90,7 @@
                     <div class="card">
                         <div class="card-header-icon"><i data-lucide="coins"></i></div>
                         <h3>Criar Token (ERC20)</h3>
-                        <p class="bio-text">Lançamento de tokens fungíveis padrão. Ideal para moedas de utilidade.</p>
+                        <p class="bio-text">Lançamento de tokens fungíveis padrão.</p>
                         
                         <div class="form-row">
                             <div class="input-group"><label>Nome</label><input type="text" id="tokenName" placeholder="Ex: Arc Dollar"></div>
@@ -111,7 +112,7 @@
                     <div class="card">
                         <div class="card-header-icon"><i data-lucide="image"></i></div>
                         <h3>Criar Coleção NFT</h3>
-                        <p class="bio-text">Lançamento de coleções com gestão de whitelist, preço e fases.</p>
+                        <p class="bio-text">Lançamento profissional com gestão de fases.</p>
 
                         <div class="form-row">
                             <div class="input-group"><label>Nome da Coleção</label><input type="text" id="nftName" placeholder="Ex: Cyber Onis"></div>
@@ -251,17 +252,18 @@
                             <div class="card content-panel-clean">
                                 <div class="tabs-clean">
                                     <button class="tab-clean active" onclick="showSubTab('global', this)">Explorer</button>
-                                    <button class="tab-clean" onclick="showSubTab('my', this)">Meus</button>
-                                    <button class="tab-clean" onclick="showSubTab('portfolio', this)">Portfolio</button>
+                                    <button class="tab-clean" onclick="showSubTab('my', this)">Meus Projetos</button>
                                     <button class="tab-clean" onclick="showSubTab('ranking', this)">Ranking</button>
                                 </div>
                                 <div class="tab-body-clean">
                                     <div id="subTabGlobal"><div id="globalTokensList" class="token-grid"></div></div>
-                                    <div id="subTabMy" style="display:none;"><div id="myTokensList" class="token-grid"></div></div>
-                                    <div id="subTabPortfolio" style="display:none;">
-                                        <div id="portfolioList" class="token-grid"></div>
-                                        <button class="btn-secondary full mt-4" onclick="loadMyPortfolio()">Atualizar</button>
+                                    
+                                    <div id="subTabMy" style="display:none;">
+                                        <h4 style="color:#666; font-size:0.8rem; margin-bottom:15px; text-transform:uppercase;">Gerenciamento de Ativos</h4>
+                                        <div id="myTokensList" class="token-grid"></div>
+                                        <button class="btn-secondary full mt-4" onclick="loadMyCreations()">Atualizar Lista</button>
                                     </div>
+                                    
                                     <div id="subTabRanking" style="display:none;">
                                         <div class="tbl-head"><span>Rank</span><span>User</span><span style="text-align:right">XP</span></div>
                                         <div id="leaderboardList"></div>
@@ -282,6 +284,40 @@
         <input type="text" id="editBio" placeholder="Bio">
         <div class="modal-actions"><button class="btn-secondary" onclick="document.getElementById('editProfileDialog').close()">Cancelar</button><button class="btn-primary" onclick="saveProfileData(); document.getElementById('editProfileDialog').close()">Salvar</button></div>
     </dialog>
+
+    <dialog id="nftManagerDialog" class="modal-dialog" style="max-width: 500px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3>Gerenciar Coleção</h3>
+            <button onclick="document.getElementById('nftManagerDialog').close()" style="background:none;border:none;color:#fff;cursor:pointer;"><i data-lucide="x"></i></button>
+        </div>
+        
+        <div id="mgrHeader" style="display:flex; gap:15px; margin-bottom:20px; align-items:center;">
+            <img id="mgrLogo" src="" style="width:60px; height:60px; border-radius:8px; object-fit:cover; background:#222;">
+            <div>
+                <h2 id="mgrName" style="margin:0; font-size:1.2rem;">Nome</h2>
+                <div style="color:#666; font-size:0.9rem;" id="mgrSymbol">SYM</div>
+            </div>
+        </div>
+
+        <div class="stats-strip" style="margin-bottom:20px; background:#09090b; border-radius:8px;">
+            <div class="stat-item"><span class="lbl">Supply</span><b class="val" id="mgrSupply">0/0</b></div>
+            <div class="stat-item"><span class="lbl">Preço</span><b class="val" id="mgrPrice">0</b></div>
+            <div class="stat-item"><span class="lbl">Saldo</span><b class="val" id="mgrBalance">0 ETH</b></div>
+        </div>
+
+        <h4 style="color:#666; font-size:0.8rem; text-transform:uppercase;">Fases de Venda</h4>
+        <div class="action-grid" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom:20px;">
+            <button class="btn-secondary small" onclick="setNFTPhase(0)">Pausar</button>
+            <button class="btn-secondary small" onclick="setNFTPhase(1)">Whitelist</button>
+            <button class="btn-secondary small" onclick="setNFTPhase(2)" style="border-color:#22c55e; color:#22c55e;">Público</button>
+        </div>
+
+        <h4 style="color:#666; font-size:0.8rem; text-transform:uppercase;">Financeiro</h4>
+        <button class="btn-primary full" onclick="withdrawNFTFunds()">Sacar Fundos</button>
+        
+        <input type="hidden" id="mgrAddress">
+    </dialog>
+
     <div id="successModal" class="modal-overlay" style="display:none;">
         <div class="card success-card">
             <div class="success-icon"><i data-lucide="check-circle"></i></div>
