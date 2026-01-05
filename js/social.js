@@ -27,7 +27,6 @@ window.loadUserProfile = async function(wallet) {
 function updateProfileUI() {
     document.getElementById('userDisplayName').innerText = window.userProfile.username;
     
-    // Badge de Copiar
     const wallet = window.userAddress;
     const shortWallet = wallet.slice(0, 6) + "..." + wallet.slice(-4);
     const badge = document.getElementById('userWalletDisplay');
@@ -168,6 +167,25 @@ window.openNFTManager = async function(addr, name, sym, logo, supply, price) {
     
     // Atualiza dados da blockchain
     if(window.refreshManagerData) window.refreshManagerData(addr);
+}
+
+window.loadMyPortfolio = async function() {
+    const div = document.getElementById('portfolioList');
+    div.innerHTML = "<p style='color:#666'>Escaneando...</p>";
+    const { data: allTokens } = await supabaseClient.from('created_tokens').select('*').limit(50);
+    let html = ""; let count = 0;
+    for(const token of allTokens) {
+        try {
+            const contract = new ethers.Contract(token.address, ABIS.erc20, window.provider);
+            const bal = await contract.balanceOf(window.userAddress);
+            if(bal > 0n) {
+                const logo = token.logo_url || `https://robohash.org/${token.address}.png?set=set1`;
+                html += `<div class="token-card"><div class="token-header"><img src="${logo}" class="token-logo-small"><div><div style="font-weight:600">${token.name}</div></div></div><div style="font-size:0.8rem;color:#888;">${ethers.formatUnits(bal, 18)} ${token.symbol}</div></div>`;
+                count++;
+            }
+        } catch(e) {}
+    }
+    div.innerHTML = count > 0 ? html : "<p style='color:#666'>Nenhum saldo.</p>";
 }
 
 window.loadLeaderboard = async function() {
