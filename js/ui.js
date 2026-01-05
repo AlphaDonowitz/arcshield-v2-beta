@@ -8,14 +8,10 @@ window.safeNavigate = function(pageId, btn) {
     setTimeout(() => { if(window.lucide) window.lucide.createIcons(); }, 50);
 }
 
-// LÓGICA DO MENU LATERAL (ACCORDION)
 window.toggleSubmenu = function(submenuId, parentBtn) {
     const menu = document.getElementById(submenuId);
     if(menu) menu.classList.toggle('open');
-    
-    document.querySelectorAll('.nav-item').forEach(el => {
-        if(!el.closest('.submenu') && el !== parentBtn) el.classList.remove('active');
-    });
+    document.querySelectorAll('.nav-item').forEach(el => { if(!el.closest('.submenu') && el !== parentBtn) el.classList.remove('active'); });
     if(parentBtn) parentBtn.classList.add('active');
 }
 
@@ -34,6 +30,7 @@ window.navigate = function(pageId, btnElement) {
     if(page) page.classList.add('active');
     
     const titles = { 
+        'studio': 'Arc Studio', // NOVO
         'token-launcher': 'Lançar Token', 
         'nft-launcher': 'Criar Coleção NFT', 
         'multisender': 'Multisender', 
@@ -46,41 +43,22 @@ window.navigate = function(pageId, btnElement) {
     if(titleEl) titleEl.innerText = titles[pageId] || 'Dashboard';
 }
 
-// --- CORREÇÃO: LÓGICA DE ABAS (AGORA DENTRO DO UI.JS) ---
 window.showSubTab = function(name, btn) {
-    // 1. Esconde todas as abas
     ['subTabGlobal', 'subTabMy', 'subTabPortfolio', 'subTabRanking'].forEach(id => {
         const el = document.getElementById(id);
         if(el) el.style.display = 'none';
     });
-    
-    // 2. Remove classe active dos botões
     document.querySelectorAll('.tab-clean').forEach(b => b.classList.remove('active'));
-    
-    // 3. Mostra a aba alvo
     const targetId = name === 'ranking' ? 'subTabRanking' : 'subTab' + name.charAt(0).toUpperCase() + name.slice(1);
     const targetEl = document.getElementById(targetId);
     if(targetEl) targetEl.style.display = 'block';
-    
-    // 4. Ativa o botão clicado
     if(btn) btn.classList.add('active');
-    
-    // 5. Executa a função de carregar dados correspondente
-    if(name === 'my' && window.loadMyCreations) {
-        window.loadMyCreations(); // <--- CHAMA O CARREGAMENTO
-    }
-    if(name === 'ranking' && window.loadLeaderboard) {
-        window.loadLeaderboard();
-    }
-    if(name === 'portfolio' && window.loadMyPortfolio) {
-        window.loadMyPortfolio();
-    }
-
-    // Refresh Ícones
+    if(name === 'my' && window.loadMyCreations) window.loadMyCreations();
+    if(name === 'ranking' && window.loadLeaderboard) window.loadLeaderboard();
+    if(name === 'portfolio' && window.loadMyPortfolio) window.loadMyPortfolio();
     setTimeout(() => { if(window.lucide) window.lucide.createIcons(); }, 100);
 }
 
-// UTILS DE IMAGEM E UPLOAD
 window.compressImage = function(file) {
     return new Promise((resolve) => {
         const reader = new FileReader();
@@ -114,20 +92,15 @@ window.handleFileUpload = function(input) {
     const file = input.files[0];
     if(!file) return;
     const reader = new FileReader();
-    reader.onload = function(e) { 
-        const el = document.getElementById('csvInput');
-        if(el) el.value = e.target.result; 
-    };
+    reader.onload = function(e) { const el = document.getElementById('csvInput'); if(el) el.value = e.target.result; };
     reader.readAsText(file);
 }
 
 window.setBridgeMode = function(mode) {
     document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
     if(event && event.target) event.target.classList.add('active');
-    
     const deposit = document.getElementById('bridgeDepositArea');
     const claim = document.getElementById('bridgeClaimArea');
-    
     if(deposit) deposit.style.display = mode === 'deposit' ? 'block' : 'none';
     if(claim) claim.style.display = mode === 'claim' ? 'block' : 'none';
 }
