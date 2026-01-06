@@ -1,34 +1,36 @@
 import { bus } from '../core/eventBus.js';
 
 export function initNavigation() {
-    console.log("UI: Inicializando navegação...");
+    console.log("UI: Procurando botão de entrada...");
 
-    // --- 1. Lógica da Landing Page (PRIORIDADE) ---
+    // 1. Landing Page (O Botão que não funciona)
     const btnEnter = document.getElementById('btnEnterApp');
     const landingPage = document.getElementById('landingPage');
     const dashboardLayout = document.getElementById('dashboardLayout');
 
-    if (btnEnter && landingPage && dashboardLayout) {
-        console.log("UI: Botão de entrada encontrado via JS.");
+    if (btnEnter) {
+        console.log("UI: Botão encontrado! Adicionando listener...");
         
-        btnEnter.addEventListener('click', (e) => {
+        btnEnter.onclick = function(e) { // Usando onclick direto para garantir prioridade
             e.preventDefault();
-            console.log("UI: Entrando no App...");
+            console.log("UI: Clique detectado. Entrando...");
             
-            // Oculta Landing Page
-            landingPage.style.opacity = '0';
-            setTimeout(() => {
-                landingPage.style.display = 'none';
-            }, 300); // Pequena transição suave
-
-            // Mostra Dashboard
-            dashboardLayout.style.display = 'flex';
-        });
+            if (landingPage) {
+                landingPage.style.opacity = '0';
+                setTimeout(() => {
+                    landingPage.style.display = 'none';
+                }, 500);
+            }
+            
+            if (dashboardLayout) {
+                dashboardLayout.style.display = 'flex';
+            }
+        };
     } else {
-        console.error("UI CRÍTICO: Elementos da Landing Page não encontrados no HTML.");
+        console.error("UI CRÍTICO: Botão #btnEnterApp não existe no HTML.");
     }
 
-    // --- 2. Lógica das Abas (Navegação Interna) ---
+    // 2. Navegação Lateral
     const buttons = document.querySelectorAll('.nav-item');
     const sections = document.querySelectorAll('.page-section');
     const titleEl = document.getElementById('pageTitle');
@@ -44,40 +46,32 @@ export function initNavigation() {
     };
 
     function navigateTo(targetId, triggerButton) {
-        // Atualiza Botões
         buttons.forEach(btn => {
             btn.classList.remove('active');
-            // Marca ativo se for o botão clicado OU se o target coincidir
             if(btn === triggerButton || btn.dataset.target === targetId) {
                 btn.classList.add('active');
             }
         });
 
-        // Atualiza Seções
         sections.forEach(sec => {
             sec.classList.remove('active');
-            if(sec.id === targetId) {
-                sec.classList.add('active');
-            }
+            if(sec.id === targetId) sec.classList.add('active');
         });
 
-        // Atualiza Título
         if(titleEl) titleEl.innerText = titles[targetId] || 'Dashboard';
         
-        // Emite evento global
         console.log(`UI: Navegando para ${targetId}`);
         bus.emit('navigation:changed', targetId);
     }
 
-    // Listeners de Clique nas Abas
     buttons.forEach(btn => {
         btn.addEventListener('click', (e) => {
-            // Se for um link real (href), deixa navegar. Se não, previne.
-            if (!btn.getAttribute('href')) {
-                e.preventDefault();
-            }
             const target = btn.dataset.target;
-            if(target) navigateTo(target, btn);
+            if(target) {
+                // Se não for link externo, previne default
+                if(!btn.getAttribute('href')) e.preventDefault();
+                navigateTo(target, btn);
+            }
         });
     });
 }
