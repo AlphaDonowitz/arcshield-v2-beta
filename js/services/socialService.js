@@ -1,5 +1,6 @@
 import { SUPABASE_CONFIG } from '../config.js';
 import { bus } from '../core/eventBus.js';
+import { web3Service } from './web3Service.js'; // Importa web3 para fallback de endereço
 
 class SocialService {
     constructor() {
@@ -16,19 +17,17 @@ class SocialService {
         }
     }
 
+    // Carrega perfil, com fallback local se o banco falhar
     async loadUserProfile(walletAddress) {
         if (!this.client || !walletAddress) return;
 
         try {
-            // Tenta buscar usuário
             let { data: user, error } = await this.client
                 .from('users')
                 .select('*')
                 .eq('wallet_address', walletAddress)
                 .single();
 
-            // Se não existir (ou der erro de busca), cria um objeto local temporário
-            // Isso evita que a UI quebre se o banco estiver inacessível
             if (!user) {
                 const newUser = {
                     wallet_address: walletAddress,
@@ -37,50 +36,52 @@ class SocialService {
                     username: `User ${walletAddress.slice(0,4)}`
                 };
                 
-                // Tenta salvar no banco
-                const { data: createdUser, error: createError } = await this.client
+                // Tenta criar no banco
+                const { data: createdUser } = await this.client
                     .from('users')
                     .insert([newUser])
                     .select()
                     .single();
                 
-                // Se salvar funcionar, usa o do banco. Se falhar (RLS), usa o local.
-                user = createdUser || newUser; 
+                user = createdUser || newUser;
             }
 
             this.currentUser = user;
             bus.emit('profile:loaded', user);
-            console.log("SocialService: Profile loaded", user.username);
 
         } catch (err) {
-            console.error("SocialService Error:", err);
-            // Fallback de segurança para não travar o app
+            console.error("SocialService load error:", err);
+            // Fallback de emergência
             this.currentUser = { wallet_address: walletAddress, points: 0, username: 'Guest' };
             bus.emit('profile:loaded', this.currentUser);
         }
     }
 
     async addPoints(amount) {
-        if(!this.currentUser || !this.client) return;
-        
-        const newTotal = (this.currentUser.points || 0) + amount;
-        this.currentUser.points = newTotal; // Atualiza localmente primeiro
+        if(!this.currentUser) return;
+        this.currentUser.points = (this.currentUser.points || 0) + amount;
         bus.emit('profile:updated', this.currentUser);
 
-        await this.client
-            .from('users')
-            .update({ points: newTotal })
-            .eq('wallet_address', this.currentUser.wallet_address);
+        if(this.client) {
+            await this.client.from('users').update({ points: this.currentUser.points })
+                .eq('wallet_address', this.currentUser.wallet_address);
+        }
     }
 
     async registerCreation(data) {
-        if(!this.currentUser) return;
+        // Garante que temos um endereço de carteira (do user ou do web3 direto)
+        const owner = this.currentUser?.wallet_address || web3Service.userAddress;
+        
+        if(!owner) {
+            console.error("SocialService: Sem carteira para salvar token.");
+            return;
+        }
 
         const tokenData = {
             name: data.name,
             symbol: data.symbol,
             address: data.address,
-            owner_wallet: this.currentUser.wallet_address,
+            owner_wallet: owner,
             initial_supply: data.supply,
             contract_type: data.type, 
             bonus_claimed: false,
@@ -88,81 +89,67 @@ class SocialService {
             logo_url: null
         };
 
-        // 1. Salva no LocalStorage (Redundância Suprema)
-        this._saveToLocalStorage(tokenData);
+        console.log("SocialService: Salvando token...", tokenData);
 
-        // 2. Tenta salvar no Supabase
+        // 1. Salva no LocalStorage (Redundância Imediata)
+        this._saveToLocalStorage(tokenData, owner);
+
+        // 2. Tenta salvar no Supabase (Background)
         if(this.client) {
-            try {
-                const { error } = await this.client.from('created_tokens').insert([tokenData]);
-                if(error) console.error("Supabase Insert Error (RLS?):", error);
-                else console.log("SocialService: Token salvo no Supabase");
-            } catch (e) {
-                console.error("SocialService: Falha de conexão DB", e);
-            }
+            const { error } = await this.client.from('created_tokens').insert([tokenData]);
+            if(error) console.error("Supabase Error:", error);
         }
     }
 
     async getUserTokens() {
-        if (!this.currentUser) return [];
+        const owner = this.currentUser?.wallet_address || web3Service.userAddress;
+        if (!owner) return [];
 
         let dbTokens = [];
         
-        // 1. Tenta buscar do Banco
+        // 1. Busca do Banco
         if (this.client) {
-            const { data, error } = await this.client
+            const { data } = await this.client
                 .from('created_tokens')
                 .select('*')
-                .eq('owner_wallet', this.currentUser.wallet_address)
+                .eq('owner_wallet', owner)
                 .order('created_at', { ascending: false });
-            
-            if (!error && data) dbTokens = data;
+            if (data) dbTokens = data;
         }
 
-        // 2. Busca do LocalStorage (Tokens que criamos neste navegador)
-        const localTokens = this._getFromLocalStorage();
+        // 2. Busca do LocalStorage
+        const localTokens = this._getFromLocalStorage(owner);
 
-        // 3. Mesclagem Inteligente (Sem duplicatas)
-        // Usamos um Map para garantir unicidade pelo endereço do contrato
+        // 3. Mescla (Prioridade para o banco, adiciona locais se faltar)
         const tokenMap = new Map();
-
-        // Adiciona tokens do banco
         dbTokens.forEach(t => tokenMap.set(t.address.toLowerCase(), t));
-
-        // Adiciona tokens locais (apenas se não existirem no banco ainda)
         localTokens.forEach(t => {
             if (!tokenMap.has(t.address.toLowerCase())) {
                 tokenMap.set(t.address.toLowerCase(), t);
             }
         });
 
-        // Converte de volta para array e ordena por data
         return Array.from(tokenMap.values()).sort((a, b) => 
             new Date(b.created_at) - new Date(a.created_at)
         );
     }
 
-    // --- Helpers de LocalStorage ---
-    
-    _getStorageKey() {
-        if(!this.currentUser) return null;
-        return `arc_tokens_${this.currentUser.wallet_address}`;
+    // --- Helpers LocalStorage ---
+    _getStorageKey(owner) { return `arc_tokens_${owner}`; }
+
+    _saveToLocalStorage(token, owner) {
+        const key = this._getStorageKey(owner);
+        let list = this._getFromLocalStorage(owner);
+        // Evita duplicatas no local storage
+        if(!list.find(t => t.address.toLowerCase() === token.address.toLowerCase())) {
+            list.unshift(token);
+            localStorage.setItem(key, JSON.stringify(list));
+        }
     }
 
-    _saveToLocalStorage(token) {
-        const key = this._getStorageKey();
-        if(!key) return;
-
-        let list = this._getFromLocalStorage();
-        list.unshift(token);
-        localStorage.setItem(key, JSON.stringify(list));
-    }
-
-    _getFromLocalStorage() {
-        const key = this._getStorageKey();
-        if(!key) return [];
+    _getFromLocalStorage(owner) {
         try {
-            return JSON.parse(localStorage.getItem(key)) || [];
+            return JSON.parse(localStorage.getItem(this._getStorageKey(owner))) || [];
         } catch(e) { return []; }
     }
 }
