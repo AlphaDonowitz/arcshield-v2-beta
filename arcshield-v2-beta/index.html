@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arc Shield - Infrastructure Hub v16</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <link rel="stylesheet" href="css/main.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/keccak256@latest/keccak256.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/merkletreejs@latest/merkletree.js"></script>
+</head>
+<body>
+
+    <div id="landingPage">
+        <div class="landing-content">
+            <div class="testnet-badge">ARC TESTNET LIVE</div>
+            <h1 class="hero-title">Arc <span class="text-blue">Shield</span></h1>
+            <button id="btnEnterApp" class="btn-primary-lg">Acessar Dashboard</button>
+        </div>
+    </div>
+
+    <div id="dashboardLayout" style="display: none;">
+        <aside class="sidebar">
+            <div class="brand-area"><i data-lucide="shield" class="text-blue"></i> <span>Arc Shield</span></div>
+            
+            <nav class="nav-menu">
+                <label class="nav-label">PRODUTOS</label>
+                <button class="nav-item" data-target="token-launcher"><i data-lucide="coins"></i> Token Factory</button>
+                <button class="nav-item" data-target="studio"><i data-lucide="palette"></i> NFT Studio <span class="badge ai-badge">AI V15</span></button>
+                
+                <label class="nav-label">UTILITÁRIOS</label>
+                <button class="nav-item" data-target="multisender"><i data-lucide="send"></i> Smart Drop</button>
+                <button class="nav-item" data-target="locker"><i data-lucide="lock"></i> Locker</button>
+                <button class="nav-item" data-target="vesting"><i data-lucide="hourglass"></i> Vesting</button>
+                <button class="nav-item" data-target="bridge"><i data-lucide="arrow-left-right"></i> Bridge</button>
+                
+                <label class="nav-label">SOCIAL</label>
+                <button class="nav-item" data-target="leaderboard"><i data-lucide="users"></i> User Hub</button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="btn-connect" id="btnConnect">Connect Wallet</div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-bar">
+                <h2 id="pageTitle">Dashboard</h2>
+                <div id="userProfileSnippet" class="user-snippet"></div>
+            </header>
+            
+            <div class="content-container">
+                <div id="token-launcher" class="page-section active">
+                    <div class="card"><h3>Token Factory</h3><p>Carregando módulo...</p></div>
+                </div>
+                
+                <div id="studio" class="page-section">
+                    <div class="card"><h3>NFT Studio</h3><p>Carregando módulo...</p></div>
+                </div>
+
+                </div>
+        </main>
+    </div>
+
+    <div id="globalModals"></div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
