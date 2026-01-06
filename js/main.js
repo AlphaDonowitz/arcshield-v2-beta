@@ -3,16 +3,16 @@ import { initSidebar } from './ui/sidebar.js';
 import { initProfileUI } from './ui/profileUI.js';
 import { web3Service } from './services/web3Service.js';
 import { socialService } from './services/socialService.js';
-import { bus } from './core/eventBus.js';
+import { bus } from '../core/eventBus.js';
 
-// Importação dos Módulos Funcionais
+// Módulos
 import { initTokenFactory } from './modules/tokenFactory.js';
 import { initUserHub } from './modules/userHub.js'; 
 import { initMultisender } from './modules/multisender.js';
-import { initStudio } from './modules/studio.js'; // <--- NOVO
+import { initStudio } from './modules/studio.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log("System: Booting Arc Shield v16.1 (Stable Horde AI)...");
+    console.log("System: Booting Arc Shield v16.2 (HD Generator Engine)...");
 
     try {
         // 1. Inicializa UI Core
@@ -20,11 +20,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         initSidebar();
         initProfileUI();
         
-        // 2. Inicializa Módulos Funcionais
+        // 2. Inicializa Módulos
         initTokenFactory(); 
         initUserHub(); 
         initMultisender();
-        initStudio(); // <--- INICIA O STUDIO
+        initStudio(); 
         
         if(window.lucide) window.lucide.createIcons();
     } catch (error) {
