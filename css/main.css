@@ -11,6 +11,7 @@
 
 /* 4. Módulos Específicos */
 @import url('modules/multisender.css');
+@import url('modules/studio.css'); /* <--- NOVO */
 
 /* Reset Básico de Segurança */
 * { box-sizing: border-box; }
@@ -20,23 +21,13 @@ body {
     font-family: var(--font-ui); 
     background-color: var(--bg-app); 
     color: var(--text-primary); 
-    /* Padrão de fundo sutil */
     background-image: radial-gradient(#27272a 1px, transparent 1px);
     background-size: 32px 32px;
     min-height: 100vh;
 }
 
-/* Scrollbar Customizada (Opcional, mas elegante) */
-::-webkit-scrollbar {
-    width: 8px;
-}
-::-webkit-scrollbar-track {
-    background: var(--bg-app); 
-}
-::-webkit-scrollbar-thumb {
-    background: #333; 
-    border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-    background: #444; 
-}
+/* Scrollbar Customizada */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-app); }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #444; }
