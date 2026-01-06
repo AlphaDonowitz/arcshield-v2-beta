@@ -58,6 +58,25 @@ window.showSubTab = function(name, btn) {
     setTimeout(() => { if(window.lucide) window.lucide.createIcons(); }, 100);
 }
 
+// NOVA FUNÇÃO: ABAS DO GERENCIADOR NFT
+window.switchMgrTab = function(tabName, btn) {
+    ['mgrTabDash', 'mgrTabWl', 'mgrTabMint'].forEach(id => {
+        document.getElementById(id).style.display = 'none';
+    });
+    document.querySelectorAll('#nftManagerDialog .tab-clean').forEach(b => b.classList.remove('active'));
+    
+    document.getElementById('mgrTab' + tabName.charAt(0).toUpperCase() + tabName.slice(1)).style.display = 'block';
+    if(btn) btn.classList.add('active');
+}
+
+window.adjustMintAmount = function(delta) {
+    const el = document.getElementById('mintAmountDisplay');
+    let val = parseInt(el.innerText) + delta;
+    if(val < 1) val = 1;
+    if(val > 10) val = 10;
+    el.innerText = val;
+}
+
 window.compressImage = function(file) {
     return new Promise((resolve) => {
         const reader = new FileReader();
