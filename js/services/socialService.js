@@ -5,7 +5,6 @@ class SocialService {
     constructor() {
         this.client = null;
         this.currentUser = null;
-        this.sessionTokens = []; // Cache local para tokens recém-criados
         this.init();
     }
 
@@ -21,12 +20,15 @@ class SocialService {
         if (!this.client || !walletAddress) return;
 
         try {
+            // Tenta buscar usuário
             let { data: user, error } = await this.client
                 .from('users')
                 .select('*')
                 .eq('wallet_address', walletAddress)
                 .single();
 
+            // Se não existir (ou der erro de busca), cria um objeto local temporário
+            // Isso evita que a UI quebre se o banco estiver inacessível
             if (!user) {
                 const newUser = {
                     wallet_address: walletAddress,
@@ -35,14 +37,15 @@ class SocialService {
                     username: `User ${walletAddress.slice(0,4)}`
                 };
                 
+                // Tenta salvar no banco
                 const { data: createdUser, error: createError } = await this.client
                     .from('users')
                     .insert([newUser])
                     .select()
                     .single();
                 
-                if (createError) throw createError;
-                user = createdUser;
+                // Se salvar funcionar, usa o do banco. Se falhar (RLS), usa o local.
+                user = createdUser || newUser; 
             }
 
             this.currentUser = user;
@@ -51,7 +54,9 @@ class SocialService {
 
         } catch (err) {
             console.error("SocialService Error:", err);
-            bus.emit('notification:error', "Erro ao carregar perfil social.");
+            // Fallback de segurança para não travar o app
+            this.currentUser = { wallet_address: walletAddress, points: 0, username: 'Guest' };
+            bus.emit('profile:loaded', this.currentUser);
         }
     }
 
@@ -59,85 +64,106 @@ class SocialService {
         if(!this.currentUser || !this.client) return;
         
         const newTotal = (this.currentUser.points || 0) + amount;
-        
-        const { error } = await this.client
+        this.currentUser.points = newTotal; // Atualiza localmente primeiro
+        bus.emit('profile:updated', this.currentUser);
+
+        await this.client
             .from('users')
             .update({ points: newTotal })
             .eq('wallet_address', this.currentUser.wallet_address);
-
-        if(!error) {
-            this.currentUser.points = newTotal;
-            bus.emit('profile:updated', { ...this.currentUser, points: newTotal });
-            bus.emit('notification:success', `+${amount} XP!`);
-        }
     }
 
     async registerCreation(data) {
-        // 1. Adiciona ao cache local imediatamente (Optimistic Update)
-        const optimisticToken = {
-            id: 'temp_' + Date.now(),
+        if(!this.currentUser) return;
+
+        const tokenData = {
             name: data.name,
             symbol: data.symbol,
             address: data.address,
-            owner_wallet: this.currentUser ? this.currentUser.wallet_address : data.owner_wallet,
+            owner_wallet: this.currentUser.wallet_address,
             initial_supply: data.supply,
-            contract_type: data.type,
-            logo_url: null, // Pode ser preenchido se tivermos a imagem
-            created_at: new Date().toISOString()
+            contract_type: data.type, 
+            bonus_claimed: false,
+            created_at: new Date().toISOString(),
+            logo_url: null
         };
-        
-        this.sessionTokens.unshift(optimisticToken);
-        console.log("SocialService: Token adicionado ao cache local", optimisticToken);
 
-        // 2. Tenta salvar no banco em background
-        if(!this.client || !this.currentUser) return;
+        // 1. Salva no LocalStorage (Redundância Suprema)
+        this._saveToLocalStorage(tokenData);
 
-        try {
-            await this.client.from('created_tokens').insert([{
-                name: data.name,
-                symbol: data.symbol,
-                address: data.address,
-                owner_wallet: this.currentUser.wallet_address,
-                initial_supply: data.supply,
-                contract_type: data.type, 
-                bonus_claimed: false
-            }]);
-            console.log("SocialService: Token salvo no Supabase");
-        } catch (e) {
-            console.error("SocialService: Falha ao salvar no DB (mas está no cache)", e);
+        // 2. Tenta salvar no Supabase
+        if(this.client) {
+            try {
+                const { error } = await this.client.from('created_tokens').insert([tokenData]);
+                if(error) console.error("Supabase Insert Error (RLS?):", error);
+                else console.log("SocialService: Token salvo no Supabase");
+            } catch (e) {
+                console.error("SocialService: Falha de conexão DB", e);
+            }
         }
     }
 
-    // Busca tokens do usuário (DB + Cache Local)
     async getUserTokens() {
-        if (!this.client || !this.currentUser) return this.sessionTokens;
+        if (!this.currentUser) return [];
 
-        // 1. Busca do Banco
-        const { data: dbTokens, error } = await this.client
-            .from('created_tokens')
-            .select('*')
-            .eq('owner_wallet', this.currentUser.wallet_address)
-            .order('created_at', { ascending: false });
-
-        if (error) {
-            console.error("Erro ao buscar tokens do DB:", error);
-            // Se der erro no banco, retorna pelo menos os locais
-            return this.sessionTokens;
+        let dbTokens = [];
+        
+        // 1. Tenta buscar do Banco
+        if (this.client) {
+            const { data, error } = await this.client
+                .from('created_tokens')
+                .select('*')
+                .eq('owner_wallet', this.currentUser.wallet_address)
+                .order('created_at', { ascending: false });
+            
+            if (!error && data) dbTokens = data;
         }
 
-        // 2. Mescla Banco com Cache Local (evitando duplicatas)
-        // Se o token já está no DB, usamos o do DB. Se não, usamos o do cache.
-        const mergedList = [...dbTokens];
-        
-        this.sessionTokens.forEach(localToken => {
-            const exists = mergedList.find(t => t.address.toLowerCase() === localToken.address.toLowerCase());
-            if (!exists) {
-                // Adiciona no topo se ainda não apareceu no banco
-                mergedList.unshift(localToken);
+        // 2. Busca do LocalStorage (Tokens que criamos neste navegador)
+        const localTokens = this._getFromLocalStorage();
+
+        // 3. Mesclagem Inteligente (Sem duplicatas)
+        // Usamos um Map para garantir unicidade pelo endereço do contrato
+        const tokenMap = new Map();
+
+        // Adiciona tokens do banco
+        dbTokens.forEach(t => tokenMap.set(t.address.toLowerCase(), t));
+
+        // Adiciona tokens locais (apenas se não existirem no banco ainda)
+        localTokens.forEach(t => {
+            if (!tokenMap.has(t.address.toLowerCase())) {
+                tokenMap.set(t.address.toLowerCase(), t);
             }
         });
 
-        return mergedList;
+        // Converte de volta para array e ordena por data
+        return Array.from(tokenMap.values()).sort((a, b) => 
+            new Date(b.created_at) - new Date(a.created_at)
+        );
+    }
+
+    // --- Helpers de LocalStorage ---
+    
+    _getStorageKey() {
+        if(!this.currentUser) return null;
+        return `arc_tokens_${this.currentUser.wallet_address}`;
+    }
+
+    _saveToLocalStorage(token) {
+        const key = this._getStorageKey();
+        if(!key) return;
+
+        let list = this._getFromLocalStorage();
+        list.unshift(token);
+        localStorage.setItem(key, JSON.stringify(list));
+    }
+
+    _getFromLocalStorage() {
+        const key = this._getStorageKey();
+        if(!key) return [];
+        try {
+            return JSON.parse(localStorage.getItem(key)) || [];
+        } catch(e) { return []; }
     }
 }
 
