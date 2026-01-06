@@ -6,17 +6,37 @@ export function initUserHub() {
     const container = document.getElementById('leaderboard'); 
     if (!container) return;
 
+    // 1. Carrega quando o perfil é identificado (Login)
     bus.on('profile:loaded', async () => {
-        await renderUserHub(container);
+        // Apenas carrega se a aba estiver ativa para economizar recursos
+        if(container.classList.contains('active')) {
+            await renderUserHub(container);
+        }
+    });
+
+    // 2. CORREÇÃO: Carrega sempre que o usuário clica na aba "User Hub"
+    bus.on('navigation:changed', async (targetId) => {
+        if (targetId === 'leaderboard') {
+            await renderUserHub(container);
+        }
     });
 }
 
 async function renderUserHub(container) {
-    container.innerHTML = `<div class="card"><div style="display:flex;align-items:center;gap:10px;"><i data-lucide="loader-2" class="spin"></i> <p>Carregando seus projetos...</p></div></div>`;
+    // Spinner de carregamento
+    container.innerHTML = `
+        <div class="card" style="display:flex; justify-content:center; align-items:center; min-height:200px;">
+            <div style="text-align:center;">
+                <i data-lucide="loader-2" class="spin" style="width:32px; height:32px; margin-bottom:10px; color:var(--primary-blue)"></i>
+                <p>Buscando seus projetos...</p>
+            </div>
+        </div>`;
     if(window.lucide) window.lucide.createIcons();
     
+    // Busca dados frescos do Supabase
     const tokens = await socialService.getUserTokens();
 
+    // Estado Vazio
     if (tokens.length === 0) {
         container.innerHTML = `
             <div class="card" style="text-align:center; padding:40px;">
@@ -31,11 +51,14 @@ async function renderUserHub(container) {
         return;
     }
 
+    // Renderiza Lista
     let html = `
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h3>Meus Projetos</h3>
-                <span class="badge">${tokens.length} Ativos</span>
+                <h3>Gerenciador de Projetos</h3>
+                <button class="btn-secondary small" onclick="document.querySelector('[data-target=leaderboard]').click()">
+                    <i data-lucide="refresh-cw" style="width:12px; margin-right:5px;"></i> Atualizar
+                </button>
             </div>
             <div class="token-list">
     `;
@@ -73,12 +96,12 @@ async function renderUserHub(container) {
 
                 <hr style="border:0; border-top:1px solid #27272a; margin:15px 0;">
                 
-                <label style="font-size:0.7rem; color:#666; font-weight:700; margin-bottom:8px; display:block;">GERENCIAMENTO</label>
+                <label style="font-size:0.7rem; color:#666; font-weight:700; margin-bottom:8px; display:block;">AÇÕES RÁPIDAS</label>
 
                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px;">
                     
                     <a href="data:text/json;charset=utf-8,${jsonString}" download="${t.symbol}_listing.json" class="btn-secondary small" style="justify-content:center; text-decoration:none;">
-                        <i data-lucide="file-json" style="width:14px; margin-right:5px;"></i> Baixar JSON (API)
+                        <i data-lucide="file-json" style="width:14px; margin-right:5px;"></i> JSON (CoinGecko)
                     </a>
 
                     ${isERC20 ? `
@@ -107,7 +130,6 @@ async function renderUserHub(container) {
                 if(multiBtn) multiBtn.click();
                 
                 // Emite evento avisando que queremos usar este token
-                // (O módulo multisender, quando criado, ouvirá este evento)
                 setTimeout(() => {
                     bus.emit('multisender:selectToken', { address: t.address, symbol: t.symbol });
                 }, 300);
