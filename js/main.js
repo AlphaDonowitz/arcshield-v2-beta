@@ -5,13 +5,14 @@ import { web3Service } from './services/web3Service.js';
 import { socialService } from './services/socialService.js';
 import { bus } from './core/eventBus.js';
 
-// Importação dos Módulos
+// Importação dos Módulos Funcionais
 import { initTokenFactory } from './modules/tokenFactory.js';
 import { initUserHub } from './modules/userHub.js'; 
-import { initMultisender } from './modules/multisender.js'; // <--- NOVO
+import { initMultisender } from './modules/multisender.js';
+import { initStudio } from './modules/studio.js'; // <--- NOVO
 
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log("System: Booting Arc Shield v16...");
+    console.log("System: Booting Arc Shield v16.1 (Stable Horde AI)...");
 
     try {
         // 1. Inicializa UI Core
@@ -22,7 +23,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 2. Inicializa Módulos Funcionais
         initTokenFactory(); 
         initUserHub(); 
-        initMultisender(); // <--- INICIA O MULTISENDER
+        initMultisender();
+        initStudio(); // <--- INICIA O STUDIO
         
         if(window.lucide) window.lucide.createIcons();
     } catch (error) {
@@ -34,22 +36,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 4. Listeners Globais
     bus.on('wallet:connected', (data) => {
-        console.log("Main: Wallet connected, initializing social profile...");
         socialService.loadUserProfile(data.address);
     });
 
-    bus.on('notification:error', (msg) => {
-        alert("⚠️ " + msg); 
-    });
-
-    bus.on('notification:success', (msg) => {
-        console.log("SUCCESS:", msg);
-        alert("✅ " + msg);
-    });
-
-    bus.on('notification:info', (msg) => {
-        console.log("App Info:", msg);
-    });
+    bus.on('notification:error', (msg) => { alert("⚠️ " + msg); });
+    bus.on('notification:success', (msg) => { alert("✅ " + msg); });
+    bus.on('notification:info', (msg) => { console.log("App Info:", msg); });
 
     console.log("System: Ready & Listening.");
 });
