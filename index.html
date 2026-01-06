@@ -30,13 +30,14 @@
     </div>
 
     <div id="dashboardLayout" style="display: none;">
+        
         <aside class="sidebar">
             <div class="brand-area"><i data-lucide="shield" class="text-blue"></i> <span>Arc Shield</span></div>
             
             <nav class="nav-menu">
                 <label class="nav-label">PRODUTOS</label>
-                <button class="nav-item" data-target="token-launcher"><i data-lucide="coins"></i> Token Factory</button>
-                <button class="nav-item" data-target="studio"><i data-lucide="palette"></i> NFT Studio <span class="badge ai-badge">AI V15</span></button>
+                <button class="nav-item active" data-target="token-launcher"><i data-lucide="coins"></i> Token Factory</button>
+                <button class="nav-item" data-target="studio"><i data-lucide="palette"></i> NFT Studio <span class="badge ai-badge">AI</span></button>
                 
                 <label class="nav-label">UTILITÁRIOS</label>
                 <button class="nav-item" data-target="multisender"><i data-lucide="send"></i> Smart Drop</button>
@@ -55,20 +56,46 @@
 
         <main class="main-content">
             <header class="top-bar">
-                <h2 id="pageTitle">Dashboard</h2>
+                <h2 id="pageTitle">Token Factory</h2>
                 <div id="userProfileSnippet" class="user-snippet"></div>
             </header>
             
             <div class="content-container">
+                
                 <div id="token-launcher" class="page-section active">
                     <div class="card"><h3>Token Factory</h3><p>Carregando módulo...</p></div>
                 </div>
                 
                 <div id="studio" class="page-section">
-                    <div class="card"><h3>NFT Studio</h3><p>Carregando módulo...</p></div>
+                     <div class="card"><h3>NFT Studio</h3><p>Módulo em desenvolvimento...</p></div>
                 </div>
 
+                <div id="multisender" class="page-section">
+                    <div class="card"><h3>Smart Drop</h3><p>Módulo em desenvolvimento...</p></div>
                 </div>
+
+                <div id="locker" class="page-section">
+                    <div class="card"><h3>Liquidity Locker</h3><p>Módulo em desenvolvimento...</p></div>
+                </div>
+
+                <div id="vesting" class="page-section">
+                    <div class="card"><h3>Vesting Schedule</h3><p>Módulo em desenvolvimento...</p></div>
+                </div>
+
+                <div id="bridge" class="page-section">
+                    <div class="card"><h3>CCTP Bridge</h3><p>Módulo em desenvolvimento...</p></div>
+                </div>
+
+                <div id="leaderboard" class="page-section">
+                    <div class="card">
+                        <div style="text-align:center; padding: 20px;">
+                            <i data-lucide="loader-2" class="spin"></i>
+                            <p>Inicializando User Hub...</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
         </main>
     </div>
 
