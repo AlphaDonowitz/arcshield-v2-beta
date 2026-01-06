@@ -25,7 +25,7 @@ window.loadUserProfile = async function(wallet) {
     checkDailyAvailability(); 
     loadContacts(); 
     loadMyCreations();
-    loadGlobalFeed(); // <--- NOVO: Carrega o feed global
+    loadGlobalFeed(); 
 }
 
 function updateProfileUI() {
@@ -124,6 +124,10 @@ window.loadMyCreations = async function() {
     tokens.forEach(t => {
         const isNFT = t.contract_type === 'ERC721';
         const logo = t.logo_url || `https://robohash.org/${t.address}.png?set=set1`;
+        
+        // Passamos os dados do token como string JSON para a função de listagem
+        const tokenDataStr = encodeURIComponent(JSON.stringify(t));
+
         html += `
         <div class="token-card" style="position:relative;">
             <div class="token-header">
@@ -140,7 +144,10 @@ window.loadMyCreations = async function() {
             <div style="margin-top:12px;">
                 ${isNFT 
                     ? `<button class="btn-primary full small" onclick="openNFTManager('${t.address}', '${t.name}', '${t.symbol}', '${logo}', '${t.initial_supply}', '${t.mint_price || 0}')">Gerenciar</button>` 
-                    : `<a href="${window.ARC_EXPLORER}/address/${t.address}" target="_blank" class="btn-secondary full small" style="text-align:center; display:block; text-decoration:none;">Explorer</a>`
+                    : `<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                        <a href="${window.ARC_EXPLORER}/address/${t.address}" target="_blank" class="btn-secondary small" style="text-align:center; text-decoration:none;">Explorer</a>
+                        <button class="btn-secondary small" onclick="openListingGenerator('${tokenDataStr}')">Listagem</button>
+                       </div>`
                 }
             </div>
         </div>`;
@@ -149,13 +156,12 @@ window.loadMyCreations = async function() {
     if(window.lucide) window.lucide.createIcons();
 }
 
-// --- FEED GLOBAL (NOVO) ---
+// --- FEED GLOBAL ---
 window.loadGlobalFeed = async function() {
     const div = document.getElementById('globalTokensList');
     if(!div) return;
     div.innerHTML = "<p style='color:#666'>Buscando dados...</p>";
     
-    // Pega os últimos 20 tokens criados por QUALQUER UM
     const { data: tokens } = await supabaseClient.from('created_tokens').select('*').order('created_at', { ascending: false }).limit(20);
 
     if(!tokens || tokens.length === 0) { div.innerHTML = "<p style='color:#666'>O feed está vazio.</p>"; return; }
@@ -164,7 +170,6 @@ window.loadGlobalFeed = async function() {
     tokens.forEach(t => {
         const isNFT = t.contract_type === 'ERC721';
         const logo = t.logo_url || `https://robohash.org/${t.address}.png?set=set1`;
-        // Card simplificado para o feed
         html += `
         <div class="token-card">
             <div class="token-header">
@@ -180,6 +185,35 @@ window.loadGlobalFeed = async function() {
     });
     div.innerHTML = html;
     if(window.lucide) window.lucide.createIcons();
+}
+
+// --- FACILITADOR DE LISTAGEM (NOVO) ---
+window.openListingGenerator = function(tokenStr) {
+    const t = JSON.parse(decodeURIComponent(tokenStr));
+    const dialog = document.getElementById('listingDialog');
+    const codeBlock = document.getElementById('listingCodeJson');
+    
+    // Gera estrutura padrão exigida por sites de listagem
+    const listingData = {
+        name: t.name,
+        symbol: t.symbol,
+        address: t.address,
+        chain_id: window.ARC_CHAIN_ID,
+        decimals: 18,
+        description: `Official ${t.name} token on Arc Network. Created via Arc Shield.`,
+        website: "https://seuprojeto.com",
+        explorer: `${window.ARC_EXPLORER}/address/${t.address}`,
+        logo_url: t.logo_url || "Hosted URL needed"
+    };
+
+    codeBlock.innerText = JSON.stringify(listingData, null, 4);
+    dialog.showModal();
+}
+
+window.copyListingData = function() {
+    const text = document.getElementById('listingCodeJson').innerText;
+    navigator.clipboard.writeText(text);
+    alert("Dados copiados! Cole no formulário de listagem.");
 }
 
 // Mantido Leaderboard e Portfolio...
