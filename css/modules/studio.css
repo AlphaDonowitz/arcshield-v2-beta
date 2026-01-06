@@ -1,9 +1,8 @@
 /* css/modules/studio.css */
 
-/* Layout Principal do Studio */
 .studio-wrapper { 
     display: flex; 
-    height: calc(100vh - 140px); /* Ajusta altura considerando header */
+    height: calc(100vh - 160px); 
     width: 100%; 
     overflow: hidden; 
     background: #0c0c0e; 
@@ -11,9 +10,9 @@
     border-radius: var(--radius-md);
 }
 
-/* Coluna Esquerda: Camadas */
+/* Sidebar Esquerda (Camadas) */
 .studio-sidebar-left { 
-    width: 240px; 
+    width: 250px; 
     border-right: 1px solid var(--border-color); 
     display: flex; 
     flex-direction: column; 
@@ -27,11 +26,18 @@
     display: flex; 
     justify-content: space-between; 
     align-items: center; 
-    font-weight: 600; 
+    font-weight: 700; 
     font-size: 0.85rem; 
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--text-secondary);
+    color: #fff;
+}
+
+.layers-subheader {
+    padding: 5px 15px;
+    background: #000;
+    color: #555;
+    font-size: 0.7rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .layers-list { 
@@ -41,17 +47,17 @@
 }
 
 .layer-item { 
-    padding: 12px; 
+    padding: 10px 12px; 
     border-radius: 6px; 
     cursor: pointer; 
     display: flex; 
     justify-content: space-between; 
     align-items: center; 
     color: var(--text-secondary); 
-    margin-bottom: 8px; 
+    margin-bottom: 6px; 
     border: 1px solid transparent; 
-    transition: 0.2s; 
     background: #18181b;
+    transition: all 0.2s;
 }
 
 .layer-item:hover { background: var(--bg-hover); }
@@ -62,7 +68,14 @@
     color: #fff; 
 }
 
-/* Área Central: Workspace e Traits */
+.layer-number {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    opacity: 0.5;
+    width: 20px;
+}
+
+/* Workspace Central */
 .studio-workspace { 
     flex-grow: 1; 
     padding: 20px; 
@@ -70,7 +83,6 @@
     background: #09090b; 
     display: flex; 
     flex-direction: column; 
-    position: relative;
 }
 
 .workspace-header { 
@@ -84,7 +96,7 @@
 
 .trait-grid { 
     display: grid; 
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); 
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); 
     gap: 15px; 
 }
 
@@ -97,17 +109,16 @@
     transition: 0.2s; 
 }
 
-.trait-card:hover { 
-    transform: translateY(-2px); 
-    border-color: #555; 
-}
+.trait-card:hover { border-color: #666; }
 
 .trait-img-box { 
-    height: 140px; 
+    height: 120px; 
     width: 100%; 
-    background: #202023;
-    /* Xadrez para indicar transparência */
-    background-image: linear-gradient(45deg, #1a1a1a 25%, transparent 25%), linear-gradient(-45deg, #1a1a1a 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #1a1a1a 75%), linear-gradient(-45deg, transparent 75%, #1a1a1a 75%);
+    background-image: 
+        linear-gradient(45deg, #1f1f1f 25%, transparent 25%), 
+        linear-gradient(-45deg, #1f1f1f 25%, transparent 25%), 
+        linear-gradient(45deg, transparent 75%, #1f1f1f 75%), 
+        linear-gradient(-45deg, transparent 75%, #1f1f1f 75%);
     background-size: 20px 20px;
     background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
     display: flex; 
@@ -122,62 +133,41 @@
     object-fit: contain; 
 }
 
-.trait-info { 
-    padding: 10px; 
-    background: #121215;
-}
-
-.trait-name {
-    font-size: 0.8rem;
-    font-weight: 600;
-    margin-bottom: 5px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
+.trait-info { padding: 8px; background: #121215; }
+.trait-name { font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #ccc; }
 
 .btn-delete-trait { 
     position: absolute; 
-    top: 6px; 
-    right: 6px; 
-    background: rgba(0,0,0,0.7); 
+    top: 5px; right: 5px; 
+    background: rgba(0,0,0,0.8); 
     color: var(--error-red); 
     border: none; 
     border-radius: 4px; 
-    width: 24px; 
-    height: 24px; 
+    width: 24px; height: 24px; 
     cursor: pointer; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    opacity: 0; 
-    transition: 0.2s;
+    display: none; 
+    align-items: center; justify-content: center;
 }
-
-.trait-card:hover .btn-delete-trait { opacity: 1; }
+.trait-card:hover .btn-delete-trait { display: flex; }
 
 .empty-state-studio { 
+    margin-top: 100px;
     text-align: center; 
     color: #444; 
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
     display: flex; 
     flex-direction: column; 
     align-items: center; 
 }
 
-/* Coluna Direita: Preview */
+/* Sidebar Direita (Preview) */
 .studio-sidebar-right { 
-    width: 300px; 
+    width: 320px; 
     border-left: 1px solid var(--border-color); 
     background: #121215; 
     padding: 20px; 
     display: flex; 
     flex-direction: column; 
     flex-shrink: 0; 
-    overflow-y: auto; 
 }
 
 .preview-box { 
@@ -189,29 +179,12 @@
     display: flex; 
     align-items: center; 
     justify-content: center; 
-    margin-bottom: 20px; 
+    margin-bottom: 15px; 
     overflow: hidden; 
+    /* Efeito quadriculado de fundo para transparência */
+    background-image: linear-gradient(45deg, #222 25%, transparent 25%), linear-gradient(-45deg, #222 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #222 75%), linear-gradient(-45deg, transparent 75%, #222 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
 }
 
-.preview-box canvas { 
-    width: 100%; 
-    height: 100%;
-    object-fit: contain;
-}
-
-/* Modal de IA Específico */
-#aiPromptDialog {
-    width: 400px;
-}
-
-.ai-loading-overlay {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.8);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 10;
-    backdrop-filter: blur(2px);
-}
+.preview-box canvas { width: 100%; height: 100%; object-fit: contain; }
