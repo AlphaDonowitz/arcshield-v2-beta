@@ -16,31 +16,39 @@ export function initNavigation() {
     };
 
     // Função de Navegação Interna
-    function navigateTo(targetId) {
-        // Atualiza Botões
+    function navigateTo(targetId, triggerButton) {
+        // 1. Atualiza Visual dos Botões
         buttons.forEach(btn => {
-            if(btn.dataset.target === targetId) btn.classList.add('active');
-            else btn.classList.remove('active');
+            btn.classList.remove('active');
+            if(btn === triggerButton || btn.dataset.target === targetId) {
+                btn.classList.add('active');
+            }
         });
 
-        // Atualiza Seções
+        // 2. Atualiza Visual das Seções
         sections.forEach(sec => {
-            if(sec.id === targetId) sec.classList.add('active');
-            else sec.classList.remove('active');
+            sec.classList.remove('active');
+            if(sec.id === targetId) {
+                sec.classList.add('active');
+            }
         });
 
-        // Atualiza Título
+        // 3. Atualiza Título
         if(titleEl) titleEl.innerText = titles[targetId] || 'Dashboard';
         
-        // Emite evento caso algum módulo precise saber que a página mudou
+        // 4. CRUCIAL: Avisa todo o sistema que a página mudou
+        // O User Hub escuta isso para recarregar a lista
+        console.log(`UI: Navegando para ${targetId}`);
         bus.emit('navigation:changed', targetId);
     }
 
-    // Listeners
+    // Listeners de Clique
     buttons.forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
+            // Previne comportamento padrão se for link
+            e.preventDefault();
             const target = btn.dataset.target;
-            navigateTo(target);
+            if(target) navigateTo(target, btn);
         });
     });
 
