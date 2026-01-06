@@ -2,7 +2,10 @@ const ABI_NFT_MGR = [
     "function totalSupply() view returns (uint256)",
     "function currentPhase() view returns (uint8)",
     "function setPhase(uint8) external",
-    "function withdraw() external"
+    "function withdraw() external",
+    "function setMerkleRoot(bytes32) external",
+    "function mintPublic(uint256) external payable",
+    "function mintPrice() view returns (uint256)"
 ];
 
 window.addEventListener('load', async function() {
@@ -58,7 +61,7 @@ async function ensureNetwork(key) {
     window.signer = await window.provider.getSigner();
 }
 
-// 1. DEPLOY TOKEN (ERC20)
+// 1. DEPLOY TOKEN
 window.deployToken = async function() {
     await ensureNetwork('arc');
     const name = document.getElementById("tokenName").value;
@@ -100,18 +103,15 @@ window.deployToken = async function() {
     } catch(e) { alert("Erro: " + (e.reason || e.message)); }
 }
 
-// 2. DEPLOY NFT FROM STUDIO (INTEGRADO)
+// 2. DEPLOY NFT FROM STUDIO
 window.deployNFTFromStudio = async function() {
     await ensureNetwork('arc');
-    
-    // Pega dados do form do Studio
     const name = document.getElementById("studioNftName").value;
     const symbol = document.getElementById("studioNftSymbol").value;
     const priceEth = document.getElementById("studioNftPrice").value;
-    // O Supply vem direto da quantidade de imagens geradas!
     const maxSupply = document.getElementById("genCount").value; 
 
-    if(!name || !symbol || !maxSupply || !priceEth) return alert("Preencha todos os campos do contrato!");
+    if(!name || !symbol || !maxSupply || !priceEth) return alert("Preencha todos os campos!");
 
     try {
         const priceWei = ethers.parseUnits(priceEth, 18);
@@ -132,10 +132,8 @@ window.deployNFTFromStudio = async function() {
             } catch(e) {}
         }
         
-        // Pega a primeira imagem gerada no preview para usar de logo (ou o uploadedLogoData)
         let logoToSave = window.uploadedLogoData;
         if(!logoToSave) {
-            // Tenta pegar do canvas de preview
             const cvs = document.getElementById('previewCanvas');
             if(cvs) logoToSave = cvs.toDataURL('image/jpeg', 0.5);
         }
@@ -156,16 +154,62 @@ window.deployNFTFromStudio = async function() {
     } catch(e) { console.error(e); alert("Erro: " + (e.reason || e.message)); }
 }
 
-// MANTENDO FUNÇÕES DE GERENCIAMENTO
+// 3. NFT MANAGER & WHITELIST (NOVO)
 window.refreshManagerData = async function(addr) {
     try {
         const c = new ethers.Contract(addr, ABI_NFT_MGR, window.provider);
         const minted = await c.totalSupply();
         const bal = await window.provider.getBalance(addr);
+        const price = await c.mintPrice();
+        
+        // Update UI
         const currentText = document.getElementById('mgrSupply').innerText.split('/')[1] || '?';
         document.getElementById('mgrSupply').innerText = `${minted}/${currentText}`;
         document.getElementById('mgrBalance').innerText = `${ethers.formatEther(bal)} ARC`;
+        
+        // Atualiza preço em display também
+        const priceEth = ethers.formatEther(price);
+        document.getElementById('mgrPrice').innerText = priceEth;
+        document.getElementById('publicMintPriceDisplay').innerText = `${priceEth} ETH`;
     } catch(e) { console.log("Erro refresh manager", e); }
+}
+
+window.updateWhitelist = async function() {
+    const addr = document.getElementById('mgrAddress').value;
+    const raw = document.getElementById('wlAddresses').value;
+    
+    // Parse Address
+    const addresses = raw.split(/[\n,;]+/).map(a => a.trim()).filter(a => ethers.isAddress(a));
+    if(addresses.length === 0) return alert("Nenhum endereço válido encontrado!");
+
+    try {
+        // Gera Merkle Tree usando keccak256
+        // Nota: A lib keccak256 via CDN funciona diretamente como função
+        const leaves = addresses.map(x => keccak256(x));
+        const tree = new MerkleTree(leaves, keccak256, { sortPairs: true });
+        const root = tree.getHexRoot();
+        
+        const c = new ethers.Contract(addr, ABI_NFT_MGR, signer);
+        const tx = await c.setMerkleRoot(root);
+        await tx.wait();
+        alert(`Whitelist atualizada com ${addresses.length} endereços!`);
+    } catch(e) { console.error(e); alert("Erro ao atualizar WL (Verifique console)"); }
+}
+
+window.publicMintAction = async function() {
+    const addr = document.getElementById('mgrAddress').value;
+    const amount = parseInt(document.getElementById('mintAmountDisplay').innerText);
+    
+    try {
+        const c = new ethers.Contract(addr, ABI_NFT_MGR, signer);
+        const price = await c.mintPrice();
+        const totalCost = price * BigInt(amount);
+        
+        const tx = await c.mintPublic(amount, { value: totalCost });
+        await tx.wait();
+        alert("Mint realizado com sucesso!");
+        refreshManagerData(addr);
+    } catch(e) { alert("Erro no Mint: " + (e.reason || e.message)); }
 }
 
 window.setNFTPhase = async function(phaseId) {
@@ -187,7 +231,7 @@ window.withdrawNFTFunds = async function() {
     } catch(e) { alert("Erro saque: " + e.message); }
 }
 
-// OUTROS MODULOS MANTIDOS
+// OUTROS MODULOS
 window.sendBatch = async function() { await ensureNetwork('arc'); const tokenAddr = document.getElementById("multiTokenAddr").value; const raw = document.getElementById("csvInput").value; try { const lines = raw.split(/\r?\n/); let rec=[], amt=[]; for(let l of lines) { let p = l.split(/[;,\t\s]+/); p=p.filter(x=>x.trim()!==""); if(p.length>=2 && ethers.isAddress(p[0])) { rec.push(p[0]); try { amt.push(ethers.parseUnits(p[1], 18)); } catch(e){} } } const c = new ethers.Contract(CONTRACTS.multi, ABIS.multi, signer); const tx = await c.multisendToken(tokenAddr, rec, amt); await tx.wait(); await incrementStat('multisends_count', 50); showSuccessModal("Multisend Enviado!", `${rec.length} endereços.`); } catch(e) { alert("Erro: " + e.message); } }
 window.lockTokens = async function() { await ensureNetwork('arc'); const token = document.getElementById("lockTokenAddr").value; const amount = document.getElementById("lockAmount").value; const date = document.getElementById("lockDate").value; try { const wei = ethers.parseUnits(amount, 18); const time = Math.floor(new Date(date).getTime() / 1000); const c = new ethers.Contract(CONTRACTS.lock, ABIS.lock, signer); await (await c.lockTokens(token, wei, time)).wait(); await incrementStat('locks_created', 50); showSuccessModal("Liquidez Trancada!", "Tokens Seguros."); } catch(e) { alert("Erro Lock"); } }
 window.createVesting = async function() { await ensureNetwork('arc'); const token = document.getElementById("vestTokenAddr").value; const bene = document.getElementById("vestBeneficiary").value; const amt = document.getElementById("vestAmount").value; const dur = document.getElementById("vestDuration").value; try { const wei = ethers.parseUnits(amt, 18); const sec = parseInt(dur) * 60; const c = new ethers.Contract(CONTRACTS.vest, ABIS.vest, signer); await (await c.createVestingSchedule(token, bene, Math.floor(Date.now()/1000), 0, sec, wei, true)).wait(); await incrementStat('vestings_created', 75); showSuccessModal("Vesting Criado!", "Pagamento Agendado."); } catch(e) { alert("Erro Vesting"); } }
