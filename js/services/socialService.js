@@ -1,6 +1,5 @@
 import { SUPABASE_CONFIG } from '../config.js';
 import { bus } from '../core/eventBus.js';
-import { web3Service } from './web3Service.js'; // Importação circular evitada via injeção se necessário, mas aqui ok
 
 class SocialService {
     constructor() {
@@ -72,7 +71,6 @@ class SocialService {
         }
     }
 
-    // NOVO MÉTODO: Registra criação de token
     async registerCreation(data) {
         if(!this.client || !this.currentUser) return;
 
@@ -83,13 +81,30 @@ class SocialService {
                 address: data.address,
                 owner_wallet: this.currentUser.wallet_address,
                 initial_supply: data.supply,
-                contract_type: data.type, // 'ERC20' ou 'ERC721'
+                contract_type: data.type, 
                 bonus_claimed: false
             }]);
             console.log("SocialService: Token registered inside Supabase");
         } catch (e) {
             console.error("SocialService: Failed to register token", e);
         }
+    }
+
+    // NOVO: Busca tokens do usuário para o Dashboard
+    async getUserTokens() {
+        if (!this.client || !this.currentUser) return [];
+
+        const { data, error } = await this.client
+            .from('created_tokens')
+            .select('*')
+            .eq('owner_wallet', this.currentUser.wallet_address)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error("Erro ao buscar tokens:", error);
+            return [];
+        }
+        return data;
     }
 }
 
