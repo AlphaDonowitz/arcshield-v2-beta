@@ -6,7 +6,7 @@ export function initTokenFactory() {
     const container = document.getElementById('token-launcher');
     if (!container) return;
 
-    // 1. Renderiza o Formulário (HTML Injection)
+    // 1. Renderiza o Formulário
     container.innerHTML = `
         <div class="card">
             <div class="card-header-icon"><i data-lucide="coins"></i></div>
@@ -36,7 +36,6 @@ export function initTokenFactory() {
         </div>
     `;
 
-    // Atualiza ícones recém injetados
     if(window.lucide) window.lucide.createIcons();
 
     // 2. Lógica do Botão
@@ -60,20 +59,15 @@ export function initTokenFactory() {
             btn.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Confirmando...`;
             btn.disabled = true;
 
-            // Instancia o contrato
             const factory = web3Service.getContract('tokenFactory');
             
-            // Envia Transação
             const tx = await factory.createToken(name, symbol, supply);
             
             bus.emit('notification:info', "Transação enviada. Aguardando confirmação...");
             
-            // Aguarda Mineração
             const receipt = await tx.wait();
 
-            // Captura o endereço do novo token nos logs de evento
             let newTokenAddress = null;
-            // Varre os logs para achar o evento TokenCreated
             for (const log of receipt.logs) {
                 try {
                     const parsed = factory.interface.parseLog(log);
@@ -84,11 +78,9 @@ export function initTokenFactory() {
                 } catch (e) {}
             }
 
-            // Sucesso!
             btn.innerHTML = `<i data-lucide="check"></i> Criado!`;
             bus.emit('notification:success', `Token criado com sucesso!`);
             
-            // Mostra resultado
             const resDiv = document.getElementById('tfResult');
             resDiv.style.display = 'block';
             resDiv.innerHTML = `
@@ -97,8 +89,8 @@ export function initTokenFactory() {
                 <br><a href="${web3Service.getNetworkConfig()?.explorer}/address/${newTokenAddress}" target="_blank" style="color:var(--primary-blue)">Ver no Explorer</a>
             `;
 
-            // Salva no Supabase (Gamificação)
             if (newTokenAddress) {
+                // Registra no banco
                 await socialService.registerCreation({
                     type: 'ERC20',
                     address: newTokenAddress,
@@ -106,8 +98,17 @@ export function initTokenFactory() {
                     symbol: symbol,
                     supply: supply
                 });
-                // Dá XP
                 await socialService.addPoints(100);
+
+                // --- REDIRECIONAMENTO INTELIGENTE ---
+                // Pergunta ao usuário se ele quer ir para o painel de gestão
+                setTimeout(() => {
+                    if(confirm(`O token ${symbol} foi criado!\nDeseja ir para o painel de Gerenciamento para fazer Airdrop ou baixar o JSON?`)) {
+                        // Clica na aba User Hub (Leaderboard)
+                        const hubBtn = document.querySelector('[data-target=leaderboard]');
+                        if(hubBtn) hubBtn.click();
+                    }
+                }, 1000);
             }
 
         } catch (error) {
