@@ -61,10 +61,12 @@ export function initTokenFactory() {
 
             const factory = web3Service.getContract('tokenFactory');
             
+            // Envia Transação
             const tx = await factory.createToken(name, symbol, supply);
             
             bus.emit('notification:info', "Transação enviada. Aguardando confirmação...");
             
+            // Aguarda Mineração
             const receipt = await tx.wait();
 
             let newTokenAddress = null;
@@ -100,15 +102,14 @@ export function initTokenFactory() {
                 });
                 await socialService.addPoints(100);
 
-                // --- REDIRECIONAMENTO INTELIGENTE ---
-                // Pergunta ao usuário se ele quer ir para o painel de gestão
+                // --- REDIRECIONAMENTO COM DELAY ---
+                // Espera 1.5s para garantir que o banco atualizou antes de redirecionar
                 setTimeout(() => {
                     if(confirm(`O token ${symbol} foi criado!\nDeseja ir para o painel de Gerenciamento para fazer Airdrop ou baixar o JSON?`)) {
-                        // Clica na aba User Hub (Leaderboard)
                         const hubBtn = document.querySelector('[data-target=leaderboard]');
                         if(hubBtn) hubBtn.click();
                     }
-                }, 1000);
+                }, 1500);
             }
 
         } catch (error) {
