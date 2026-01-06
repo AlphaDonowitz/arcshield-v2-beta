@@ -5,6 +5,7 @@ class SocialService {
     constructor() {
         this.client = null;
         this.currentUser = null;
+        this.sessionTokens = []; // Cache local para tokens recém-criados
         this.init();
     }
 
@@ -72,6 +73,23 @@ class SocialService {
     }
 
     async registerCreation(data) {
+        // 1. Adiciona ao cache local imediatamente (Optimistic Update)
+        const optimisticToken = {
+            id: 'temp_' + Date.now(),
+            name: data.name,
+            symbol: data.symbol,
+            address: data.address,
+            owner_wallet: this.currentUser ? this.currentUser.wallet_address : data.owner_wallet,
+            initial_supply: data.supply,
+            contract_type: data.type,
+            logo_url: null, // Pode ser preenchido se tivermos a imagem
+            created_at: new Date().toISOString()
+        };
+        
+        this.sessionTokens.unshift(optimisticToken);
+        console.log("SocialService: Token adicionado ao cache local", optimisticToken);
+
+        // 2. Tenta salvar no banco em background
         if(!this.client || !this.currentUser) return;
 
         try {
@@ -84,27 +102,42 @@ class SocialService {
                 contract_type: data.type, 
                 bonus_claimed: false
             }]);
-            console.log("SocialService: Token registered inside Supabase");
+            console.log("SocialService: Token salvo no Supabase");
         } catch (e) {
-            console.error("SocialService: Failed to register token", e);
+            console.error("SocialService: Falha ao salvar no DB (mas está no cache)", e);
         }
     }
 
-    // NOVO: Busca tokens do usuário para o Dashboard
+    // Busca tokens do usuário (DB + Cache Local)
     async getUserTokens() {
-        if (!this.client || !this.currentUser) return [];
+        if (!this.client || !this.currentUser) return this.sessionTokens;
 
-        const { data, error } = await this.client
+        // 1. Busca do Banco
+        const { data: dbTokens, error } = await this.client
             .from('created_tokens')
             .select('*')
             .eq('owner_wallet', this.currentUser.wallet_address)
             .order('created_at', { ascending: false });
 
         if (error) {
-            console.error("Erro ao buscar tokens:", error);
-            return [];
+            console.error("Erro ao buscar tokens do DB:", error);
+            // Se der erro no banco, retorna pelo menos os locais
+            return this.sessionTokens;
         }
-        return data;
+
+        // 2. Mescla Banco com Cache Local (evitando duplicatas)
+        // Se o token já está no DB, usamos o do DB. Se não, usamos o do cache.
+        const mergedList = [...dbTokens];
+        
+        this.sessionTokens.forEach(localToken => {
+            const exists = mergedList.find(t => t.address.toLowerCase() === localToken.address.toLowerCase());
+            if (!exists) {
+                // Adiciona no topo se ainda não apareceu no banco
+                mergedList.unshift(localToken);
+            }
+        });
+
+        return mergedList;
     }
 }
 
