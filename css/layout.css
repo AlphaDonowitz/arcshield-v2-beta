@@ -1,4 +1,4 @@
-/* css/layout.css - Estrutura e Posicionamento */
+/* css/layout.css - Estrutura e Posicionamento Auditado */
 
 /* Container Principal (Flexbox) */
 #dashboardLayout { 
@@ -98,6 +98,9 @@
     top: 0; 
     left: 0;
     z-index: 9999; 
+    /* Transição suave para o JavaScript controlar a opacidade */
+    transition: opacity 0.3s ease-in-out;
+    opacity: 1;
 }
 
 .landing-content {
