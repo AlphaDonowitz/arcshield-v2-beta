@@ -1,9 +1,18 @@
 /* main.css - O Orquestrador de Estilos */
+
+/* 1. Variáveis Globais */
 @import url('variables.css');
+
+/* 2. Estrutura Base */
 @import url('layout.css');
+
+/* 3. Componentes Reutilizáveis */
 @import url('components.css');
 
-/* Reset Básico */
+/* 4. Módulos Específicos */
+@import url('modules/multisender.css');
+
+/* Reset Básico de Segurança */
 * { box-sizing: border-box; }
 
 body { 
@@ -11,7 +20,23 @@ body {
     font-family: var(--font-ui); 
     background-color: var(--bg-app); 
     color: var(--text-primary); 
+    /* Padrão de fundo sutil */
     background-image: radial-gradient(#27272a 1px, transparent 1px);
     background-size: 32px 32px;
     min-height: 100vh;
+}
+
+/* Scrollbar Customizada (Opcional, mas elegante) */
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: var(--bg-app); 
+}
+::-webkit-scrollbar-thumb {
+    background: #333; 
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #444; 
 }
