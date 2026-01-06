@@ -1,4 +1,4 @@
-// ARC STUDIO 2.0 - LÓGICA MODERNA
+// ARC STUDIO 2.0 - LÓGICA MODERNA COM IA
 window.layers = []; 
 window.activeLayerIndex = null;
 
@@ -35,6 +35,7 @@ function renderStudioUI() {
     const emptyState = document.getElementById('emptyStateWorkspace');
     const title = document.getElementById('activeLayerTitle');
     const count = document.getElementById('activeLayerCount');
+    const tools = document.getElementById('layerTools');
 
     // Render Sidebar List
     if(window.layers.length === 0) {
@@ -61,9 +62,11 @@ function renderStudioUI() {
         emptyState.style.display = 'block';
         title.innerText = "Studio";
         count.innerText = "";
+        tools.style.display = 'none';
     } else {
         grid.style.display = 'grid';
         emptyState.style.display = 'none';
+        tools.style.display = 'flex';
         
         const currentLayer = window.layers[window.activeLayerIndex];
         title.innerText = currentLayer.name;
@@ -90,14 +93,6 @@ function renderStudioUI() {
             </div>`;
         });
 
-        // Add Drop Zone at the end
-        gridHtml += `
-        <div class="drop-zone" onclick="document.getElementById('hiddenUpload').click()" ondrop="handleDrop(event)" ondragover="event.preventDefault()">
-            <i data-lucide="upload-cloud" style="width:32px; height:32px; margin-bottom:10px;"></i>
-            <span style="font-size:0.8rem;">Drag images or Click</span>
-            <input type="file" id="hiddenUpload" hidden multiple accept="image/png" onchange="handleFiles(this.files)">
-        </div>`;
-
         grid.innerHTML = gridHtml;
     }
 
@@ -105,34 +100,29 @@ function renderStudioUI() {
 }
 
 // 3. MANIPULAÇÃO DE ARQUIVOS (DRAG & DROP)
-window.handleDrop = function(e) {
-    e.preventDefault();
-    if(e.dataTransfer.files) handleFiles(e.dataTransfer.files);
-}
-
 window.handleFiles = function(files) {
     if(window.activeLayerIndex === null) return;
     
     Array.from(files).forEach(file => {
         if(!file.type.match('image.*')) return;
-        
         const reader = new FileReader();
-        reader.onload = (e) => {
-            const img = new Image();
-            img.src = e.target.result;
-            
-            // Adiciona ao layer ativo
-            window.layers[window.activeLayerIndex].traits.push({
-                file: e.target.result,
-                name: file.name.split('.')[0],
-                weight: 50,
-                imgObj: img
-            });
-            renderStudioUI();
-            studioGeneratePreview(); // Atualiza preview auto
-        };
+        reader.onload = (e) => { addTraitToLayer(e.target.result, file.name.split('.')[0]); };
         reader.readAsDataURL(file);
     });
+}
+
+function addTraitToLayer(base64Data, name) {
+    const img = new Image();
+    img.src = base64Data;
+    img.crossOrigin = "Anonymous"; // Importante para IA
+    window.layers[window.activeLayerIndex].traits.push({
+        file: base64Data,
+        name: name,
+        weight: 50,
+        imgObj: img
+    });
+    renderStudioUI();
+    studioGeneratePreview();
 }
 
 window.deleteTrait = function(traitIndex) {
@@ -145,6 +135,64 @@ window.updateTraitWeight = function(tIndex, val) {
     window.layers[window.activeLayerIndex].traits[tIndex].weight = parseInt(val);
 }
 
+// --- INTEGRAÇÃO COM IA (NOVO) ---
+window.openAiGenerator = function() {
+    document.getElementById('aiResultArea').style.display = 'none';
+    document.getElementById('aiPrompt').value = "";
+    document.getElementById('aiDialog').showModal();
+}
+
+window.runAiGeneration = function() {
+    const prompt = document.getElementById('aiPrompt').value;
+    if(!prompt) return alert("Digite um prompt!");
+    
+    const btn = document.getElementById('btnGenerateAi');
+    const img = document.getElementById('aiResultImg');
+    const area = document.getElementById('aiResultArea');
+    
+    btn.innerText = "Gerando (Aguarde)...";
+    btn.disabled = true;
+    
+    // Usa Pollinations.ai (Free, No-Key)
+    // Adicionamos seed aleatoria para sempre mudar
+    const seed = Math.floor(Math.random() * 9999);
+    const safePrompt = encodeURIComponent(prompt);
+    const url = `https://image.pollinations.ai/prompt/${safePrompt}?seed=${seed}&width=500&height=500&nologo=true`;
+    
+    img.onload = function() {
+        btn.innerText = "Gerar Imagem";
+        btn.disabled = false;
+        area.style.display = 'block';
+    };
+    img.onerror = function() {
+        alert("Erro ao gerar imagem. Tente outro termo.");
+        btn.innerText = "Gerar Imagem";
+        btn.disabled = false;
+    };
+    
+    img.crossOrigin = "Anonymous"; // Crucial para permitir salvar depois
+    img.src = url;
+}
+
+window.useAiImage = function(imgElement) {
+    if(window.activeLayerIndex === null) return alert("Selecione uma camada primeiro!");
+    
+    // Converter para Base64 local para evitar problemas futuros de CORS
+    const canvas = document.createElement('canvas');
+    canvas.width = imgElement.naturalWidth;
+    canvas.height = imgElement.naturalHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(imgElement, 0, 0);
+    
+    try {
+        const dataUrl = canvas.toDataURL('image/png');
+        addTraitToLayer(dataUrl, "AI_Generated_" + Date.now());
+        document.getElementById('aiDialog').close();
+    } catch(e) {
+        alert("Erro de segurança do navegador (CORS). Tente fazer upload manual.");
+    }
+}
+
 // 4. PREVIEW SYSTEM
 window.studioGeneratePreview = function() {
     const canvas = document.getElementById('previewCanvas');
@@ -152,7 +200,6 @@ window.studioGeneratePreview = function() {
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Desenha em ordem das camadas
     window.layers.forEach(layer => {
         if(layer.traits.length > 0) {
             const trait = pickWeighted(layer.traits);
@@ -207,15 +254,12 @@ window.studioStartGeneration = async function() {
             }
         }
 
-        // Salvar Blob
         const blob = await new Promise(r => tempCanvas.toBlob(r, 'image/png'));
         folderImg.file(`${i}.png`, blob);
         
-        // Metadata
         const meta = { name: `Arc NFT #${i}`, image: `ipfs://CID/${i}.png`, attributes: attrs };
         folderMeta.file(`${i}.json`, JSON.stringify(meta, null, 2));
 
-        // Update UI
         const pct = Math.floor((i / count) * 100);
         bar.style.width = `${pct}%`;
         pctTxt.innerText = `${pct}%`;
