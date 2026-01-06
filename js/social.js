@@ -21,7 +21,11 @@ window.loadUserProfile = async function(wallet) {
             lastDaily: user.last_daily_claim
         };
     }
-    updateProfileUI(); checkDailyAvailability(); loadContacts(); loadMyCreations();
+    updateProfileUI(); 
+    checkDailyAvailability(); 
+    loadContacts(); 
+    loadMyCreations();
+    loadGlobalFeed(); // <--- NOVO: Carrega o feed global
 }
 
 function updateProfileUI() {
@@ -40,8 +44,7 @@ function updateProfileUI() {
             if(window.lucide) window.lucide.createIcons();
         }, 2000);
     };
-    if(window.lucide) window.lucide.createIcons();
-
+    
     document.getElementById('userBioDisplay').innerText = window.userProfile.bio;
     document.getElementById('statTokens').innerText = window.userProfile.tokens;
     document.getElementById('statMulti').innerText = window.userProfile.multisends;
@@ -51,6 +54,8 @@ function updateProfileUI() {
     document.getElementById('userAvatarDisplay').src = window.userProfile.avatar;
     const banner = document.getElementById('profileBannerDisplay');
     if(window.userProfile.banner) banner.style.backgroundImage = `url('${window.userProfile.banner}')`;
+    
+    if(window.lucide) window.lucide.createIcons();
 }
 
 function checkDailyAvailability() {
@@ -71,101 +76,121 @@ async function saveImage(field, data) {
     const up = {}; up[field] = data;
     await supabaseClient.from('users').update(up).eq('wallet_address', userAddress);
 }
-window.handleAvatarUpload = async function(i) { 
-    if(i.files && i.files[0]) { 
-        const data = await window.compressImage(i.files[0]); 
-        window.userProfile.avatar = data; updateProfileUI(); saveImage('avatar_url', data); 
-    } 
-}
-window.handleBannerUpload = async function(i) { 
-    if(i.files && i.files[0]) { 
-        const data = await window.compressImage(i.files[0]); 
-        window.userProfile.banner = data; updateProfileUI(); saveImage('banner_url', data); 
-    } 
-}
+window.handleAvatarUpload = async function(i) { if(i.files && i.files[0]) { const data = await window.compressImage(i.files[0]); window.userProfile.avatar = data; updateProfileUI(); saveImage('avatar_url', data); } }
+window.handleBannerUpload = async function(i) { if(i.files && i.files[0]) { const data = await window.compressImage(i.files[0]); window.userProfile.banner = data; updateProfileUI(); saveImage('banner_url', data); } }
 window.saveProfileData = async function() {
     const name = document.getElementById('editName').value; const bio = document.getElementById('editBio').value;
     const up = {}; if(name) up.username = name; if(bio) up.bio = bio;
     if(Object.keys(up).length > 0) { await supabaseClient.from('users').update(up).eq('wallet_address', userAddress); loadUserProfile(userAddress); }
 }
 
+// --- AGENDA DE CONTATOS ---
 window.toggleAddContactForm = function() { const f = document.getElementById('addContactForm'); f.style.display = f.style.display==='none'?'block':'none'; }
 window.saveContact = async function() {
     const n = document.getElementById('newContactName').value; const w = document.getElementById('newContactWallet').value;
     if(!n || !w) return alert("Preencha tudo");
     await supabaseClient.from('contacts').insert([{ owner_wallet: userAddress, friend_name: n, friend_wallet: w }]);
+    document.getElementById('newContactName').value = ""; document.getElementById('newContactWallet').value = "";
     loadContacts();
 }
 window.loadContacts = async function() {
     const div = document.getElementById('contactsList');
     const { data: c } = await supabaseClient.from('contacts').select('*').eq('owner_wallet', userAddress);
-    if(!c || c.length===0) return div.innerHTML = "<p style='color:#666; font-size:0.8rem;'>Sem contatos.</p>";
-    let html = ""; c.forEach(x => { html += `<div style="display:flex;justify-content:space-between;padding:8px;border-bottom:1px solid #222;font-size:0.9rem;"><span>${x.friend_name}</span> <span style="font-family:monospace;color:#666">${x.friend_wallet.slice(0,6)}...</span></div>`; });
+    if(!c || c.length===0) return div.innerHTML = "<p style='color:#666; font-size:0.8rem; text-align:center; padding:10px;'>Agenda vazia.</p>";
+    let html = ""; 
+    c.forEach(x => { 
+        html += `
+        <div style="display:flex;justify-content:space-between;align-items:center; padding:10px; border-bottom:1px solid #222; font-size:0.9rem;">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <div style="width:24px;height:24px;background:#333;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.7rem;">${x.friend_name.charAt(0)}</div>
+                <span>${x.friend_name}</span>
+            </div>
+            <span style="font-family:monospace;color:#666; cursor:pointer;" onclick="navigator.clipboard.writeText('${x.friend_wallet}')" title="Copiar">${x.friend_wallet.slice(0,4)}...${x.friend_wallet.slice(-4)}</span>
+        </div>`; 
+    });
     div.innerHTML = html;
 }
 
-// --- FUNÇÃO NOVA: CARREGAR MEUS PROJETOS ---
+// --- MEUS PROJETOS ---
 window.loadMyCreations = async function() {
     const div = document.getElementById('myTokensList');
+    if(!div) return;
     div.innerHTML = "<p style='color:#666'>Carregando...</p>";
-    
-    // Busca Tokens criados pelo usuário
-    const { data: tokens } = await supabaseClient
-        .from('created_tokens')
-        .select('*')
-        .eq('owner_wallet', window.userAddress)
-        .order('created_at', { ascending: false });
+    const { data: tokens } = await supabaseClient.from('created_tokens').select('*').eq('owner_wallet', window.userAddress).order('created_at', { ascending: false });
 
-    if(!tokens || tokens.length === 0) {
-        div.innerHTML = "<p style='color:#666'>Você ainda não criou nenhum ativo.</p>";
-        return;
-    }
+    if(!tokens || tokens.length === 0) { div.innerHTML = "<p style='color:#666'>Nenhum ativo criado.</p>"; return; }
 
     let html = "";
     tokens.forEach(t => {
         const isNFT = t.contract_type === 'ERC721';
         const logo = t.logo_url || `https://robohash.org/${t.address}.png?set=set1`;
-        
-        // Renderiza card diferente para NFT e Token
         html += `
         <div class="token-card" style="position:relative;">
             <div class="token-header">
                 <img src="${logo}" class="token-logo-small" style="width:40px;height:40px;border-radius:8px;">
                 <div>
                     <div style="font-weight:600; font-size:0.95rem;">${t.name}</div>
-                    <div style="font-size:0.75rem; color:#888;">${t.symbol} • ${isNFT ? 'NFT Collection' : 'ERC20 Token'}</div>
+                    <div style="font-size:0.75rem; color:#888;">${t.symbol} • ${isNFT ? 'NFT' : 'ERC20'}</div>
                 </div>
             </div>
-            
-            <div style="margin-top:12px; font-size:0.8rem; background:#18181b; padding:8px; border-radius:6px; font-family:monospace;">
-                ${t.address.slice(0,6)}...${t.address.slice(-4)} <i data-lucide="copy" style="width:10px; cursor:pointer;" onclick="navigator.clipboard.writeText('${t.address}')"></i>
+            <div style="margin-top:12px; font-size:0.8rem; background:#18181b; padding:8px; border-radius:6px; font-family:monospace; display:flex; justify-content:space-between;">
+                <span>${t.address.slice(0,6)}...${t.address.slice(-4)}</span>
+                <i data-lucide="copy" style="width:14px; cursor:pointer;" onclick="navigator.clipboard.writeText('${t.address}')"></i>
             </div>
-
             <div style="margin-top:12px;">
                 ${isNFT 
                     ? `<button class="btn-primary full small" onclick="openNFTManager('${t.address}', '${t.name}', '${t.symbol}', '${logo}', '${t.initial_supply}', '${t.mint_price || 0}')">Gerenciar</button>` 
-                    : `<a href="${window.ARC_EXPLORER}/address/${t.address}" target="_blank" class="btn-secondary full small" style="text-align:center; display:block; text-decoration:none;">Ver no Explorer</a>`
+                    : `<a href="${window.ARC_EXPLORER}/address/${t.address}" target="_blank" class="btn-secondary full small" style="text-align:center; display:block; text-decoration:none;">Explorer</a>`
                 }
             </div>
         </div>`;
     });
-
     div.innerHTML = html;
     if(window.lucide) window.lucide.createIcons();
 }
 
-// --- LÓGICA DO MODAL MANAGER ---
+// --- FEED GLOBAL (NOVO) ---
+window.loadGlobalFeed = async function() {
+    const div = document.getElementById('globalTokensList');
+    if(!div) return;
+    div.innerHTML = "<p style='color:#666'>Buscando dados...</p>";
+    
+    // Pega os últimos 20 tokens criados por QUALQUER UM
+    const { data: tokens } = await supabaseClient.from('created_tokens').select('*').order('created_at', { ascending: false }).limit(20);
+
+    if(!tokens || tokens.length === 0) { div.innerHTML = "<p style='color:#666'>O feed está vazio.</p>"; return; }
+
+    let html = "";
+    tokens.forEach(t => {
+        const isNFT = t.contract_type === 'ERC721';
+        const logo = t.logo_url || `https://robohash.org/${t.address}.png?set=set1`;
+        // Card simplificado para o feed
+        html += `
+        <div class="token-card">
+            <div class="token-header">
+                <img src="${logo}" class="token-logo-small" style="width:32px;height:32px;border-radius:6px;">
+                <div style="overflow:hidden;">
+                    <div style="font-weight:600; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${t.name}</div>
+                    <div style="font-size:0.7rem; color:#666;">${t.symbol} • ${isNFT ? 'NFT' : 'Token'}</div>
+                </div>
+            </div>
+            <div style="margin-top:8px; font-size:0.7rem; color:#444;">Criado por ${t.owner_wallet.slice(0,4)}...</div>
+            <a href="${window.ARC_EXPLORER}/address/${t.address}" target="_blank" class="btn-secondary full small" style="margin-top:8px; text-align:center; text-decoration:none; padding:4px;">Ver</a>
+        </div>`;
+    });
+    div.innerHTML = html;
+    if(window.lucide) window.lucide.createIcons();
+}
+
+// Mantido Leaderboard e Portfolio...
 window.openNFTManager = async function(addr, name, sym, logo, supply, price) {
     document.getElementById('mgrAddress').value = addr;
     document.getElementById('mgrName').innerText = name;
     document.getElementById('mgrSymbol').innerText = sym;
     document.getElementById('mgrLogo').src = logo;
-    document.getElementById('mgrSupply').innerText = `.../${supply}`; // Será atualizado via blockchain
+    document.getElementById('mgrSupply').innerText = `.../${supply}`; 
     document.getElementById('mgrPrice').innerText = price;
-    
     document.getElementById('nftManagerDialog').showModal();
-    
-    // Atualiza dados da blockchain
     if(window.refreshManagerData) window.refreshManagerData(addr);
 }
 
@@ -185,7 +210,7 @@ window.loadMyPortfolio = async function() {
             }
         } catch(e) {}
     }
-    div.innerHTML = count > 0 ? html : "<p style='color:#666'>Nenhum saldo.</p>";
+    div.innerHTML = count > 0 ? html : "<p style='color:#666'>Nenhum saldo encontrado.</p>";
 }
 
 window.loadLeaderboard = async function() {
