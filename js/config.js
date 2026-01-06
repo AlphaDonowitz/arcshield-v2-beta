@@ -1,8 +1,9 @@
 // Configurações da Rede Arc e Sepolia
 export const NETWORKS = {
     ARC: {
-        // Chain ID da Documentação: 5042002 -> Convertido para Hex: 0x4ceea2
-        chainId: '0x4ceea2', 
+        // Chain ID Decimal: 5042002
+        // Conversão Hex: 5042002.toString(16) = 4cef52
+        chainId: '0x4cef52', 
         rpc: 'https://rpc.testnet.arc.network',
         explorer: 'https://testnet.arcscan.app',
         name: 'Arc Testnet',
