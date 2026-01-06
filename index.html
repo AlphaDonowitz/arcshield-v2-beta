@@ -6,14 +6,14 @@
     <title>Arc Shield - Infrastructure Hub</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-    <link rel="stylesheet" href="css/style.css?v=13.0">
+    
+    <link rel="stylesheet" href="css/style.css?v=14.0">
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    
     <script src="https://cdn.jsdelivr.net/npm/keccak256@latest/keccak256.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/merkletreejs@latest/merkletree.js"></script>
 </head>
@@ -32,27 +32,21 @@
     <div id="dashboardLayout" style="display: none;">
         
         <aside class="sidebar">
-            <div class="brand-area">
-                <i data-lucide="shield" style="color:#3b82f6"></i> <span>Arc Shield</span>
-            </div>
-            
+            <div class="brand-area"><i data-lucide="shield" style="color:#3b82f6"></i> <span>Arc Shield</span></div>
             <div style="margin-bottom: 30px;">
                 <label style="font-size:0.7rem; color:#666; font-weight:700; display:block; margin-bottom:10px; padding-left:10px;">PRODUTOS</label>
                 <button class="nav-item" onclick="navigate('token-launcher', this)"><i data-lucide="coins"></i> Token Factory</button>
-                <button class="nav-item" onclick="navigate('studio', this)"><i data-lucide="palette"></i> NFT Studio <span class="badge" style="margin-left:auto; background:#3b82f6; color:#000;">AI POWERED</span></button>
-
+                <button class="nav-item" onclick="navigate('studio', this)"><i data-lucide="palette"></i> NFT Studio <span class="badge" style="margin-left:auto; background:#3b82f6; color:#000;">AI V14</span></button>
                 <label style="font-size:0.7rem; color:#666; font-weight:700; display:block; margin-top:20px; margin-bottom:10px; padding-left:10px;">UTILITÁRIOS</label>
                 <button class="nav-item" onclick="navigate('multisender', this)"><i data-lucide="send"></i> Multisender</button>
                 <button class="nav-item" onclick="navigate('locker', this)"><i data-lucide="lock"></i> Locker</button>
                 <button class="nav-item" onclick="navigate('vesting', this)"><i data-lucide="hourglass"></i> Vesting</button>
                 <button class="nav-item" onclick="navigate('bridge', this)"><i data-lucide="arrow-left-right"></i> Bridge</button>
             </div>
-
             <div>
                 <label style="font-size:0.7rem; color:#666; font-weight:700; display:block; margin-bottom:10px; padding-left:10px;">SOCIAL</label>
                 <button class="nav-item" onclick="navigate('leaderboard', this)"><i data-lucide="users"></i> User Hub</button>
             </div>
-
             <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid #27272a; display:flex; justify-content:space-between; align-items:center;">
                 <div class="btn-connect" id="btnConnect" onclick="connectWallet()">Connect</div>
             </div>
@@ -64,15 +58,13 @@
                 <div class="studio-wrapper">
                     <div class="studio-sidebar">
                         <div class="layers-header"><span>CAMADAS</span><button class="btn-secondary" style="padding:4px 8px;" onclick="studioAddLayer()"><i data-lucide="plus" style="width:14px;"></i></button></div>
-                        <div id="layersList" class="layers-list"><div style="padding:20px; text-align:center; color:#666; font-size:0.8rem;">Adicione uma camada.</div></div>
+                        <div id="layersList" class="layers-list"><div style="padding:20px; text-align:center; color:#666; font-size:0.8rem;">Clique em +</div></div>
                     </div>
                     
                     <div class="studio-workspace">
                         <div class="workspace-header">
-                            <div>
-                                <h3 id="activeLayerTitle" style="margin:0; font-size:1.2rem;">Selecione uma Camada</h3>
-                                <span id="activeLayerCount" class="badge">0 itens</span>
-                            </div>
+                            <div><h3 id="activeLayerTitle" style="margin:0; font-size:1.2rem;">Studio</h3><span id="activeLayerCount" class="badge">Selecione uma camada</span></div>
+                            
                             <div id="layerTools" style="display:none; gap:10px;">
                                 <button class="btn-secondary small" onclick="openAiGenerator()" style="border-color:#3b82f6; color:#3b82f6;">
                                     <i data-lucide="sparkles" style="width:14px; margin-right:5px;"></i> Gerar com IA
@@ -85,28 +77,27 @@
 
                         <div id="traitGrid" class="trait-grid"></div>
                         <input type="file" id="hiddenUpload" hidden multiple accept="image/png" onchange="handleFiles(this.files)">
-
-                        <div id="emptyStateWorkspace" class="empty-state-studio"><i data-lucide="layers" style="width:48px; height:48px; margin-bottom:10px; opacity:0.5;"></i><p>Selecione ou crie uma camada.</p></div>
+                        <div id="emptyStateWorkspace" class="empty-state-studio"><i data-lucide="layers" style="width:48px; height:48px; margin-bottom:10px; opacity:0.5;"></i><p>Selecione uma camada à esquerda para habilitar as ferramentas.</p></div>
                     </div>
 
-                    <div class="studio-preview-col" style="overflow-y:auto;">
+                    <div class="studio-preview-col">
                         <label style="font-size:0.7rem; font-weight:700; margin-bottom:10px; display:block;">PREVIEW</label>
                         <div class="preview-box"><canvas id="previewCanvas" width="500" height="500"></canvas></div>
                         <button class="btn-secondary full" onclick="studioGeneratePreview()" style="margin-bottom:20px;"><i data-lucide="refresh-cw" style="width:14px; margin-right:6px;"></i> Randomize</button>
                         <hr style="border:0; border-top:1px solid #27272a; margin-bottom:20px;">
                         
                         <div style="background:#18181b; padding:15px; border-radius:8px; border:1px solid #27272a; margin-bottom:20px;">
-                            <label style="font-size:0.7rem; color:#3b82f6; font-weight:700; display:block; margin-bottom:10px;">PASSO 1: GERAR ARQUIVOS</label>
+                            <label style="font-size:0.7rem; color:#3b82f6; font-weight:700; display:block; margin-bottom:10px;">PASSO 1: GERAR</label>
                             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;"><div><label style="font-size:0.7rem;">Qtd</label><input type="number" id="genCount" value="50"></div><div><label style="font-size:0.7rem;">Px</label><select id="genRes"><option value="500">500</option><option value="1000">1000</option></select></div></div>
                             <div id="genProgress" class="progress-container"><div style="display:flex; justify-content:space-between; font-size:0.7rem; margin-bottom:4px;"><span id="genStatusText">Gerando...</span><span id="genPct">0%</span></div><div class="progress-bar"><div id="genBar" class="progress-fill"></div></div></div>
-                            <button class="btn-secondary full" onclick="studioStartGeneration()"><i data-lucide="download"></i> Baixar ZIP (Artes)</button>
+                            <button class="btn-secondary full" onclick="studioStartGeneration()"><i data-lucide="download"></i> Baixar ZIP</button>
                         </div>
                         
                         <div style="background:#18181b; padding:15px; border-radius:8px; border:1px solid #27272a;">
-                            <label style="font-size:0.7rem; color:#22c55e; font-weight:700; display:block; margin-bottom:10px;">PASSO 2: LANÇAR CONTRATO</label>
+                            <label style="font-size:0.7rem; color:#22c55e; font-weight:700; display:block; margin-bottom:10px;">PASSO 2: DEPLOY</label>
                             <input type="text" id="studioNftName" placeholder="Nome">
                             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;"><input type="text" id="studioNftSymbol" placeholder="Simbolo"><input type="number" id="studioNftPrice" placeholder="ETH"></div>
-                            <button class="btn-primary" onclick="deployNFTFromStudio()"><i data-lucide="rocket"></i> Deploy</button>
+                            <button class="btn-primary" onclick="deployNFTFromStudio()"><i data-lucide="rocket"></i> Lançar</button>
                         </div>
                     </div>
                 </div>
@@ -171,42 +162,16 @@
 
     <dialog id="editProfileDialog" class="modal-dialog"><h3>Editar Perfil</h3><input id="editName"><input id="editBio"><div class="modal-actions"><button class="btn-secondary" onclick="document.getElementById('editProfileDialog').close()">Cancelar</button><button class="btn-primary" onclick="saveProfileData();document.getElementById('editProfileDialog').close()">Salvar</button></div></dialog>
     <dialog id="listingDialog" class="modal-dialog" style="max-width:600px;"><div style="display:flex; justify-content:space-between;"><h3>Solicitação de Listagem</h3><button onclick="document.getElementById('listingDialog').close()" style="background:none;border:none;color:#fff;cursor:pointer;">X</button></div><div class="code-block" style="height:150px; overflow-y:auto; margin-bottom:15px; font-size:0.8rem; color:#aaa;"><code id="listingCodeJson">...</code></div><button class="btn-primary full" onclick="copyListingData()">Copiar Dados</button></dialog>
-    
-    <dialog id="nftManagerDialog" class="modal-dialog" style="max-width: 550px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;"><h3>Gerenciar Coleção</h3><button onclick="document.getElementById('nftManagerDialog').close()" style="background:none;border:none;color:#fff;cursor:pointer;"><i data-lucide="x"></i></button></div>
-        <div class="tabs-clean" style="margin-bottom:20px; border-bottom:1px solid #333;"><button class="tab-clean active" onclick="switchMgrTab('dash', this)">Dashboard</button><button class="tab-clean" onclick="switchMgrTab('wl', this)">Whitelist</button><button class="tab-clean" onclick="switchMgrTab('mint', this)">Página de Mint</button></div>
-        <div id="mgrTabDash" class="mgr-content">
-            <div id="mgrHeader" style="display:flex; gap:15px; margin-bottom:20px; align-items:center;"><img id="mgrLogo" src="" style="width:60px; height:60px; border-radius:8px; object-fit:cover; background:#222;"><div><h2 id="mgrName" style="margin:0; font-size:1.2rem;">Nome</h2><div style="color:#666; font-size:0.9rem;" id="mgrSymbol">SYM</div></div></div>
-            <div class="stats-strip" style="margin-bottom:20px; background:#09090b; border-radius:8px;"><div class="stat-item"><span class="lbl">Supply</span><b class="val" id="mgrSupply">0/0</b></div><div class="stat-item"><span class="lbl">Preço</span><b class="val" id="mgrPrice">0</b></div><div class="stat-item"><span class="lbl">Saldo</span><b class="val" id="mgrBalance">0</b></div></div>
-            <h4 style="color:#666; font-size:0.8rem; text-transform:uppercase;">Controle de Fases</h4>
-            <div class="action-grid" style="grid-template-columns:1fr 1fr 1fr; margin-bottom:20px;"><button class="btn-secondary small" onclick="setNFTPhase(0)">Pausar</button><button class="btn-secondary small" onclick="setNFTPhase(1)">Whitelist</button><button class="btn-secondary small" onclick="setNFTPhase(2)" style="border-color:#22c55e; color:#22c55e;">Público</button></div>
-            <button class="btn-primary full" onclick="withdrawNFTFunds()">Sacar Fundos</button>
-        </div>
-        <div id="mgrTabWl" class="mgr-content" style="display:none;"><p class="bio-text">Cole os endereços permitidos.</p><textarea id="wlAddresses" rows="6" placeholder="0x123..."></textarea><button class="btn-primary full mt-4" onclick="updateWhitelist()">Atualizar Whitelist</button></div>
-        <div id="mgrTabMint" class="mgr-content" style="display:none; text-align:center;"><div style="background:#18181b; padding:30px; border-radius:12px; border:1px solid #333; margin-bottom:20px;"><h3 style="color:#fff;">Simulação de Mint Público</h3><div style="margin:20px 0;"><span style="font-size:2rem; font-weight:700; color:#fff;" id="publicMintPriceDisplay">0 ETH</span></div><div style="display:flex; justify-content:center; gap:10px; align-items:center; margin-bottom:20px;"><button class="btn-secondary" onclick="adjustMintAmount(-1)">-</button><span id="mintAmountDisplay" style="font-size:1.2rem; width:40px;">1</span><button class="btn-secondary" onclick="adjustMintAmount(1)">+</button></div><button class="btn-primary full" onclick="publicMintAction()">MINTAR AGORA</button></div></div>
-        <input type="hidden" id="mgrAddress">
-    </dialog>
+    <dialog id="nftManagerDialog" class="modal-dialog" style="max-width: 550px;"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;"><h3>Gerenciar Coleção</h3><button onclick="document.getElementById('nftManagerDialog').close()" style="background:none;border:none;color:#fff;cursor:pointer;"><i data-lucide="x"></i></button></div><div class="tabs-clean" style="margin-bottom:20px; border-bottom:1px solid #333;"><button class="tab-clean active" onclick="switchMgrTab('dash', this)">Dashboard</button><button class="tab-clean" onclick="switchMgrTab('wl', this)">Whitelist</button><button class="tab-clean" onclick="switchMgrTab('mint', this)">Página de Mint</button></div><div id="mgrTabDash" class="mgr-content"><div id="mgrHeader" style="display:flex; gap:15px; margin-bottom:20px; align-items:center;"><img id="mgrLogo" src="" style="width:60px; height:60px; border-radius:8px; object-fit:cover; background:#222;"><div><h2 id="mgrName" style="margin:0; font-size:1.2rem;">Nome</h2><div style="color:#666; font-size:0.9rem;" id="mgrSymbol">SYM</div></div></div><div class="stats-strip" style="margin-bottom:20px; background:#09090b; border-radius:8px;"><div class="stat-item"><span class="lbl">Supply</span><b class="val" id="mgrSupply">0/0</b></div><div class="stat-item"><span class="lbl">Preço</span><b class="val" id="mgrPrice">0</b></div><div class="stat-item"><span class="lbl">Saldo</span><b class="val" id="mgrBalance">0</b></div></div><h4 style="color:#666; font-size:0.8rem; text-transform:uppercase;">Controle de Fases</h4><div class="action-grid" style="grid-template-columns:1fr 1fr 1fr; margin-bottom:20px;"><button class="btn-secondary small" onclick="setNFTPhase(0)">Pausar</button><button class="btn-secondary small" onclick="setNFTPhase(1)">Whitelist</button><button class="btn-secondary small" onclick="setNFTPhase(2)" style="border-color:#22c55e; color:#22c55e;">Público</button></div><button class="btn-primary full" onclick="withdrawNFTFunds()">Sacar Fundos</button></div><div id="mgrTabWl" class="mgr-content" style="display:none;"><p class="bio-text">Cole os endereços permitidos.</p><textarea id="wlAddresses" rows="6" placeholder="0x123..."></textarea><button class="btn-primary full mt-4" onclick="updateWhitelist()">Atualizar Whitelist</button></div><div id="mgrTabMint" class="mgr-content" style="display:none; text-align:center;"><div style="background:#18181b; padding:30px; border-radius:12px; border:1px solid #333; margin-bottom:20px;"><h3 style="color:#fff;">Simulação de Mint Público</h3><div style="margin:20px 0;"><span style="font-size:2rem; font-weight:700; color:#fff;" id="publicMintPriceDisplay">0 ETH</span></div><div style="display:flex; justify-content:center; gap:10px; align-items:center; margin-bottom:20px;"><button class="btn-secondary" onclick="adjustMintAmount(-1)">-</button><span id="mintAmountDisplay" style="font-size:1.2rem; width:40px;">1</span><button class="btn-secondary" onclick="adjustMintAmount(1)">+</button></div><button class="btn-primary full" onclick="publicMintAction()">MINTAR AGORA</button></div></div><input type="hidden" id="mgrAddress"></dialog>
+    <div id="successModal" class="modal-overlay" style="display:none;"><div class="card success-card"><h2>Sucesso</h2><p id="modalMsg">.</p><div id="tokenCreatedInfo" class="code-block"><code id="newContractAddr">...</code></div><button class="btn-primary full mt-4" onclick="document.getElementById('successModal').style.display='none'">Fechar</button></div></div>
 
     <dialog id="aiDialog" class="modal-dialog">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h3><i data-lucide="sparkles" style="color:#3b82f6"></i> Arc AI Generator</h3>
-            <button onclick="document.getElementById('aiDialog').close()" style="background:none;border:none;color:#fff;cursor:pointer;"><i data-lucide="x"></i></button>
-        </div>
-        <p class="bio-text">Descreva o que você quer gerar para esta camada.</p>
-        
-        <textarea id="aiPrompt" rows="3" placeholder="Ex: A futuristic red robot helmet, cyberpunk style, white background" style="margin-bottom:15px; font-family:sans-serif;"></textarea>
-        
-        <button id="btnGenerateAi" class="btn-primary full" onclick="runAiGeneration()">
-            Gerar Imagem
-        </button>
-
-        <div id="aiResultArea" style="margin-top:20px; text-align:center; display:none;">
-            <div style="font-size:0.8rem; margin-bottom:10px; color:#aaa;">Clique na imagem para usar:</div>
-            <img id="aiResultImg" src="" style="width:100%; border-radius:8px; cursor:pointer; border:2px solid transparent; transition:0.2s;" onclick="useAiImage(this)">
-        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center;"><h3><i data-lucide="sparkles" style="color:#3b82f6"></i> Arc AI</h3><button onclick="document.getElementById('aiDialog').close()" style="background:none;border:none;color:#fff;cursor:pointer;"><i data-lucide="x"></i></button></div>
+        <p class="bio-text">Descreva a imagem (Ex: Red Cyberpunk Helmet).</p>
+        <textarea id="aiPrompt" rows="3" placeholder="Digite o prompt..." style="margin-bottom:15px; font-family:sans-serif;"></textarea>
+        <button id="btnGenerateAi" class="btn-primary full" onclick="runAiGeneration()">Gerar</button>
+        <div id="aiResultArea" style="margin-top:20px; text-align:center; display:none;"><div style="font-size:0.8rem; margin-bottom:10px; color:#aaa;">Clique na imagem para salvar:</div><img id="aiResultImg" src="" style="width:100%; border-radius:8px; cursor:pointer; border:2px solid transparent; transition:0.2s;" onclick="useAiImage(this)"></div>
     </dialog>
-
-    <div id="successModal" class="modal-overlay" style="display:none;"><div class="card success-card"><h2>Sucesso</h2><p id="modalMsg">.</p><div id="tokenCreatedInfo" class="code-block"><code id="newContractAddr">...</code></div><button class="btn-primary full mt-4" onclick="document.getElementById('successModal').style.display='none'">Fechar</button></div></div>
 
     <script src="js/config.js"></script>
     <script src="js/ui.js"></script>
