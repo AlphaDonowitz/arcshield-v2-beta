@@ -7,6 +7,7 @@ import { bus } from './core/eventBus.js';
 
 // Importação dos Módulos
 import { initTokenFactory } from './modules/tokenFactory.js';
+import { initUserHub } from './modules/userHub.js'; 
 
 document.addEventListener('DOMContentLoaded', async () => {
     console.log("System: Booting Arc Shield v16...");
@@ -19,9 +20,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // 2. Inicializa Módulos Funcionais
         initTokenFactory(); 
-        // initStudio(); -> Futuro
-        // initMultisender(); -> Futuro
-
+        initUserHub(); // Inicializa o Painel de Gerenciamento
+        
         if(window.lucide) window.lucide.createIcons();
     } catch (error) {
         console.error("Critical UI Error during boot:", error);
@@ -41,9 +41,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     bus.on('notification:success', (msg) => {
-        // Por enquanto usa alert, depois criaremos um Toast bonito
         console.log("SUCCESS:", msg);
-        alert("✅ " + msg);
+        // Toast notification simples por enquanto
+        // Idealmente implementaríamos um toast UI customizado aqui
     });
 
     bus.on('notification:info', (msg) => {
