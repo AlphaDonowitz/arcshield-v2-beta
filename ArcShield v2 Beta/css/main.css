@@ -1,0 +1,17 @@
+/* main.css - O Orquestrador de Estilos */
+@import url('variables.css');
+@import url('layout.css');
+@import url('components.css');
+
+/* Reset Básico */
+* { box-sizing: border-box; }
+
+body { 
+    margin: 0; padding: 0; 
+    font-family: var(--font-ui); 
+    background-color: var(--bg-app); 
+    color: var(--text-primary); 
+    background-image: radial-gradient(#27272a 1px, transparent 1px);
+    background-size: 32px 32px;
+    min-height: 100vh;
+}
