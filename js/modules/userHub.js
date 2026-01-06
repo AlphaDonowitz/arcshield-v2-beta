@@ -6,43 +6,43 @@ export function initUserHub() {
     const container = document.getElementById('leaderboard'); 
     if (!container) return;
 
-    // 1. Carrega quando o perfil é identificado (Login)
-    bus.on('profile:loaded', async () => {
-        // Apenas carrega se a aba estiver ativa para economizar recursos
-        if(container.classList.contains('active')) {
+    // 1. Escuta mudanças de navegação
+    bus.on('navigation:changed', async (targetId) => {
+        if (targetId === 'leaderboard') {
+            console.log("UserHub: Atualizando lista...");
             await renderUserHub(container);
         }
     });
 
-    // 2. CORREÇÃO: Carrega sempre que o usuário clica na aba "User Hub"
-    bus.on('navigation:changed', async (targetId) => {
-        if (targetId === 'leaderboard') {
+    // 2. Escuta login
+    bus.on('profile:loaded', async () => {
+        if(container.classList.contains('active')) {
             await renderUserHub(container);
         }
     });
 }
 
 async function renderUserHub(container) {
-    // Spinner de carregamento
     container.innerHTML = `
         <div class="card" style="display:flex; justify-content:center; align-items:center; min-height:200px;">
             <div style="text-align:center;">
                 <i data-lucide="loader-2" class="spin" style="width:32px; height:32px; margin-bottom:10px; color:var(--primary-blue)"></i>
-                <p>Buscando seus projetos...</p>
+                <p>Carregando projetos...</p>
             </div>
         </div>`;
     if(window.lucide) window.lucide.createIcons();
     
-    // Busca dados frescos do Supabase
+    // Pequeno delay para dar sensação de refresh
+    await new Promise(r => setTimeout(r, 300));
+
     const tokens = await socialService.getUserTokens();
 
-    // Estado Vazio
     if (tokens.length === 0) {
         container.innerHTML = `
             <div class="card" style="text-align:center; padding:40px;">
                 <i data-lucide="ghost" style="width:48px; height:48px; color:#666; margin-bottom:10px;"></i>
                 <h3>Nenhum projeto encontrado</h3>
-                <p class="bio-text">Você ainda não criou nenhum token ou NFT na Arc Shield.</p>
+                <p class="bio-text">Você ainda não criou nenhum token.</p>
                 <button class="btn-primary" style="max-width:200px; margin:0 auto;" onclick="document.querySelector('[data-target=token-launcher]').click()">
                     Criar meu primeiro Token
                 </button>
@@ -51,11 +51,10 @@ async function renderUserHub(container) {
         return;
     }
 
-    // Renderiza Lista
     let html = `
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h3>Gerenciador de Projetos</h3>
+                <h3>Meus Projetos (${tokens.length})</h3>
                 <button class="btn-secondary small" onclick="document.querySelector('[data-target=leaderboard]').click()">
                     <i data-lucide="refresh-cw" style="width:12px; margin-right:5px;"></i> Atualizar
                 </button>
@@ -65,8 +64,6 @@ async function renderUserHub(container) {
 
     tokens.forEach(t => {
         const isERC20 = t.contract_type === 'ERC20';
-        
-        // Estrutura padrão CoinGecko
         const listingData = {
             id: t.symbol.toLowerCase().replace(/\s+/g, '-'),
             symbol: t.symbol,
@@ -96,22 +93,14 @@ async function renderUserHub(container) {
 
                 <hr style="border:0; border-top:1px solid #27272a; margin:15px 0;">
                 
-                <label style="font-size:0.7rem; color:#666; font-weight:700; margin-bottom:8px; display:block;">AÇÕES RÁPIDAS</label>
-
                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px;">
-                    
                     <a href="data:text/json;charset=utf-8,${jsonString}" download="${t.symbol}_listing.json" class="btn-secondary small" style="justify-content:center; text-decoration:none;">
-                        <i data-lucide="file-json" style="width:14px; margin-right:5px;"></i> JSON (CoinGecko)
+                        <i data-lucide="file-json" style="width:14px; margin-right:5px;"></i> JSON API
                     </a>
-
                     ${isERC20 ? `
                     <button class="btn-primary small" id="btnAirdrop_${t.address}" style="justify-content:center;">
-                        <i data-lucide="send" style="width:14px; margin-right:5px;"></i> Enviar Airdrop
+                        <i data-lucide="send" style="width:14px; margin-right:5px;"></i> Airdrop
                     </button>` : ''}
-
-                    <button class="btn-secondary small" onclick="alert('A Bridge para Mainnet estará disponível na v2 do protocolo.')" style="justify-content:center;">
-                        <i data-lucide="arrow-left-right" style="width:14px; margin-right:5px;"></i> Bridge
-                    </button>
                 </div>
             </div>
         `;
@@ -120,16 +109,12 @@ async function renderUserHub(container) {
     html += `</div></div>`;
     container.innerHTML = html;
 
-    // Listeners dos botões de Airdrop
+    // Listeners Airdrop
     tokens.forEach(t => {
         const btn = document.getElementById(`btnAirdrop_${t.address}`);
         if(btn) {
             btn.addEventListener('click', () => {
-                // Navega para a aba Multisender
-                const multiBtn = document.querySelector('[data-target=multisender]');
-                if(multiBtn) multiBtn.click();
-                
-                // Emite evento avisando que queremos usar este token
+                document.querySelector('[data-target=multisender]').click();
                 setTimeout(() => {
                     bus.emit('multisender:selectToken', { address: t.address, symbol: t.symbol });
                 }, 300);
