@@ -30,9 +30,8 @@ window.navigate = function(pageId, btnElement) {
     if(page) page.classList.add('active');
     
     const titles = { 
-        'studio': 'Arc Studio', // NOVO
-        'token-launcher': 'Lançar Token', 
-        'nft-launcher': 'Criar Coleção NFT', 
+        'studio': 'NFT Studio', 
+        'token-launcher': 'Token Factory', 
         'multisender': 'Multisender', 
         'locker': 'Liquidity Locker', 
         'vesting': 'Vesting Schedule', 
@@ -86,21 +85,4 @@ window.handleLogoUpload = async function(input, textId) {
         window.uploadedLogoData = await window.compressImage(input.files[0]);
         if(el) el.innerText = input.files[0].name;
     }
-}
-
-window.handleFileUpload = function(input) {
-    const file = input.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) { const el = document.getElementById('csvInput'); if(el) el.value = e.target.result; };
-    reader.readAsText(file);
-}
-
-window.setBridgeMode = function(mode) {
-    document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
-    if(event && event.target) event.target.classList.add('active');
-    const deposit = document.getElementById('bridgeDepositArea');
-    const claim = document.getElementById('bridgeClaimArea');
-    if(deposit) deposit.style.display = mode === 'deposit' ? 'block' : 'none';
-    if(claim) claim.style.display = mode === 'claim' ? 'block' : 'none';
 }
