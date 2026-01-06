@@ -1,12 +1,40 @@
 import { bus } from '../core/eventBus.js';
 
 export function initNavigation() {
+    console.log("UI: Inicializando navegação...");
+
+    // --- 1. Lógica da Landing Page (PRIORIDADE) ---
+    const btnEnter = document.getElementById('btnEnterApp');
+    const landingPage = document.getElementById('landingPage');
+    const dashboardLayout = document.getElementById('dashboardLayout');
+
+    if (btnEnter && landingPage && dashboardLayout) {
+        console.log("UI: Botão de entrada encontrado via JS.");
+        
+        btnEnter.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log("UI: Entrando no App...");
+            
+            // Oculta Landing Page
+            landingPage.style.opacity = '0';
+            setTimeout(() => {
+                landingPage.style.display = 'none';
+            }, 300); // Pequena transição suave
+
+            // Mostra Dashboard
+            dashboardLayout.style.display = 'flex';
+        });
+    } else {
+        console.error("UI CRÍTICO: Elementos da Landing Page não encontrados no HTML.");
+    }
+
+    // --- 2. Lógica das Abas (Navegação Interna) ---
     const buttons = document.querySelectorAll('.nav-item');
     const sections = document.querySelectorAll('.page-section');
     const titleEl = document.getElementById('pageTitle');
 
     const titles = { 
-        'studio': 'NFT Studio AI', 
+        'studio': 'NFT Studio HD', 
         'token-launcher': 'Token Factory', 
         'multisender': 'Smart Drop', 
         'locker': 'Liquidity Locker', 
@@ -15,17 +43,17 @@ export function initNavigation() {
         'leaderboard': 'User Hub' 
     };
 
-    // Função de Navegação Interna
     function navigateTo(targetId, triggerButton) {
-        // 1. Atualiza Visual dos Botões
+        // Atualiza Botões
         buttons.forEach(btn => {
             btn.classList.remove('active');
+            // Marca ativo se for o botão clicado OU se o target coincidir
             if(btn === triggerButton || btn.dataset.target === targetId) {
                 btn.classList.add('active');
             }
         });
 
-        // 2. Atualiza Visual das Seções
+        // Atualiza Seções
         sections.forEach(sec => {
             sec.classList.remove('active');
             if(sec.id === targetId) {
@@ -33,33 +61,23 @@ export function initNavigation() {
             }
         });
 
-        // 3. Atualiza Título
+        // Atualiza Título
         if(titleEl) titleEl.innerText = titles[targetId] || 'Dashboard';
         
-        // 4. CRUCIAL: Avisa todo o sistema que a página mudou
-        // O User Hub escuta isso para recarregar a lista
+        // Emite evento global
         console.log(`UI: Navegando para ${targetId}`);
         bus.emit('navigation:changed', targetId);
     }
 
-    // Listeners de Clique
+    // Listeners de Clique nas Abas
     buttons.forEach(btn => {
         btn.addEventListener('click', (e) => {
-            // Previne comportamento padrão se for link
-            e.preventDefault();
+            // Se for um link real (href), deixa navegar. Se não, previne.
+            if (!btn.getAttribute('href')) {
+                e.preventDefault();
+            }
             const target = btn.dataset.target;
             if(target) navigateTo(target, btn);
         });
     });
-
-    // Landing Page
-    const btnEnter = document.getElementById('btnEnterApp');
-    if(btnEnter) {
-        btnEnter.addEventListener('click', () => {
-            document.getElementById('landingPage').style.display = 'none';
-            document.getElementById('dashboardLayout').style.display = 'flex';
-        });
-    }
-
-    console.log("UI: Navigation initialized");
 }
