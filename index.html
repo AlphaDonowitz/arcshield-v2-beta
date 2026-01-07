@@ -27,6 +27,20 @@
         </div>
     </div>
 
+    <script>
+        document.getElementById('btnEnterApp').addEventListener('click', function() {
+            const landing = document.getElementById('landingPage');
+            const dash = document.getElementById('dashboardLayout');
+            
+            // Efeito visual
+            landing.style.opacity = '0';
+            setTimeout(() => {
+                landing.style.display = 'none';
+                dash.style.display = 'flex';
+            }, 500);
+        });
+    </script>
+
     <div id="dashboardLayout" style="display: none;">
         
         <aside class="sidebar">
@@ -59,41 +73,18 @@
             </header>
             
             <div class="content-container">
-                
-                <div id="token-launcher" class="page-section active">
-                    <div class="card"><h3>Token Factory</h3><p>Carregando...</p></div>
-                </div>
-                
-                <div id="studio" class="page-section">
-                     <div class="card"><h3>NFT Manager</h3><p>Carregando...</p></div>
-                </div>
-
-                <div id="multisender" class="page-section">
-                    <div class="card"><h3>Smart Drop</h3><p>Carregando...</p></div>
-                </div>
-
-                <div id="locker" class="page-section">
-                    <div class="card"><h3>Liquidity Locker</h3><p>Em breve...</p></div>
-                </div>
-
-                <div id="vesting" class="page-section">
-                    <div class="card"><h3>Vesting Schedule</h3><p>Em breve...</p></div>
-                </div>
-
-                <div id="bridge" class="page-section">
-                    <div class="card"><h3>CCTP Bridge</h3><p>Em breve...</p></div>
-                </div>
-
-                <div id="leaderboard" class="page-section">
-                    <div class="card"><h3>User Hub</h3><p>Carregando...</p></div>
-                </div>
-
+                <div id="token-launcher" class="page-section active"><div class="card"><h3>Carregando...</h3></div></div>
+                <div id="studio" class="page-section"><div class="card"><h3>Carregando...</h3></div></div>
+                <div id="multisender" class="page-section"><div class="card"><h3>Carregando...</h3></div></div>
+                <div id="locker" class="page-section"><div class="card"><h3>Carregando...</h3></div></div>
+                <div id="vesting" class="page-section"><div class="card"><h3>Carregando...</h3></div></div>
+                <div id="bridge" class="page-section"><div class="card"><h3>Em breve...</h3></div></div>
+                <div id="leaderboard" class="page-section"><div class="card"><h3>Carregando...</h3></div></div>
             </div>
         </main>
     </div>
 
     <div id="globalModals"></div>
-
     <script type="module" src="js/main.js"></script>
 </body>
 </html>
