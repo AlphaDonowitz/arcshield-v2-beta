@@ -3,31 +3,20 @@ import { bus } from '../core/eventBus.js';
 export function initNavigation() {
     console.log("UI: Procurando botão de entrada...");
 
-    // 1. Landing Page (O Botão que não funciona)
+    // 1. Landing Page
     const btnEnter = document.getElementById('btnEnterApp');
     const landingPage = document.getElementById('landingPage');
     const dashboardLayout = document.getElementById('dashboardLayout');
 
     if (btnEnter) {
-        console.log("UI: Botão encontrado! Adicionando listener...");
-        
-        btnEnter.onclick = function(e) { // Usando onclick direto para garantir prioridade
+        btnEnter.onclick = function(e) {
             e.preventDefault();
-            console.log("UI: Clique detectado. Entrando...");
-            
             if (landingPage) {
                 landingPage.style.opacity = '0';
-                setTimeout(() => {
-                    landingPage.style.display = 'none';
-                }, 500);
+                setTimeout(() => { landingPage.style.display = 'none'; }, 500);
             }
-            
-            if (dashboardLayout) {
-                dashboardLayout.style.display = 'flex';
-            }
+            if (dashboardLayout) dashboardLayout.style.display = 'flex';
         };
-    } else {
-        console.error("UI CRÍTICO: Botão #btnEnterApp não existe no HTML.");
     }
 
     // 2. Navegação Lateral
@@ -35,8 +24,9 @@ export function initNavigation() {
     const sections = document.querySelectorAll('.page-section');
     const titleEl = document.getElementById('pageTitle');
 
+    // Mapeamento de Títulos Atualizado
     const titles = { 
-        'studio': 'NFT Studio HD', 
+        'studio': 'NFT Drop Manager', // <--- Atualizado
         'token-launcher': 'Token Factory', 
         'multisender': 'Smart Drop', 
         'locker': 'Liquidity Locker', 
@@ -60,7 +50,6 @@ export function initNavigation() {
 
         if(titleEl) titleEl.innerText = titles[targetId] || 'Dashboard';
         
-        console.log(`UI: Navegando para ${targetId}`);
         bus.emit('navigation:changed', targetId);
     }
 
@@ -68,7 +57,6 @@ export function initNavigation() {
         btn.addEventListener('click', (e) => {
             const target = btn.dataset.target;
             if(target) {
-                // Se não for link externo, previne default
                 if(!btn.getAttribute('href')) e.preventDefault();
                 navigateTo(target, btn);
             }
