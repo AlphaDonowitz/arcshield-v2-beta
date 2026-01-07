@@ -1,0 +1,114 @@
+/* css/modules/locker.css */
+
+.locker-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    height: 100%;
+}
+
+/* Tabs do Locker */
+.locker-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 15px;
+}
+
+.locker-tab {
+    background: transparent;
+    border: 1px solid transparent;
+    color: #666;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.locker-tab:hover { color: #fff; }
+.locker-tab.active {
+    background: #18181b;
+    border-color: var(--primary-blue);
+    color: #fff;
+}
+
+/* Formulário de Lock */
+.lock-form {
+    background: #121215;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.date-input-wrapper {
+    position: relative;
+    margin-top: 5px;
+}
+
+.date-input-wrapper input[type="datetime-local"] {
+    width: 100%;
+    padding: 12px;
+    background: #000;
+    border: 1px solid #333;
+    color: #fff;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    color-scheme: dark; /* Força calendário escuro */
+}
+
+/* Lista de Bloqueios (Dashboard) */
+.locks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.lock-card {
+    background: #18181b;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    position: relative;
+    transition: 0.2s;
+}
+
+.lock-card:hover { border-color: var(--primary-blue); }
+
+.lock-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.lock-badge {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success-green);
+    font-size: 0.7rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+    text-transform: uppercase;
+    display: flex; align-items: center; gap: 5px;
+}
+
+.lock-amount {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+    color: #fff;
+}
+
+.lock-timer {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: #888;
+    background: #000;
+    padding: 8px;
+    border-radius: 4px;
+    margin-top: 10px;
+    text-align: center;
+}
