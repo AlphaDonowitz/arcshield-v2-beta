@@ -1,7 +1,3 @@
-// js/main.js - Versão Blindada com Carregamento Dinâmico
-
-// Importações Críticas (Core e UI)
-// Estas precisam funcionar para o site abrir
 import { bus } from './core/eventBus.js';
 import { initNavigation } from './ui/uiManager.js';
 import { initSidebar } from './ui/sidebar.js';
@@ -10,73 +6,47 @@ import { web3Service } from './services/web3Service.js';
 import { socialService } from './services/socialService.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log("System: Booting Arc Shield v16.3 (Safe Mode)...");
+    // Atualizado para refletir a nova versão
+    console.log("System: Booting Arc Shield v16.4 (Drop Manager)...");
 
-    // 1. Inicializa a Interface (PRIORIDADE MÁXIMA)
-    // Se isso falhar, o botão não funciona.
     try {
-        console.log("System: Iniciando UI Manager...");
-        initNavigation(); // <--- Isso ativa o botão da Landing Page
+        initNavigation();
         initSidebar();
         initProfileUI();
-        
         if(window.lucide) window.lucide.createIcons();
     } catch (error) {
-        console.error("FATAL: Erro ao iniciar UI. O site pode não responder.", error);
-        alert("Erro crítico de sistema. Verifique o console.");
+        console.error("FATAL: UI Error.", error);
     }
 
-    // 2. Carregamento Seguro dos Módulos (Feature Flags)
-    // Se um módulo quebrar, o resto do site continua funcionando.
-    
-    // -> Carrega Token Factory
+    // Carregamento Dinâmico de Módulos
     try {
         const module = await import('./modules/tokenFactory.js');
         module.initTokenFactory();
-        console.log("Module: Token Factory Loaded");
-    } catch (e) { console.error("Falha ao carregar Token Factory:", e); }
+    } catch (e) { console.error("TokenFactory Error:", e); }
 
-    // -> Carrega User Hub
     try {
         const module = await import('./modules/userHub.js');
         module.initUserHub();
-        console.log("Module: User Hub Loaded");
-    } catch (e) { console.error("Falha ao carregar User Hub:", e); }
+    } catch (e) { console.error("UserHub Error:", e); }
 
-    // -> Carrega Multisender
     try {
         const module = await import('./modules/multisender.js');
         module.initMultisender();
-        console.log("Module: Multisender Loaded");
-    } catch (e) { console.error("Falha ao carregar Multisender:", e); }
+    } catch (e) { console.error("Multisender Error:", e); }
 
-    // -> Carrega Studio (O mais complexo e propenso a erros)
     try {
         const module = await import('./modules/studio.js');
         module.initStudio();
-        console.log("Module: Studio Loaded");
-    } catch (e) { 
-        console.error("Falha ao carregar Studio:", e);
-        // Opcional: Avisar na UI que o módulo falhou
-        const studioCard = document.querySelector('#studio .card');
-        if(studioCard) studioCard.innerHTML = `<h3>Erro no Módulo</h3><p>Não foi possível carregar o Studio. Erro: ${e.message}</p>`;
-    }
+        console.log("Module: NFT Drop Manager Loaded");
+    } catch (e) { console.error("Studio Error:", e); }
 
-    // 3. Inicializa Web3 e Listeners Globais
     try {
         await web3Service.init();
-
-        bus.on('wallet:connected', (data) => {
-            socialService.loadUserProfile(data.address);
-        });
-
-        bus.on('notification:error', (msg) => { alert("⚠️ " + msg); });
-        bus.on('notification:success', (msg) => { alert("✅ " + msg); });
-        bus.on('notification:info', (msg) => { console.log("Info:", msg); });
-        
+        bus.on('wallet:connected', (data) => socialService.loadUserProfile(data.address));
+        bus.on('notification:error', (msg) => alert("⚠️ " + msg));
+        bus.on('notification:success', (msg) => alert("✅ " + msg));
+        bus.on('notification:info', (msg) => console.log("Info:", msg));
     } catch (e) {
-        console.error("System: Erro no Web3 Init", e);
+        console.error("Web3 Init Error", e);
     }
-
-    console.log("System: Ready.");
 });
