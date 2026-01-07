@@ -7,7 +7,7 @@ let studioState = {
     previewCanvas: null,
     ctx: null,
     canvasSize: 1024,
-    generatedBatch: [] // Armazena o preview da coleção
+    generatedBatch: []
 };
 
 export function initStudio() {
@@ -27,10 +27,25 @@ export function initStudio() {
 
     attachListeners();
     
-    // Camadas Iniciais Sugeridas
-    addLayer("Background");
-    addLayer("Body");
-    addLayer("Eyes");
+    // --- CAMADAS PADRÃO (ORDEM VISUAL CORRETA) ---
+    // Adicionamos na ordem inversa ao unshift para que a UI mostre:
+    // 1. Acessórios (Topo/Frente)
+    // ...
+    // 5. Fundo (Base/Trás)
+    
+    const defaultLayers = ["Fundo", "Corpo", "Roupas", "Cabelo", "Acessórios"];
+    
+    // Limpa estado anterior se houver
+    studioState.layers = [];
+    
+    // Cria as camadas
+    defaultLayers.forEach(name => {
+        addLayer(name);
+    });
+
+    // Define "Corpo" como ativa inicialmente para facilitar
+    const bodyLayer = studioState.layers.find(l => l.name === "Corpo");
+    if(bodyLayer) setActiveLayer(bodyLayer.id);
 }
 
 function renderStudioStructure(container) {
@@ -38,14 +53,13 @@ function renderStudioStructure(container) {
         <div class="studio-wrapper">
             <div class="studio-sidebar-left">
                 <div class="layers-header">
-                    <span>Camadas</span>
+                    <span>Ordem (Topo p/ Baixo)</span>
                     <button class="btn-secondary small" id="btnAddLayer"><i data-lucide="plus"></i></button>
                 </div>
                 <div id="layersList" class="layers-list"></div>
             </div>
 
             <div class="studio-workspace" id="workspaceArea">
-                
                 <div class="workspace-toolbar">
                     <div>
                         <h3 id="activeLayerTitle" style="margin:0; font-size:1.1rem;">Selecione uma Camada</h3>
@@ -63,23 +77,20 @@ function renderStudioStructure(container) {
 
                 <div id="emptyStateWorkspace" style="text-align:center; margin-top:100px; opacity:0.5;">
                     <i data-lucide="layers" style="width:48px; height:48px; margin-bottom:10px;"></i>
-                    <p>Adicione camadas à esquerda e faça upload das suas imagens.</p>
+                    <p>Selecione uma camada (ex: Corpo) e faça upload das imagens.</p>
                 </div>
 
                 <div id="resultsOverlay" class="generation-overlay" style="display:none;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <h3>Resultado da Geração</h3>
+                        <h3>Amostra da Coleção</h3>
                         <button class="btn-secondary small" id="btnCloseResults"><i data-lucide="x"></i> Fechar</button>
                     </div>
-                    <p style="font-size:0.9rem; color:#888;">Aqui está uma amostra de como sua coleção ficará.</p>
-                    
-                    <div id="resultsGrid" class="gen-grid">
-                        </div>
+                    <div id="resultsGrid" class="gen-grid"></div>
                 </div>
             </div>
 
             <div class="studio-sidebar-right">
-                <label class="nav-label" style="margin-top:0;">PREVIEW ÚNICO</label>
+                <label class="nav-label" style="margin-top:0;">PREVIEW HD</label>
                 <div class="preview-box">
                     <canvas id="previewCanvas"></canvas>
                 </div>
@@ -90,18 +101,14 @@ function renderStudioStructure(container) {
                 <hr style="border:0; border-top:1px solid var(--border-color); margin:20px 0;">
                 
                 <div class="card" style="padding:15px; background:#18181b;">
-                    <label class="nav-label" style="margin-top:0; color:var(--success-green);">CRIAR COLEÇÃO</label>
-                    <p style="font-size:0.8rem; color:#666; margin-bottom:15px;">
-                        Gere a coleção completa com metadados prontos para OpenSea.
-                    </p>
-                    
+                    <label class="nav-label" style="margin-top:0; color:var(--success-green);">EXPORTAR</label>
                     <div style="margin-bottom:10px;">
-                        <label style="font-size:0.75rem;">Quantidade Total</label>
+                        <label style="font-size:0.75rem;">Quantidade</label>
                         <input type="number" id="collectionSize" value="50" min="1" max="10000" style="padding:8px; width:100%; background:#000; border:1px solid #333; color:#fff; border-radius:4px;">
                     </div>
 
                     <button class="btn-secondary full mb-2" id="btnPreviewBatch" style="margin-bottom:10px;">
-                        <i data-lucide="grid"></i> Ver Amostra (Preview)
+                        <i data-lucide="grid"></i> Ver Amostra
                     </button>
 
                     <button class="btn-primary full" id="btnGenerateZip">
@@ -118,37 +125,41 @@ function renderStudioStructure(container) {
 }
 
 function attachListeners() {
-    // Camadas
     document.getElementById('btnAddLayer').addEventListener('click', () => {
-        const name = prompt("Nome da Camada (ex: Eyes, Mouth):");
+        const name = prompt("Nome da Camada:");
         if(name) addLayer(name);
     });
 
-    // Upload
     document.getElementById('btnUploadTrait').addEventListener('click', () => {
         document.getElementById('hiddenUpload').click();
     });
     document.getElementById('hiddenUpload').addEventListener('change', handleFileUpload);
 
-    // Preview Único
     document.getElementById('btnRandomize').addEventListener('click', generateSinglePreview);
 
-    // Preview em Massa (Novo)
     document.getElementById('btnPreviewBatch').addEventListener('click', generateBatchPreview);
     document.getElementById('btnCloseResults').addEventListener('click', () => {
         document.getElementById('resultsOverlay').style.display = 'none';
     });
 
-    // Download Final
     document.getElementById('btnGenerateZip').addEventListener('click', generateCollectionZip);
 }
 
 // --- Gerenciamento de Camadas ---
 
 function addLayer(name) {
-    const newLayer = { id: Date.now(), name: name, traits: [] };
-    studioState.layers.unshift(newLayer); // Adiciona no topo da lista (Fundo visualmente)
-    setActiveLayer(newLayer.id);
+    const newLayer = { id: Date.now() + Math.random(), name: name, traits: [] };
+    // unshift coloca no índice 0. 
+    // Como desenhamos invertendo o array, o índice 0 é o ÚLTIMO a ser desenhado (Frente/Topo).
+    // Fundo -> addLayer -> Fundo é index 0.
+    // Corpo -> addLayer -> Corpo é index 0, Fundo é 1.
+    // Desenho: Inverte ([Fundo, Corpo]) -> Desenha Fundo, depois Corpo.
+    // Está correto.
+    studioState.layers.unshift(newLayer); 
+    
+    // Se não estiver inicializando em lote, define como ativa
+    if(studioState.layers.length === 1) setActiveLayer(newLayer.id);
+    
     renderLayersList();
 }
 
@@ -173,7 +184,7 @@ function handleFileUpload(e) {
                 loaded++;
                 if(loaded === files.length) {
                     renderWorkspace();
-                    generateSinglePreview();
+                    generateSinglePreview(); // Atualiza preview assim que carregar
                 }
             };
             img.src = ev.target.result;
@@ -193,6 +204,7 @@ function deleteTrait(layerId, traitId) {
     if(layer) {
         layer.traits = layer.traits.filter(t => t.id !== traitId);
         renderWorkspace();
+        generateSinglePreview();
     }
 }
 
@@ -202,11 +214,12 @@ function renderLayersList() {
     const list = document.getElementById('layersList');
     list.innerHTML = '';
     
-    // A ordem de desenho é inversa à ordem da lista visual
     studioState.layers.forEach((layer, idx) => {
         const isActive = layer.id === studioState.activeLayerId;
         const item = document.createElement('div');
         item.className = `layer-item ${isActive ? 'active' : ''}`;
+        
+        // Exibição visual
         item.innerHTML = `
             <span>${layer.name}</span>
             <span class="badge">${layer.traits.length}</span>
@@ -250,13 +263,15 @@ function renderWorkspace() {
     if(window.lucide) window.lucide.createIcons();
 }
 
-// --- Lógica de Geração ---
+// --- MOTOR DE DESENHO (CORRIGIDO PARA ORDEM DE CAMADAS) ---
 
 function generateSinglePreview() {
     const { ctx, previewCanvas } = studioState;
     ctx.clearRect(0,0, previewCanvas.width, previewCanvas.height);
 
-    // Desenha do Fundo para Frente (Inverte array de camadas)
+    // Array está visualmente: [Topo, ..., Fundo]
+    // Para desenhar corretamente (pintor): Desenhamos Fundo -> depois Topo
+    // Então invertemos o array.
     const layersToDraw = [...studioState.layers].reverse();
 
     layersToDraw.forEach(layer => {
@@ -267,14 +282,13 @@ function generateSinglePreview() {
     });
 }
 
-// GERA UMA AMOSTRA DE 20 ITENS PARA O USUÁRIO VER
 async function generateBatchPreview() {
     const overlay = document.getElementById('resultsOverlay');
     const grid = document.getElementById('resultsGrid');
     
-    // Validação
-    if(studioState.layers.some(l => l.traits.length === 0)) {
-        return bus.emit('notification:error', "Preencha todas as camadas com imagens.");
+    // Verifica se há pelo menos 1 trait em alguma camada
+    if(studioState.layers.every(l => l.traits.length === 0)) {
+        return bus.emit('notification:error', "Faça upload de imagens nas camadas primeiro.");
     }
 
     overlay.style.display = 'flex';
@@ -283,9 +297,8 @@ async function generateBatchPreview() {
     const sampleSize = 20;
     let html = '';
 
-    // Usa um canvas temporário offscreen
     const offCanvas = document.createElement('canvas');
-    offCanvas.width = 512; // Resolução menor para preview rápido
+    offCanvas.width = 512; 
     offCanvas.height = 512;
     const offCtx = offCanvas.getContext('2d');
     const layersToDraw = [...studioState.layers].reverse();
@@ -301,8 +314,7 @@ async function generateBatchPreview() {
             }
         });
 
-        // Converte para base64 thumb
-        const thumb = offCanvas.toDataURL('image/jpeg', 0.7);
+        const thumb = offCanvas.toDataURL('image/jpeg', 0.6);
         html += `
             <div class="gen-item">
                 <img src="${thumb}">
@@ -314,7 +326,6 @@ async function generateBatchPreview() {
     grid.innerHTML = html;
 }
 
-// GERA O ZIP FINAL PADRÃO OPENSEA
 async function generateCollectionZip() {
     if(typeof JSZip === 'undefined') {
         return bus.emit('notification:error', "Erro: JSZip não carregado.");
@@ -325,7 +336,7 @@ async function generateCollectionZip() {
     const status = document.getElementById('genStatus');
     
     if(qty < 1) return;
-    if(studioState.layers.some(l => l.traits.length === 0)) {
+    if(studioState.layers.every(l => l.traits.length === 0)) {
         return bus.emit('notification:error', "Camadas vazias detectadas!");
     }
 
@@ -335,10 +346,8 @@ async function generateCollectionZip() {
         status.innerText = "Inicializando...";
 
         const zip = new JSZip();
-        // OpenSea recomenda estrutura plana, mas pastas organizam melhor
-        // Vamos criar pastas 'images' e 'metadata'
         const imgFolder = zip.folder("images");
-        const metaFolder = zip.folder("metadata"); // Importante para OpenSea
+        const metaFolder = zip.folder("metadata");
 
         const layersToDraw = [...studioState.layers].reverse();
         const { ctx, previewCanvas } = studioState;
@@ -347,21 +356,20 @@ async function generateCollectionZip() {
             ctx.clearRect(0,0, previewCanvas.width, previewCanvas.height);
             let attributes = [];
 
-            // Desenha e coleta atributos
             layersToDraw.forEach(layer => {
-                const rand = Math.floor(Math.random() * layer.traits.length);
-                const trait = layer.traits[rand];
-                
-                ctx.drawImage(trait.imgObj, 0, 0, previewCanvas.width, previewCanvas.height);
-                
-                // Padrão OpenSea de Metadados
-                attributes.push({
-                    "trait_type": layer.name,
-                    "value": trait.name
-                });
+                if(layer.traits.length > 0) {
+                    const rand = Math.floor(Math.random() * layer.traits.length);
+                    const trait = layer.traits[rand];
+                    
+                    ctx.drawImage(trait.imgObj, 0, 0, previewCanvas.width, previewCanvas.height);
+                    
+                    attributes.push({
+                        "trait_type": layer.name,
+                        "value": trait.name
+                    });
+                }
             });
 
-            // 1. Salva Imagem
             await new Promise(resolve => {
                 previewCanvas.toBlob(blob => {
                     imgFolder.file(`${i}.png`, blob);
@@ -369,19 +377,15 @@ async function generateCollectionZip() {
                 }, 'image/png');
             });
 
-            // 2. Cria JSON (OpenSea Standard)
             const metadata = {
                 "name": `NFT #${i}`,
                 "description": "Generated with Arc Shield Studio",
-                "image": `ipfs://YOUR_CID_HERE/${i}.png`, // Usuário deve substituir isso ao subir no Pinata
+                "image": `ipfs://REPLACE_CID/${i}.png`,
                 "attributes": attributes
             };
             
-            // O arquivo deve ser apenas o número (ex: '1' ou '1.json')
-            // Pinata geralmente pede '1.json' ou apenas '1' para pastas
             metaFolder.file(`${i}.json`, JSON.stringify(metadata, null, 2));
 
-            // Feedback Visual a cada 5%
             if(i % Math.ceil(qty/20) === 0) {
                 status.innerText = `Gerando... ${Math.round((i/qty)*100)}%`;
                 await new Promise(r => setTimeout(r, 0));
@@ -390,9 +394,9 @@ async function generateCollectionZip() {
 
         status.innerText = "Compactando ZIP...";
         const content = await zip.generateAsync({type:"blob"});
-        saveAs(content, "Arc_Collection_OpenSea_Ready.zip");
+        saveAs(content, "Arc_Collection_OpenSea.zip");
         
-        bus.emit('notification:success', "Download iniciado! Extraia e suba no Pinata.");
+        bus.emit('notification:success', "Download iniciado! Sucesso.");
         status.innerText = "Concluído!";
 
     } catch(e) {
