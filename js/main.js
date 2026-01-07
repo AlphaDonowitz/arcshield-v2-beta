@@ -6,8 +6,7 @@ import { web3Service } from './services/web3Service.js';
 import { socialService } from './services/socialService.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Atualizado para refletir a nova versão
-    console.log("System: Booting Arc Shield v16.4 (Drop Manager)...");
+    console.log("System: Booting Arc Shield v16.5 (Locker Module)...");
 
     try {
         initNavigation();
@@ -37,8 +36,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         const module = await import('./modules/studio.js');
         module.initStudio();
-        console.log("Module: NFT Drop Manager Loaded");
     } catch (e) { console.error("Studio Error:", e); }
+
+    // --- NOVO: LOCKER ---
+    try {
+        const module = await import('./modules/locker.js');
+        module.initLocker();
+        console.log("Module: Locker Loaded");
+    } catch (e) { console.error("Locker Error:", e); }
 
     try {
         await web3Service.init();
