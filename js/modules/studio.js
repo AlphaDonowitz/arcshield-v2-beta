@@ -1,122 +1,64 @@
 import { bus } from '../core/eventBus.js';
 
-// Estado Local do Studio
 let studioState = {
-    layers: [], 
-    activeLayerId: null,
-    previewCanvas: null,
-    ctx: null,
-    canvasSize: 1024,
-    generatedBatch: []
+    uploadedFiles: [], // Array de objetos File
+    collectionName: "Arc Collection",
+    collectionDesc: "Created on Arc Shield",
+    baseImageCid: "ipfs://REPLACE_WITH_CID" // O usuário substitui depois ou deixamos placeholder
 };
 
 export function initStudio() {
     const container = document.getElementById('studio');
     if (!container) return;
 
-    renderStudioStructure(container);
-
-    studioState.previewCanvas = document.getElementById('previewCanvas');
-    if(studioState.previewCanvas) {
-        studioState.previewCanvas.width = studioState.canvasSize;
-        studioState.previewCanvas.height = studioState.canvasSize;
-        studioState.ctx = studioState.previewCanvas.getContext('2d', { alpha: false });
-        studioState.ctx.imageSmoothingEnabled = true;
-        studioState.ctx.imageSmoothingQuality = 'high';
-    }
-
+    renderStudioUI(container);
     attachListeners();
-    
-    // --- CAMADAS PADRÃO (ORDEM VISUAL CORRETA) ---
-    // Adicionamos na ordem inversa ao unshift para que a UI mostre:
-    // 1. Acessórios (Topo/Frente)
-    // ...
-    // 5. Fundo (Base/Trás)
-    
-    const defaultLayers = ["Fundo", "Corpo", "Roupas", "Cabelo", "Acessórios"];
-    
-    // Limpa estado anterior se houver
-    studioState.layers = [];
-    
-    // Cria as camadas
-    defaultLayers.forEach(name => {
-        addLayer(name);
-    });
-
-    // Define "Corpo" como ativa inicialmente para facilitar
-    const bodyLayer = studioState.layers.find(l => l.name === "Corpo");
-    if(bodyLayer) setActiveLayer(bodyLayer.id);
 }
 
-function renderStudioStructure(container) {
+function renderStudioUI(container) {
     container.innerHTML = `
-        <div class="studio-wrapper">
-            <div class="studio-sidebar-left">
-                <div class="layers-header">
-                    <span>Ordem (Topo p/ Baixo)</span>
-                    <button class="btn-secondary small" id="btnAddLayer"><i data-lucide="plus"></i></button>
-                </div>
-                <div id="layersList" class="layers-list"></div>
-            </div>
-
-            <div class="studio-workspace" id="workspaceArea">
-                <div class="workspace-toolbar">
-                    <div>
-                        <h3 id="activeLayerTitle" style="margin:0; font-size:1.1rem;">Selecione uma Camada</h3>
-                        <span id="activeLayerCount" style="font-size:0.8rem; color:#666;">0 itens</span>
+        <div class="studio-wrapper" style="flex-direction:column; overflow:hidden;">
+            <div style="padding:20px; border-bottom:1px solid var(--border-color); background:#121215; display:flex; gap:20px; align-items:flex-end;">
+                <div style="flex-grow:1; display:flex; gap:15px;">
+                    <div style="flex:1;">
+                        <label style="font-size:0.8rem; color:#888;">Nome da Coleção</label>
+                        <input type="text" id="collName" value="My Arc NFT" placeholder="Ex: Bored Ape" style="width:100%; padding:10px; background:#000; border:1px solid #333; color:#fff; border-radius:4px;">
                     </div>
-                    <div id="layerTools" style="display:none; gap:10px;">
-                        <button class="btn-primary small" id="btnUploadTrait">
-                            <i data-lucide="upload" style="width:14px; margin-right:5px;"></i> Upload PNGs
-                        </button>
-                        <input type="file" id="hiddenUpload" hidden multiple accept="image/png, image/jpeg, image/webp">
+                    <div style="flex:2;">
+                        <label style="font-size:0.8rem; color:#888;">Descrição</label>
+                        <input type="text" id="collDesc" value="Exclusive collection on Arc Network" placeholder="Descrição para o OpenSea" style="width:100%; padding:10px; background:#000; border:1px solid #333; color:#fff; border-radius:4px;">
                     </div>
                 </div>
-                
-                <div id="traitGrid" class="trait-grid"></div>
-
-                <div id="emptyStateWorkspace" style="text-align:center; margin-top:100px; opacity:0.5;">
-                    <i data-lucide="layers" style="width:48px; height:48px; margin-bottom:10px;"></i>
-                    <p>Selecione uma camada (ex: Corpo) e faça upload das imagens.</p>
-                </div>
-
-                <div id="resultsOverlay" class="generation-overlay" style="display:none;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <h3>Amostra da Coleção</h3>
-                        <button class="btn-secondary small" id="btnCloseResults"><i data-lucide="x"></i> Fechar</button>
-                    </div>
-                    <div id="resultsGrid" class="gen-grid"></div>
+                <div>
+                    <button class="btn-primary" id="btnExportPackage" disabled>
+                        <i data-lucide="package"></i> Gerar Metadados & ZIP
+                    </button>
                 </div>
             </div>
 
-            <div class="studio-sidebar-right">
-                <label class="nav-label" style="margin-top:0;">PREVIEW HD</label>
-                <div class="preview-box">
-                    <canvas id="previewCanvas"></canvas>
-                </div>
-                <button class="btn-secondary full" id="btnRandomize">
-                    <i data-lucide="refresh-cw" style="width:14px; margin-right:6px;"></i> Testar Combinação
-                </button>
-
-                <hr style="border:0; border-top:1px solid var(--border-color); margin:20px 0;">
+            <div style="flex-grow:1; display:flex; overflow:hidden;">
                 
-                <div class="card" style="padding:15px; background:#18181b;">
-                    <label class="nav-label" style="margin-top:0; color:var(--success-green);">EXPORTAR</label>
-                    <div style="margin-bottom:10px;">
-                        <label style="font-size:0.75rem;">Quantidade</label>
-                        <input type="number" id="collectionSize" value="50" min="1" max="10000" style="padding:8px; width:100%; background:#000; border:1px solid #333; color:#fff; border-radius:4px;">
+                <div class="drop-area" id="dropZone">
+                    <div style="text-align:center;">
+                        <i data-lucide="upload-cloud" style="width:64px; height:64px; color:var(--primary-blue); margin-bottom:15px;"></i>
+                        <h3>Arraste sua coleção aqui</h3>
+                        <p style="color:#666; margin-bottom:20px;">Ou selecione a pasta com suas imagens prontas (.png, .jpg)</p>
+                        <button class="btn-secondary" id="btnSelectFiles">Selecionar Arquivos</button>
+                        <input type="file" id="fileInput" multiple hidden accept="image/*">
                     </div>
-
-                    <button class="btn-secondary full mb-2" id="btnPreviewBatch" style="margin-bottom:10px;">
-                        <i data-lucide="grid"></i> Ver Amostra
-                    </button>
-
-                    <button class="btn-primary full" id="btnGenerateZip">
-                        <i data-lucide="download"></i> Baixar ZIP (OpenSea)
-                    </button>
-                    
-                    <div id="genStatus" style="font-size:0.75rem; color:#888; margin-top:10px; display:none;">Aguardando...</div>
                 </div>
+
+                <div id="previewArea" style="display:none; flex-grow:1; flex-direction:column; padding:20px; overflow-y:auto; background:#09090b;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+                        <h4 id="fileCountLabel" style="margin:0;">0 Imagens Carregadas</h4>
+                        <button class="btn-secondary small" id="btnClear"><i data-lucide="trash"></i> Limpar Tudo</button>
+                    </div>
+                    <div id="imageGrid" class="files-grid"></div>
+                </div>
+            </div>
+            
+            <div id="statusFooter" style="padding:10px 20px; background:#000; border-top:1px solid #333; font-size:0.8rem; color:#666; display:none;">
+                Pronto.
             </div>
         </div>
     `;
@@ -125,284 +67,176 @@ function renderStudioStructure(container) {
 }
 
 function attachListeners() {
-    document.getElementById('btnAddLayer').addEventListener('click', () => {
-        const name = prompt("Nome da Camada:");
-        if(name) addLayer(name);
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const btnSelect = document.getElementById('btnSelectFiles');
+
+    // Drag & Drop
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = 'var(--primary-blue)';
+        dropZone.style.background = 'rgba(59, 130, 246, 0.05)';
     });
 
-    document.getElementById('btnUploadTrait').addEventListener('click', () => {
-        document.getElementById('hiddenUpload').click();
-    });
-    document.getElementById('hiddenUpload').addEventListener('change', handleFileUpload);
-
-    document.getElementById('btnRandomize').addEventListener('click', generateSinglePreview);
-
-    document.getElementById('btnPreviewBatch').addEventListener('click', generateBatchPreview);
-    document.getElementById('btnCloseResults').addEventListener('click', () => {
-        document.getElementById('resultsOverlay').style.display = 'none';
+    dropZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = 'var(--border-color)';
+        dropZone.style.background = 'transparent';
     });
 
-    document.getElementById('btnGenerateZip').addEventListener('click', generateCollectionZip);
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = 'var(--border-color)';
+        dropZone.style.background = 'transparent';
+        if(e.dataTransfer.files.length > 0) {
+            handleFiles(Array.from(e.dataTransfer.files));
+        }
+    });
+
+    // Clique manual
+    btnSelect.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => {
+        if(e.target.files.length > 0) {
+            handleFiles(Array.from(e.target.files));
+        }
+    });
+
+    // Botão Limpar
+    document.getElementById('btnClear').addEventListener('click', resetStudio);
+
+    // Botão Exportar
+    document.getElementById('btnExportPackage').addEventListener('click', generatePackage);
 }
 
-// --- Gerenciamento de Camadas ---
-
-function addLayer(name) {
-    const newLayer = { id: Date.now() + Math.random(), name: name, traits: [] };
-    // unshift coloca no índice 0. 
-    // Como desenhamos invertendo o array, o índice 0 é o ÚLTIMO a ser desenhado (Frente/Topo).
-    // Fundo -> addLayer -> Fundo é index 0.
-    // Corpo -> addLayer -> Corpo é index 0, Fundo é 1.
-    // Desenho: Inverte ([Fundo, Corpo]) -> Desenha Fundo, depois Corpo.
-    // Está correto.
-    studioState.layers.unshift(newLayer); 
+function handleFiles(files) {
+    // Filtra apenas imagens
+    const images = files.filter(f => f.type.startsWith('image/'));
     
-    // Se não estiver inicializando em lote, define como ativa
-    if(studioState.layers.length === 1) setActiveLayer(newLayer.id);
-    
-    renderLayersList();
-}
-
-function setActiveLayer(layerId) {
-    studioState.activeLayerId = layerId;
-    renderLayersList();
-    renderWorkspace();
-}
-
-function handleFileUpload(e) {
-    const files = Array.from(e.target.files);
-    if(files.length === 0 || !studioState.activeLayerId) return;
-
-    let loaded = 0;
-    files.forEach(file => {
-        if(!file.type.match('image.*')) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            const img = new Image();
-            img.onload = () => {
-                addTraitToLayer(studioState.activeLayerId, ev.target.result, file.name.split('.')[0], img);
-                loaded++;
-                if(loaded === files.length) {
-                    renderWorkspace();
-                    generateSinglePreview(); // Atualiza preview assim que carregar
-                }
-            };
-            img.src = ev.target.result;
-        };
-        reader.readAsDataURL(file);
-    });
-    e.target.value = '';
-}
-
-function addTraitToLayer(layerId, base64, name, imgObj) {
-    const layer = studioState.layers.find(l => l.id === layerId);
-    if(layer) layer.traits.push({ id: Date.now()+Math.random(), name, base64, imgObj });
-}
-
-function deleteTrait(layerId, traitId) {
-    const layer = studioState.layers.find(l => l.id === layerId);
-    if(layer) {
-        layer.traits = layer.traits.filter(t => t.id !== traitId);
-        renderWorkspace();
-        generateSinglePreview();
-    }
-}
-
-// --- Renderização UI ---
-
-function renderLayersList() {
-    const list = document.getElementById('layersList');
-    list.innerHTML = '';
-    
-    studioState.layers.forEach((layer, idx) => {
-        const isActive = layer.id === studioState.activeLayerId;
-        const item = document.createElement('div');
-        item.className = `layer-item ${isActive ? 'active' : ''}`;
-        
-        // Exibição visual
-        item.innerHTML = `
-            <span>${layer.name}</span>
-            <span class="badge">${layer.traits.length}</span>
-        `;
-        item.addEventListener('click', () => setActiveLayer(layer.id));
-        list.appendChild(item);
-    });
-}
-
-function renderWorkspace() {
-    const activeLayer = studioState.layers.find(l => l.id === studioState.activeLayerId);
-    const tools = document.getElementById('layerTools');
-    const empty = document.getElementById('emptyStateWorkspace');
-    const title = document.getElementById('activeLayerTitle');
-    const grid = document.getElementById('traitGrid');
-    const count = document.getElementById('activeLayerCount');
-
-    if(!activeLayer) {
-        tools.style.display = 'none'; empty.style.display = 'block'; grid.innerHTML = '';
+    if(images.length === 0) {
+        bus.emit('notification:error', "Nenhuma imagem válida encontrada.");
         return;
     }
 
-    tools.style.display = 'flex'; empty.style.display = 'none';
-    title.innerText = activeLayer.name;
-    count.innerText = `${activeLayer.traits.length} arquivos`;
-
-    grid.innerHTML = activeLayer.traits.map(t => `
-        <div class="trait-card">
-            <button class="btn-delete-trait" data-l="${activeLayer.id}" data-t="${t.id}"><i data-lucide="trash-2" style="width:14px;"></i></button>
-            <div class="trait-img-box"><img src="${t.base64}"></div>
-            <div class="trait-info">${t.name}</div>
-        </div>
-    `).join('');
-
-    grid.querySelectorAll('.btn-delete-trait').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            deleteTrait(Number(btn.dataset.l), Number(btn.dataset.t));
-        });
+    // Ordenação Inteligente (Natural Sort: 1.png, 2.png, 10.png)
+    // Isso garante que a ordem dos arquivos no computador seja respeitada
+    studioState.uploadedFiles = images.sort((a, b) => {
+        return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
     });
-    if(window.lucide) window.lucide.createIcons();
+
+    renderGrid();
 }
 
-// --- MOTOR DE DESENHO (CORRIGIDO PARA ORDEM DE CAMADAS) ---
+function renderGrid() {
+    const dropZone = document.getElementById('dropZone');
+    const previewArea = document.getElementById('previewArea');
+    const grid = document.getElementById('imageGrid');
+    const label = document.getElementById('fileCountLabel');
+    const btnExport = document.getElementById('btnExportPackage');
 
-function generateSinglePreview() {
-    const { ctx, previewCanvas } = studioState;
-    ctx.clearRect(0,0, previewCanvas.width, previewCanvas.height);
-
-    // Array está visualmente: [Topo, ..., Fundo]
-    // Para desenhar corretamente (pintor): Desenhamos Fundo -> depois Topo
-    // Então invertemos o array.
-    const layersToDraw = [...studioState.layers].reverse();
-
-    layersToDraw.forEach(layer => {
-        if(layer.traits.length === 0) return;
-        const rand = Math.floor(Math.random() * layer.traits.length);
-        const trait = layer.traits[rand];
-        ctx.drawImage(trait.imgObj, 0, 0, previewCanvas.width, previewCanvas.height);
-    });
-}
-
-async function generateBatchPreview() {
-    const overlay = document.getElementById('resultsOverlay');
-    const grid = document.getElementById('resultsGrid');
+    dropZone.style.display = 'none';
+    previewArea.style.display = 'flex';
+    btnExport.disabled = false;
+    btnExport.classList.add('btn-primary'); // Garante estilo visual
     
-    // Verifica se há pelo menos 1 trait em alguma camada
-    if(studioState.layers.every(l => l.traits.length === 0)) {
-        return bus.emit('notification:error', "Faça upload de imagens nas camadas primeiro.");
-    }
+    label.innerText = `${studioState.uploadedFiles.length} Imagens Prontas (Sequenciadas)`;
 
-    overlay.style.display = 'flex';
-    grid.innerHTML = '<div style="color:#fff; padding:20px;">Gerando amostra...</div>';
+    // Renderiza apenas as primeiras 50 para não travar o navegador se forem 10k imagens
+    // Mas processaremos todas no final
+    const limit = 50;
+    const displayFiles = studioState.uploadedFiles.slice(0, limit);
 
-    const sampleSize = 20;
-    let html = '';
+    grid.innerHTML = displayFiles.map((file, index) => {
+        const url = URL.createObjectURL(file);
+        return `
+            <div class="file-card">
+                <div class="img-wrap"><img src="${url}"></div>
+                <div class="file-meta">
+                    <span class="seq-num">#${index + 1}</span>
+                    <span class="file-name">${file.name}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
 
-    const offCanvas = document.createElement('canvas');
-    offCanvas.width = 512; 
-    offCanvas.height = 512;
-    const offCtx = offCanvas.getContext('2d');
-    const layersToDraw = [...studioState.layers].reverse();
-
-    for(let i=1; i<=sampleSize; i++) {
-        offCtx.clearRect(0,0,512,512);
-        
-        layersToDraw.forEach(layer => {
-            if(layer.traits.length > 0) {
-                const rand = Math.floor(Math.random() * layer.traits.length);
-                const trait = layer.traits[rand];
-                offCtx.drawImage(trait.imgObj, 0, 0, 512, 512);
-            }
-        });
-
-        const thumb = offCanvas.toDataURL('image/jpeg', 0.6);
-        html += `
-            <div class="gen-item">
-                <img src="${thumb}">
-                <div class="gen-item-meta">#${i}</div>
+    if(studioState.uploadedFiles.length > limit) {
+        grid.innerHTML += `
+            <div class="file-card more-card">
+                +${studioState.uploadedFiles.length - limit} imagens...
             </div>
         `;
     }
-
-    grid.innerHTML = html;
 }
 
-async function generateCollectionZip() {
+function resetStudio() {
+    studioState.uploadedFiles = [];
+    document.getElementById('previewArea').style.display = 'none';
+    document.getElementById('dropZone').style.display = 'flex';
+    document.getElementById('btnExportPackage').disabled = true;
+    document.getElementById('fileInput').value = '';
+}
+
+async function generatePackage() {
     if(typeof JSZip === 'undefined') {
-        return bus.emit('notification:error', "Erro: JSZip não carregado.");
+        return bus.emit('notification:error', "Erro: Biblioteca JSZip não carregada.");
     }
 
-    const qty = parseInt(document.getElementById('collectionSize').value);
-    const btn = document.getElementById('btnGenerateZip');
-    const status = document.getElementById('genStatus');
-    
-    if(qty < 1) return;
-    if(studioState.layers.every(l => l.traits.length === 0)) {
-        return bus.emit('notification:error', "Camadas vazias detectadas!");
-    }
+    const name = document.getElementById('collName').value || "Arc Collection";
+    const desc = document.getElementById('collDesc').value || "";
+    const status = document.getElementById('statusFooter');
+    const btn = document.getElementById('btnExportPackage');
 
     try {
         btn.disabled = true;
+        btn.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Processando...`;
         status.style.display = 'block';
-        status.innerText = "Inicializando...";
+        status.innerText = "Iniciando empacotamento...";
 
         const zip = new JSZip();
         const imgFolder = zip.folder("images");
         const metaFolder = zip.folder("metadata");
 
-        const layersToDraw = [...studioState.layers].reverse();
-        const { ctx, previewCanvas } = studioState;
+        // Loop principal
+        for (let i = 0; i < studioState.uploadedFiles.length; i++) {
+            const file = studioState.uploadedFiles[i];
+            const tokenId = i + 1; // IDs começam em 1 no padrão ERC721
+            const extension = file.name.split('.').pop();
+            
+            // 1. Adiciona Imagem renomeada (1.png, 2.png...)
+            // Isso normaliza a coleção independente dos nomes originais
+            imgFolder.file(`${tokenId}.${extension}`, file);
 
-        for(let i=1; i<=qty; i++) {
-            ctx.clearRect(0,0, previewCanvas.width, previewCanvas.height);
-            let attributes = [];
-
-            layersToDraw.forEach(layer => {
-                if(layer.traits.length > 0) {
-                    const rand = Math.floor(Math.random() * layer.traits.length);
-                    const trait = layer.traits[rand];
-                    
-                    ctx.drawImage(trait.imgObj, 0, 0, previewCanvas.width, previewCanvas.height);
-                    
-                    attributes.push({
-                        "trait_type": layer.name,
-                        "value": trait.name
-                    });
-                }
-            });
-
-            await new Promise(resolve => {
-                previewCanvas.toBlob(blob => {
-                    imgFolder.file(`${i}.png`, blob);
-                    resolve();
-                }, 'image/png');
-            });
-
+            // 2. Gera JSON
             const metadata = {
-                "name": `NFT #${i}`,
-                "description": "Generated with Arc Shield Studio",
-                "image": `ipfs://REPLACE_CID/${i}.png`,
-                "attributes": attributes
+                name: `${name} #${tokenId}`,
+                description: desc,
+                image: `ipfs://REPLACE_WITH_CID/${tokenId}.${extension}`,
+                attributes: [] // Usuário pode adicionar traits genéricos se quiser, deixamos vazio por padrão
             };
             
-            metaFolder.file(`${i}.json`, JSON.stringify(metadata, null, 2));
+            // O arquivo deve se chamar apenas o número (ex: "1") para compatibilidade máxima (Pinata/IPFS)
+            metaFolder.file(`${tokenId}.json`, JSON.stringify(metadata, null, 2)); // Padrão OpenSea aceita .json
+            metaFolder.file(`${tokenId}`, JSON.stringify(metadata, null, 2)); // Padrão puro IPFS (sem extensão)
 
-            if(i % Math.ceil(qty/20) === 0) {
-                status.innerText = `Gerando... ${Math.round((i/qty)*100)}%`;
+            // Feedback UI
+            if(i % 50 === 0) {
+                status.innerText = `Processando item ${tokenId} de ${studioState.uploadedFiles.length}...`;
                 await new Promise(r => setTimeout(r, 0));
             }
         }
 
-        status.innerText = "Compactando ZIP...";
+        status.innerText = "Compactando arquivo ZIP final...";
         const content = await zip.generateAsync({type:"blob"});
-        saveAs(content, "Arc_Collection_OpenSea.zip");
-        
-        bus.emit('notification:success', "Download iniciado! Sucesso.");
-        status.innerText = "Concluído!";
+        saveAs(content, "Arc_Metadata_Package.zip");
 
-    } catch(e) {
+        bus.emit('notification:success', "Pacote gerado! Extraia e suba no IPFS.");
+        status.innerText = "Concluído com sucesso.";
+
+    } catch (e) {
         console.error(e);
         bus.emit('notification:error', "Erro: " + e.message);
     } finally {
         btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="package"></i> Gerar Metadados & ZIP`;
+        if(window.lucide) window.lucide.createIcons();
     }
 }
