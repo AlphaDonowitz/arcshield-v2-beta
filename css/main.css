@@ -11,7 +11,8 @@
 
 /* 4. Módulos Específicos */
 @import url('modules/multisender.css');
-@import url('modules/studio.css'); /* <--- NOVO */
+@import url('modules/studio.css');
+@import url('modules/locker.css'); /* <--- NOVO */
 
 /* Reset Básico de Segurança */
 * { box-sizing: border-box; }
@@ -26,7 +27,6 @@ body {
     min-height: 100vh;
 }
 
-/* Scrollbar Customizada */
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: var(--bg-app); }
 ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
