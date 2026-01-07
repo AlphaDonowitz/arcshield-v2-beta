@@ -1,14 +1,14 @@
 import { web3Service } from '../services/web3Service.js';
 import { bus } from '../core/eventBus.js';
-import { CONTRACTS } from '../config.js'; // Assumindo que existe, senão usa fallback
+import { CONTRACTS, ABIS } from '../config.js';
+import { ethers } from 'https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.min.js';
 
-// Estado Local
 let lockerState = {
     tokenAddress: null,
     tokenSymbol: '',
     tokenDecimals: 18,
     balance: 0n,
-    activeTab: 'create' // 'create' | 'dashboard'
+    activeTab: 'create'
 };
 
 export function initLocker() {
@@ -17,7 +17,14 @@ export function initLocker() {
 
     renderLockerUI(container);
     attachListeners();
-    loadMyLocks(); // Carrega bloqueios salvos
+    
+    // Se carteira conectada, carrega dados
+    if(web3Service.isConnected) {
+        loadMyLocksOnChain();
+    }
+    
+    // Ouve evento de conexão tardia
+    bus.on('wallet:connected', () => loadMyLocksOnChain());
 }
 
 function renderLockerUI(container) {
@@ -27,13 +34,13 @@ function renderLockerUI(container) {
                 <div style="padding:20px; background:#121215; border-bottom:1px solid #27272a;">
                     <div class="locker-tabs">
                         <button class="locker-tab active" data-tab="create">Novo Bloqueio</button>
-                        <button class="locker-tab" data-tab="dashboard">Meus Cofres</button>
+                        <button class="locker-tab" data-tab="dashboard">Meus Cofres (On-Chain)</button>
                     </div>
                 </div>
 
                 <div id="tabCreate" style="padding:20px;">
                     <div class="bio-text" style="margin-bottom:20px;">
-                        Bloqueie tokens de liquidez (LP) ou tokens padrão para ganhar a confiança dos investidores.
+                        Contrato Oficial: <span class="mono text-blue">${CONTRACTS.locker.slice(0,6)}...${CONTRACTS.locker.slice(-4)}</span>
                     </div>
 
                     <div class="form-grid">
@@ -49,7 +56,7 @@ function renderLockerUI(container) {
                         </div>
 
                         <div>
-                            <label>Quantidade para Bloquear</label>
+                            <label>Quantidade</label>
                             <input type="number" id="lockAmount" placeholder="0.0">
                             <div style="text-align:right; font-size:0.75rem; color:#666; cursor:pointer;" id="btnMaxLock">
                                 Saldo: <span id="lblLockBalance">0</span>
@@ -61,9 +68,6 @@ function renderLockerUI(container) {
                             <div class="date-input-wrapper">
                                 <input type="datetime-local" id="lockDate">
                             </div>
-                            <p style="font-size:0.75rem; color:#666; margin-top:5px;">
-                                Os tokens ficarão inacessíveis até esta data.
-                            </p>
                         </div>
                     </div>
 
@@ -75,16 +79,14 @@ function renderLockerUI(container) {
 
                 <div id="tabDashboard" style="padding:20px; display:none;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <h3>Meus Bloqueios Ativos</h3>
+                        <h3>Meus Bloqueios na Blockchain</h3>
                         <button class="btn-secondary small" id="btnRefreshLocks"><i data-lucide="refresh-cw"></i></button>
                     </div>
                     
                     <div id="locksList" class="locks-grid">
+                        <div style="grid-column:1/-1; text-align:center; padding:20px; color:#666;">
+                            <i data-lucide="loader-2" class="spin"></i> Buscando na blockchain...
                         </div>
-                    
-                    <div id="emptyLocks" style="text-align:center; padding:40px; color:#666; display:none;">
-                        <i data-lucide="unlock" style="width:32px; height:32px; margin-bottom:10px;"></i>
-                        <p>Você não possui tokens bloqueados.</p>
                     </div>
                 </div>
             </div>
@@ -95,43 +97,33 @@ function renderLockerUI(container) {
 }
 
 function attachListeners() {
-    // Abas
     document.querySelectorAll('.locker-tab').forEach(btn => {
         btn.addEventListener('click', () => switchTab(btn.dataset.tab));
     });
 
-    // Verificar Token
     document.getElementById('btnCheckLockToken').addEventListener('click', checkToken);
 
-    // Botão Max
     document.getElementById('btnMaxLock').addEventListener('click', () => {
         if(lockerState.tokenAddress) {
             document.getElementById('lockAmount').value = ethers.formatUnits(lockerState.balance, lockerState.tokenDecimals);
         }
     });
 
-    // Ações
     document.getElementById('btnLockApprove').addEventListener('click', executeApprove);
     document.getElementById('btnLockExec').addEventListener('click', executeLock);
-    document.getElementById('btnRefreshLocks').addEventListener('click', loadMyLocks);
+    document.getElementById('btnRefreshLocks').addEventListener('click', loadMyLocksOnChain);
 }
 
 function switchTab(tabName) {
     lockerState.activeTab = tabName;
-    
-    // Atualiza botões
-    document.querySelectorAll('.locker-tab').forEach(b => {
-        b.classList.toggle('active', b.dataset.tab === tabName);
-    });
-
-    // Atualiza Views
+    document.querySelectorAll('.locker-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tabName));
     document.getElementById('tabCreate').style.display = tabName === 'create' ? 'block' : 'none';
     document.getElementById('tabDashboard').style.display = tabName === 'dashboard' ? 'block' : 'none';
-
-    if(tabName === 'dashboard') loadMyLocks();
+    
+    if(tabName === 'dashboard') loadMyLocksOnChain();
 }
 
-// --- Lógica Web3 ---
+// --- Funções Web3 ---
 
 async function checkToken() {
     const addr = document.getElementById('lockTokenAddr').value;
@@ -155,7 +147,6 @@ async function checkToken() {
         lockerState.tokenDecimals = Number(decimals);
         lockerState.balance = balance;
 
-        // Atualiza UI
         document.getElementById('lockTokenInfo').style.display = 'block';
         document.getElementById('lblLockTokenName').innerText = `${symbol} (Decimais: ${decimals})`;
         document.getElementById('lblLockBalance').innerText = ethers.formatUnits(balance, decimals);
@@ -165,14 +156,14 @@ async function checkToken() {
 
     } catch (e) {
         console.error(e);
-        bus.emit('notification:error', "Não é um token ERC20 válido.");
+        bus.emit('notification:error', "Token inválido.");
         btn.innerText = "Verificar";
     }
 }
 
 async function executeApprove() {
     const amountVal = document.getElementById('lockAmount').value;
-    if(!amountVal || parseFloat(amountVal) <= 0) return bus.emit('notification:error', "Valor inválido.");
+    if(!amountVal) return bus.emit('notification:error', "Defina o valor.");
 
     const btn = document.getElementById('btnLockApprove');
     try {
@@ -182,23 +173,18 @@ async function executeApprove() {
         const amountWei = ethers.parseUnits(amountVal, lockerState.tokenDecimals);
         const token = web3Service.getContract(lockerState.tokenAddress);
         
-        // Endereço fictício do Locker na Testnet se não existir no config
-        const lockerAddress = CONTRACTS?.locker || "0x000000000000000000000000000000000000dEaD"; 
-
-        const tx = await token.approve(lockerAddress, amountWei);
+        const tx = await token.approve(CONTRACTS.locker, amountWei);
         await tx.wait();
 
-        bus.emit('notification:success', "Aprovado com sucesso!");
+        bus.emit('notification:success', "Aprovado!");
         btn.innerHTML = `<i data-lucide="check"></i> Aprovado`;
         document.getElementById('btnLockExec').disabled = false;
 
     } catch (e) {
         console.error(e);
-        bus.emit('notification:error', "Erro na aprovação: " + e.message);
+        bus.emit('notification:error', "Erro: " + e.message);
         btn.innerText = "1. Aprovar";
         btn.disabled = false;
-    } finally {
-        if(window.lucide) window.lucide.createIcons();
     }
 }
 
@@ -206,10 +192,11 @@ async function executeLock() {
     const amountVal = document.getElementById('lockAmount').value;
     const dateVal = document.getElementById('lockDate').value;
 
-    if(!dateVal) return bus.emit('notification:error', "Selecione a data de desbloqueio.");
+    if(!dateVal) return bus.emit('notification:error', "Defina a data.");
     
-    const unlockTime = new Date(dateVal).getTime() / 1000;
-    if(unlockTime <= Date.now() / 1000) return bus.emit('notification:error', "A data deve ser no futuro.");
+    // Converter data para Unix Timestamp (segundos)
+    const unlockTime = Math.floor(new Date(dateVal).getTime() / 1000);
+    if(unlockTime <= Math.floor(Date.now() / 1000)) return bus.emit('notification:error', "Data deve ser futura.");
 
     const btn = document.getElementById('btnLockExec');
     
@@ -217,108 +204,157 @@ async function executeLock() {
         btn.disabled = true;
         btn.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Trancando...`;
 
-        // TENTA CHAMADA REAL
-        // Se o contrato Locker não existir na rede, cairá no catch e faremos o fallback
-        // const locker = web3Service.getContract('locker');
-        // const tx = await locker.lock(lockerState.tokenAddress, amountWei, unlockTime);
-        // await tx.wait();
+        const amountWei = ethers.parseUnits(amountVal, lockerState.tokenDecimals);
+        const locker = web3Service.getContract('locker', ABIS.LOCKER, CONTRACTS.locker);
+        
+        // Chamada real ao contrato (lockTokens)
+        const tx = await locker.lockTokens(lockerState.tokenAddress, amountWei, unlockTime);
+        bus.emit('notification:info', "Transação enviada. Aguardando confirmação...");
+        
+        await tx.wait();
 
-        // SIMULAÇÃO DE REDE (Para UX Testnet)
-        await new Promise(r => setTimeout(r, 2000));
-
-        // Salva Localmente
-        saveLockLocal({
-            tokenAddress: lockerState.tokenAddress,
-            symbol: lockerState.tokenSymbol,
-            amount: amountVal,
-            unlockTime: unlockTime * 1000, // Salva em ms
-            createdAt: Date.now()
-        });
-
-        bus.emit('notification:success', "Tokens trancados com sucesso! (Simulação)");
+        bus.emit('notification:success', "Tokens trancados com sucesso!");
         btn.innerHTML = `<i data-lucide="lock"></i> Trancado!`;
         
-        // Reseta e vai pro dashboard
         setTimeout(() => {
             switchTab('dashboard');
-            btn.innerHTML = `<i data-lucide="lock"></i> 2. Trancar`;
+            // Reset parcial
+            btn.innerHTML = "2. Trancar";
             btn.disabled = true;
             document.getElementById('btnLockApprove').disabled = false;
             document.getElementById('btnLockApprove').innerText = "1. Aprovar";
-        }, 1500);
+        }, 2000);
 
     } catch (e) {
         console.error(e);
-        bus.emit('notification:error', "Erro ao trancar: " + e.message);
+        bus.emit('notification:error', "Erro ao trancar: " + (e.reason || e.message));
         btn.disabled = false;
         btn.innerText = "2. Trancar";
-    } finally {
-        if(window.lucide) window.lucide.createIcons();
     }
 }
 
-// --- Gerenciamento Local (Simulação de Indexer) ---
+// --- BUSCA NA BLOCKCHAIN (Sem Indexador) ---
+// Como o contrato não tem getLocksByOwner, nós varremos os IDs.
+// Em produção com muitos locks, isso seria lento, mas para testnet é ok.
 
-function getMyLocks() {
-    const key = `arc_locks_${web3Service.userAddress}`;
-    try {
-        return JSON.parse(localStorage.getItem(key)) || [];
-    } catch { return []; }
-}
-
-function saveLockLocal(lockData) {
-    const key = `arc_locks_${web3Service.userAddress}`;
-    const locks = getMyLocks();
-    locks.unshift(lockData);
-    localStorage.setItem(key, JSON.stringify(locks));
-}
-
-function loadMyLocks() {
+async function loadMyLocksOnChain() {
     const list = document.getElementById('locksList');
-    const empty = document.getElementById('emptyLocks');
-    
-    if(!web3Service.userAddress) {
-        list.innerHTML = '';
-        empty.style.display = 'block';
+    if(!web3Service.isConnected) {
+        list.innerHTML = '<div style="text-align:center; padding:20px;">Conecte a carteira.</div>';
         return;
     }
 
-    const locks = getMyLocks();
+    try {
+        const locker = web3Service.getContract('locker', ABIS.LOCKER, CONTRACTS.locker);
+        
+        // 1. Pega quantos locks existem no total
+        const totalLocks = Number(await locker.lockIdCounter());
+        
+        if(totalLocks === 0) {
+            list.innerHTML = '<div style="text-align:center; padding:20px; color:#666;">Nenhum bloqueio encontrado no contrato global.</div>';
+            return;
+        }
 
-    if(locks.length === 0) {
-        list.innerHTML = '';
-        empty.style.display = 'block';
-        return;
-    }
+        let myLocksHTML = '';
+        const userAddress = web3Service.userAddress.toLowerCase();
 
-    empty.style.display = 'none';
-    list.innerHTML = locks.map(lock => {
-        const unlockDate = new Date(lock.unlockTime);
-        const now = new Date();
-        const isLocked = unlockDate > now;
-        const statusClass = isLocked ? 'text-blue' : 'text-green';
-        const statusText = isLocked ? 'BLOQUEADO' : 'DESBLOQUEADO';
-        const icon = isLocked ? 'lock' : 'unlock';
-
-        return `
-            <div class="lock-card">
-                <div class="lock-header">
-                    <div style="font-weight:700;">${lock.symbol}</div>
-                    <div class="lock-badge" style="color:${isLocked ? '#3b82f6' : '#10b981'}; background:rgba(255,255,255,0.05);">
-                        <i data-lucide="${icon}" style="width:12px;"></i> ${statusText}
-                    </div>
-                </div>
-                <div class="lock-amount">${lock.amount}</div>
-                <div style="font-size:0.8rem; color:#666; margin-bottom:10px;">${lock.tokenAddress.slice(0,6)}...${lock.tokenAddress.slice(-4)}</div>
+        // 2. Loop Reverso (Do mais novo para o mais antigo)
+        // Limitamos a busca aos últimos 20 locks para não travar se tiver muitos
+        const start = Math.max(0, totalLocks - 20); 
+        
+        for(let i = totalLocks - 1; i >= start; i--) {
+            try {
+                // tuple(address owner, address token, uint256 amount, uint256 unlockTime, bool withdrawn)
+                const details = await locker.getLockDetails(i);
                 
-                <div class="lock-timer">
-                    Liberação: ${unlockDate.toLocaleString()}
-                </div>
+                // Filtra: Só mostra se for MEU lock
+                if(details[0].toLowerCase() === userAddress) {
+                    const tokenAddr = details[1];
+                    const amountWei = details[2];
+                    const unlockTime = Number(details[3]) * 1000; // converter p/ ms
+                    const withdrawn = details[4];
 
-                ${!isLocked ? `<button class="btn-primary full small mt-2">Sacar</button>` : ''}
-            </div>
-        `;
-    }).join('');
+                    // Tenta pegar símbolo do token (pode falhar se for token estranho)
+                    let symbol = "TOKEN";
+                    let decimals = 18;
+                    try {
+                        const tokenContract = web3Service.getContract(tokenAddr);
+                        symbol = await tokenContract.symbol();
+                        decimals = await tokenContract.decimals();
+                    } catch(e){}
 
-    if(window.lucide) window.lucide.createIcons();
+                    const amountFmt = ethers.formatUnits(amountWei, decimals);
+                    const unlockDate = new Date(unlockTime);
+                    const isLocked = unlockDate > new Date() && !withdrawn;
+                    const canWithdraw = !isLocked && !withdrawn;
+
+                    // Status Visual
+                    let statusLabel = "BLOQUEADO";
+                    let statusColor = "#3b82f6"; // Azul
+                    if(withdrawn) { statusLabel = "SACADO"; statusColor = "#666"; }
+                    else if(canWithdraw) { statusLabel = "DISPONÍVEL"; statusColor = "#10b981"; }
+
+                    myLocksHTML += `
+                        <div class="lock-card">
+                            <div class="lock-header">
+                                <div style="font-weight:700;">${symbol}</div>
+                                <div class="lock-badge" style="color:${statusColor}; background:rgba(255,255,255,0.05);">
+                                    ${statusLabel}
+                                </div>
+                            </div>
+                            <div class="lock-amount">${parseFloat(amountFmt).toFixed(2)}</div>
+                            <div style="font-size:0.75rem; color:#666; margin-bottom:10px;">ID #${i} • ${tokenAddr.slice(0,6)}...</div>
+                            
+                            <div class="lock-timer">
+                                Liberação: ${unlockDate.toLocaleString()}
+                            </div>
+
+                            ${canWithdraw ? `
+                                <button class="btn-primary full small mt-2" onclick="window.withdrawLock(${i})">
+                                    <i data-lucide="unlock"></i> Realizar Saque
+                                </button>
+                            ` : ''}
+                        </div>
+                    `;
+                }
+            } catch(e) { console.error(`Erro ao ler lock ${i}`, e); }
+        }
+
+        if(myLocksHTML === '') {
+            list.innerHTML = '<div style="text-align:center; padding:20px; color:#666;">Você não possui bloqueios ativos.</div>';
+        } else {
+            list.innerHTML = myLocksHTML;
+        }
+
+        if(window.lucide) window.lucide.createIcons();
+
+    } catch(e) {
+        console.error(e);
+        list.innerHTML = '<div style="text-align:center; padding:20px; color:red;">Erro ao buscar dados na blockchain.</div>';
+    }
 }
+
+// Função global para o botão de saque chamar
+window.withdrawLock = async (id) => {
+    try {
+        if(!confirm(`Deseja sacar o bloqueio #${id}?`)) return;
+        
+        const btn = event.target;
+        btn.disabled = true;
+        btn.innerText = "Sacando...";
+
+        const locker = web3Service.getContract('locker', ABIS.LOCKER, CONTRACTS.locker);
+        const tx = await locker.withdraw(id);
+        
+        bus.emit('notification:info', "Saque enviado...");
+        await tx.wait();
+        
+        bus.emit('notification:success', "Saque realizado com sucesso!");
+        loadMyLocksOnChain(); // Recarrega lista
+
+    } catch(e) {
+        bus.emit('notification:error', "Erro no saque: " + e.message);
+        // Recarrega para resetar botão
+        loadMyLocksOnChain();
+    }
+};
