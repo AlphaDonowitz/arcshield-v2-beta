@@ -1,40 +1,28 @@
-// js/config.js - Configurações Centrais Auditadas
+// js/config.js - Configuração Centralizada
+
+import { ABIS as RAW_ABIS } from './config/abis.js';
 
 export const SUPABASE_CONFIG = {
-    url: 'https://seucode.supabase.co',
-    key: 'suakey'
+    url: 'https://seucode.supabase.co', // Mantenha sua URL
+    key: 'suakey'                       // Mantenha sua Key
 };
 
-// Endereços dos Contratos (Base Sepolia)
+// Endereços na ARC TESTNET (Chain ID 755)
 export const CONTRACTS = {
-    // Contrato Locker V2 (Otimizado com getLocksByOwner)
+    // Contrato Locker V2 (Confirmado pelo user)
     locker: "0xB56f81bdDd3E53067ed75fCEE9326383c6d0719f", 
     
-    // Placeholders para módulos futuros
+    // Deixe como null ou address zero se não tiver deployado ainda
     vesting: "0x0000000000000000000000000000000000000000",
-    multisender: "0x0000000000000000000000000000000000000000"
+    multi: "0x0000000000000000000000000000000000000000" 
 };
 
-// Interfaces (ABIs) para interação com Smart Contracts
+// Padronização das ABIs para evitar erros de digitação (UpperCase)
 export const ABIS = {
-    // Padrão ERC20 (Para aprovar tokens antes de trancar)
-    ERC20: [
-        "function name() view returns (string)",
-        "function symbol() view returns (string)",
-        "function decimals() view returns (uint8)",
-        "function balanceOf(address) view returns (uint256)",
-        "function approve(address spender, uint256 amount) returns (bool)",
-        "function allowance(address owner, address spender) view returns (uint256)"
-    ],
-
-    // Interface Específica do ArcShieldLockerV2
-    LOCKER: [
-        // Funções de Escrita
-        "function lockTokens(address _token, uint256 _amount, uint256 _unlockTime)",
-        "function withdraw(uint256 _lockId)",
-
-        // Nova Função Otimizada (Traz tudo de uma vez)
-        // Retorna um array de structs (tuples)
-        "function getLocksByOwner(address _owner) view returns (tuple(uint256 id, address owner, address token, uint256 amount, uint256 unlockTime, bool withdrawn)[])"
-    ]
+    ERC20: RAW_ABIS.erc20,
+    LOCKER: RAW_ABIS.lock,     // Corrige o conflito lock vs LOCKER
+    MULTI: RAW_ABIS.multi,
+    VESTING: RAW_ABIS.vest,
+    NFT_FACTORY: RAW_ABIS.nftFactory,
+    TOKEN_FACTORY: RAW_ABIS.tokenFactory
 };
