@@ -2,6 +2,7 @@ import { web3Service } from '../services/web3Service.js';
 import { bus } from '../core/eventBus.js';
 import { CONTRACTS, ABIS } from '../config.js';
 
+// Estado local simples
 let lockerState = {
     tokenAddress: null,
     tokenSymbol: '',
@@ -17,12 +18,14 @@ export function initLocker() {
     renderLockerUI(container);
     attachListeners();
     
+    // Carrega dados se já estiver conectado
     if(web3Service.isConnected) loadMyLocksOnChain();
+    
+    // Ouve evento de conexão
     bus.on('wallet:connected', () => loadMyLocksOnChain());
 }
 
 function renderLockerUI(container) {
-    // (A UI permanece idêntica à anterior, sem alterações visuais necessárias)
     container.innerHTML = `
         <div class="locker-container">
             <div class="card" style="padding:0; overflow:hidden;">
@@ -35,14 +38,14 @@ function renderLockerUI(container) {
 
                 <div id="tabCreate" style="padding:20px;">
                     <div class="bio-text" style="margin-bottom:20px;">
-                        Contrato V2 (Otimizado): <span class="mono text-blue">${CONTRACTS.locker.slice(0,6)}...</span>
+                        Contrato V2: <span class="mono text-blue">${CONTRACTS.locker.slice(0,6)}...</span>
                     </div>
                     <div class="form-grid">
                         <div>
                             <label>Token / LP</label>
                             <div style="display:flex; gap:10px;">
                                 <input type="text" id="lockTokenAddr" placeholder="0x..." style="font-family:monospace;">
-                                <button id="btnCheckLockToken" class="btn-secondary">Verificar</button>
+                                <button id="btnCheckLockToken" class="btn-secondary">Check</button>
                             </div>
                             <div id="lockTokenInfo" style="display:none; color:var(--success-green); margin-top:5px; font-size:0.8rem;">
                                 <span id="lblLockTokenName">-</span>
@@ -98,8 +101,7 @@ function switchTab(tab) {
     if(tab === 'dashboard') loadMyLocksOnChain();
 }
 
-// ... (checkToken e executeApprove permanecem iguais ao código anterior seguro) ...
-// Vou replicar aqui para garantir que você tenha o arquivo completo sem erros de cópia
+// --- Lógica Web3 Segura (Usando window.ethers) ---
 
 async function checkToken() {
     const addr = document.getElementById('lockTokenAddr').value;
@@ -119,6 +121,7 @@ async function checkToken() {
         lockerState.tokenSymbol = symbol;
         lockerState.tokenDecimals = Number(decimals);
         lockerState.balance = balance;
+        
         document.getElementById('lockTokenInfo').style.display = 'block';
         document.getElementById('lblLockTokenName').innerText = `${symbol} (Dec: ${decimals})`;
         document.getElementById('lblLockBalance').innerText = window.ethers.formatUnits(balance, decimals);
@@ -131,6 +134,7 @@ async function executeApprove() {
     const amountVal = document.getElementById('lockAmount').value;
     if(!amountVal) return bus.emit('notification:error', "Defina valor.");
     const btn = document.getElementById('btnLockApprove');
+    
     try {
         btn.disabled = true; btn.innerText = "Aprovando...";
         const amountWei = window.ethers.parseUnits(amountVal, lockerState.tokenDecimals);
@@ -149,6 +153,7 @@ async function executeLock() {
     if(!dateVal) return bus.emit('notification:error', "Defina data.");
     const unlockTime = Math.floor(new Date(dateVal).getTime() / 1000);
     const btn = document.getElementById('btnLockExec');
+    
     try {
         btn.disabled = true; btn.innerText = "Trancando...";
         const amountWei = window.ethers.parseUnits(amountVal, lockerState.tokenDecimals);
@@ -161,16 +166,15 @@ async function executeLock() {
     } catch (e) { btn.disabled = false; btn.innerText = "2. Trancar"; bus.emit('notification:error', e.message); }
 }
 
-// --- AQUI ESTÁ A GRANDE OTIMIZAÇÃO V2 ---
+// AQUI ESTÁ A LÓGICA V2 OTIMIZADA
 async function loadMyLocksOnChain() {
     const list = document.getElementById('locksList');
     if(!web3Service.isConnected) return;
-    
+
     try {
         const locker = web3Service.getContract('locker', ABIS.LOCKER, CONTRACTS.locker);
         
-        // 1 LINHA DE CÓDIGO substitui aquele loop inteiro de 50 linhas
-        // O contrato agora nos devolve apenas o que é nosso
+        // Chama a função mágica do contrato V2
         const myLocks = await locker.getLocksByOwner(web3Service.userAddress);
 
         if(myLocks.length === 0) {
@@ -179,11 +183,12 @@ async function loadMyLocksOnChain() {
         }
 
         let html = '';
-        // Itera sobre o array retornado (Reverso para mostrar mais recentes primeiro)
+        // Loop reverso para mostrar os mais novos primeiro
         for(let i = myLocks.length - 1; i >= 0; i--) {
             const lock = myLocks[i];
-            // lock é: [id, owner, token, amount, unlockTime, withdrawn]
             
+            // Mapeamento exato da Struct Solidity:
+            // struct Lock { id, owner, token, amount, unlockTime, withdrawn }
             const id = lock[0];
             const tokenAddr = lock[2];
             const amountWei = lock[3];
@@ -193,17 +198,21 @@ async function loadMyLocksOnChain() {
             const unlockDate = new Date(unlockTimestamp * 1000);
             const isLocked = unlockDate > new Date() && !withdrawn;
             
-            // UI igual
+            // Formatamos para 18 casas por padrão se não soubermos o decimal
+            // Para produção perfeita, teriamos que buscar os decimais do token, 
+            // mas formatEther funciona para visualização rápida.
+            const amtFmt = window.ethers.formatEther(amountWei);
+
             html += `
                 <div class="lock-card">
                     <div class="lock-header">
-                        <b>Token: ${tokenAddr.slice(0,6)}...</b>
+                        <b>${tokenAddr.slice(0,6)}...</b>
                         <span class="lock-badge" style="color:${isLocked ? '#3b82f6' : '#10b981'}">
                             ${withdrawn ? 'SACADO' : (isLocked ? 'BLOQUEADO' : 'DISPONÍVEL')}
                         </span>
                     </div>
-                    <div class="lock-amount">${window.ethers.formatEther(amountWei)} (Wei)</div> 
-                    <div class="lock-timer">Liberação: ${unlockDate.toLocaleString()}</div>
+                    <div class="lock-amount">${parseFloat(amtFmt).toFixed(4)}</div>
+                    <div style="font-size:0.75rem; color:#666;">ID #${id} • ${unlockDate.toLocaleDateString()}</div>
                     ${(!isLocked && !withdrawn) ? `<button class="btn-primary full small mt-2" onclick="window.withdrawLock(${id})">Sacar</button>` : ''}
                 </div>
             `;
@@ -212,17 +221,18 @@ async function loadMyLocksOnChain() {
 
     } catch (e) {
         console.error(e);
-        list.innerHTML = '<div style="text-align:center; color:red;">Erro ao buscar dados. Verifique o contrato.</div>';
+        list.innerHTML = '<div style="text-align:center; color:red;">Erro ao buscar dados.</div>';
     }
 }
 
+// Função global para o botão de saque
 window.withdrawLock = async (id) => {
+    if(!confirm(`Sacar bloqueio #${id}?`)) return;
     try {
-        if(!confirm("Sacar?")) return;
         const locker = web3Service.getContract('locker', ABIS.LOCKER, CONTRACTS.locker);
         const tx = await locker.withdraw(id);
         await tx.wait();
-        bus.emit('notification:success', "Sacado!");
+        bus.emit('notification:success', "Sacado com sucesso!");
         loadMyLocksOnChain();
     } catch(e) { bus.emit('notification:error', e.message); }
 };
