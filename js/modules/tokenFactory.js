@@ -52,9 +52,9 @@ export function initTokenFactory() {
     // Listeners
     document.getElementById('btnCreateToken').addEventListener('click', deployToken);
     
-    // Preview do Supply
     document.getElementById('tkSupply').addEventListener('input', (e) => {
-        document.getElementById('supplyPreview').innerText = Number(e.target.value).toLocaleString();
+        const val = e.target.value;
+        document.getElementById('supplyPreview').innerText = val ? Number(val).toLocaleString() : '0';
     });
 }
 
@@ -80,28 +80,26 @@ async function deployToken() {
     try {
         // UI Update
         btn.disabled = true;
-        btn.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Preparando Transação...`;
+        btn.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Calculando Gás...`;
         statusBox.style.display = 'block';
-        statusMsg.innerText = "Iniciando processo de deploy...";
+        statusMsg.innerText = "Iniciando estimativa de deploy...";
         explorerLink.style.display = 'none';
 
-        // 2. Prepara a Factory do Ethers (Usando window.ethers V6)
-        // Isso requer que o ERC20_BYTECODE seja válido no arquivo config/tokenData.js
+        // 2. Factory com Ethers Global (V6)
         const factory = new window.ethers.ContractFactory(ERC20_ABI, ERC20_BYTECODE, web3Service.signer);
 
-        // 3. Converte Supply para Wei (18 decimais)
-        // Ex: 1000 -> 1000000000000000000000
+        // 3. Converte Supply para Wei (BigInt)
         const initialSupplyWei = window.ethers.parseUnits(supply.toString(), 18);
 
+        // 4. Deploy
         statusMsg.innerText = "Por favor, confirme a transação na sua carteira...";
-
-        // 4. Envia Transação de Deploy
-        // Os argumentos (name, symbol, supply) são passados para o construtor do contrato
+        
+        // Passamos os 3 argumentos exatos que o Bytecode espera
         const contract = await factory.deploy(name, symbol, initialSupplyWei);
 
         statusMsg.innerHTML = `Transação enviada! <br>Hash: <span class="mono">${contract.deploymentTransaction().hash.slice(0,10)}...</span><br>Aguardando confirmação...`;
 
-        // 5. Aguarda Mineração
+        // 5. Espera Mineração
         await contract.waitForDeployment();
         
         const contractAddress = await contract.getAddress();
@@ -109,20 +107,19 @@ async function deployToken() {
         // 6. Sucesso
         statusMsg.innerHTML = `<span style="color:var(--success-green)">Deploy Confirmado!</span><br>Endereço: <span class="mono">${contractAddress}</span>`;
         
-        bus.emit('notification:success', `Token ${symbol} criado com sucesso!`);
+        bus.emit('notification:success', `Token ${symbol} criado!`);
         btn.innerHTML = `<i data-lucide="check"></i> Token Criado`;
 
-        // Configura link do Explorer (Base Sepolia)
-        explorerLink.href = `https://sepolia.basescan.org/address/${contractAddress}`;
+        // Link Genérico de Explorer (Pode ajustar para Arc Scan se tiver a URL)
+        // Como estamos em Testnet EVM, deixei um placeholder ou BaseScan
+        explorerLink.href = `https://sepolia.basescan.org/address/${contractAddress}`; 
         explorerLink.style.display = 'block';
-        explorerLink.innerText = "Ver Contrato no BaseScan";
+        explorerLink.innerText = "Ver no Explorer";
 
-        // Log para Debug
         console.log("Token Deployed:", {
-            name, symbol, address: contractAddress, hash: contract.deploymentTransaction().hash
+            name, symbol, address: contractAddress
         });
 
-        // Reabilita botão após 5s
         setTimeout(() => {
             btn.disabled = false;
             btn.innerHTML = `<i data-lucide="rocket"></i> Criar Outro Token`;
@@ -132,9 +129,11 @@ async function deployToken() {
         console.error("Deploy Error:", error);
         
         let errorText = error.message || "Falha desconhecida";
+        
+        // Tratamento de erros comuns
         if(error.code === 'ACTION_REJECTED') errorText = "Transação rejeitada pelo usuário.";
         if(error.toString().includes('insufficient funds')) errorText = "Saldo insuficiente para o Gás.";
-        if(error.toString().includes('invalid bytecode')) errorText = "Erro interno: Bytecode inválido.";
+        if(error.code === 'CALL_EXCEPTION') errorText = "Erro no Bytecode ou Argumentos (Verifique console).";
 
         statusMsg.innerHTML = `<span style="color:var(--error-red)">Erro: ${errorText}</span>`;
         bus.emit('notification:error', "Falha no Deploy.");
