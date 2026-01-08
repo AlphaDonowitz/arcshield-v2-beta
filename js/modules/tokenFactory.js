@@ -1,6 +1,6 @@
 // js/modules/tokenFactory.js
 
-import { bus } from '../utils/eventBus.js'; // Caminho corrigido
+import { bus } from '../core/eventBus.js'; // Ajustado para 'core'
 import { tokenBytecode, tokenAbi } from '../config/tokenData.js';
 
 export async function deployToken() {
@@ -47,7 +47,6 @@ export async function deployToken() {
         const factory = new ethers.ContractFactory(tokenAbi, tokenBytecode, signer);
 
         // 6. Deploy (Disparo da Transação)
-        // Nota: O supply deve ser passado como string ou BigInt para evitar overflow de números JS
         const contract = await factory.deploy(name, symbol, supply);
         
         // Atualiza UI para estado de "Minerando/Confirmando"
@@ -63,10 +62,9 @@ export async function deployToken() {
 
         console.log(`Token ${symbol} implantado em: ${contractAddress}`);
 
-        // 8. Persistência no Supabase (Lógica v15)
+        // 8. Persistência no Supabase
         statusMsg.innerHTML = `<span style="color:var(--primary-blue)">Salvando registo na base de dados...</span>`;
 
-        // Assume que a variável 'supabase' está disponível globalmente via CDN no index.html
         const { error: dbError } = await supabase
             .from('tokens_created')
             .insert([
@@ -82,8 +80,6 @@ export async function deployToken() {
 
         if (dbError) {
             console.error("Erro ao salvar no Supabase:", dbError);
-            // Não lançamos throw aqui para não invalidar o deploy que já ocorreu na blockchain,
-            // apenas avisamos o utilizador.
             bus.emit('notification:error', "Token criado, mas falha ao salvar no histórico.");
         }
 
@@ -91,18 +87,16 @@ export async function deployToken() {
         statusMsg.innerHTML = `<span style="color:var(--success-green)">Sucesso! Token: ${contractAddress}</span>`;
         bus.emit('notification:success', `Token ${symbol} criado com sucesso!`);
         
-        // Efeito de Confetti (se disponível globalmente)
         if (window.confetti) {
             window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
         }
 
-        // Reset do Botão com atraso para leitura
+        // Reset do Botão
         setTimeout(() => {
             btn.disabled = false;
             btn.innerHTML = `<i data-lucide="rocket"></i> Criar Outro Token`;
             lucide.createIcons();
             
-            // Limpar campos
             nameInput.value = '';
             symbolInput.value = '';
             supplyInput.value = '';
@@ -113,7 +107,6 @@ export async function deployToken() {
         
         let errorText = error.message || "Falha desconhecida";
         
-        // Tratamento detalhado de erros comuns
         if (error.code === 'ACTION_REJECTED') {
             errorText = "Transação rejeitada pelo utilizador.";
         } else if (error.toString().includes('insufficient funds')) {
@@ -127,7 +120,6 @@ export async function deployToken() {
         statusMsg.innerHTML = `<span style="color:var(--error-red)">Erro: ${errorText}</span>`;
         bus.emit('notification:error', `Falha no Deploy: ${errorText}`);
         
-        // Restaura o botão imediatamente em caso de erro
         btn.disabled = false;
         btn.innerHTML = `<i data-lucide="refresh-cw"></i> Tentar Novamente`;
         lucide.createIcons();
