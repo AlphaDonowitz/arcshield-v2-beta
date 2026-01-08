@@ -1,24 +1,6 @@
 import { web3Service } from '../services/web3Service.js';
 import { bus } from '../core/eventBus.js';
-
-// --- 1. DADOS DO CONTRATO (Bytecode & ABI) ---
-// Token ERC20 Padrão (Nome, Simbolo, Decimais=18, Fixed Supply)
-// Usamos um bytecode genérico de OpenZeppelin pré-compilado para garantir funcionamento
-const TOKEN_ABI = [
-    "constructor(string name, string symbol, uint256 initialSupply)",
-    "event Transfer(address indexed from, address indexed to, uint256 value)"
-];
-
-// Este é um Bytecode mínimo de um ERC20 Fixed Supply. 
-// NOTA: Em produção real, você usaria um bytecode completo. 
-// Para este teste, usaremos a Factory do Web3Service para deploy simplificado se possível, 
-// ou simularemos se o bytecode for muito grande para colar aqui.
-// P.S: Como bytecode real é gigante, vou usar a estratégia de Factory do Ethers com um bytecode placeholder funcional 
-// Se isso falhar na testnet (por gas), o erro será tratado.
-//
-// PARA O USUÁRIO: A melhor forma de criar tokens sem gastar gas de deploy de contrato inteiro 
-// é usar um contrato "Factory" já deployado (Clone Factory). 
-// Mas para manter o exemplo standalone, vamos tentar o deploy direto.
+import { ERC20_ABI, ERC20_BYTECODE } from '../config/tokenData.js';
 
 export function initTokenFactory() {
     const container = document.getElementById('token-launcher');
@@ -29,10 +11,10 @@ export function initTokenFactory() {
             <div style="margin-bottom:20px;">
                 <div style="background:rgba(59, 130, 246, 0.1); color:#3b82f6; padding:8px 12px; border-radius:6px; display:inline-flex; align-items:center; font-size:0.8rem; margin-bottom:15px;">
                     <i data-lucide="info" style="width:14px; margin-right:6px;"></i>
-                    Criação de Token ERC20 Standard (18 Decimais)
+                    Deploy Real na Blockchain
                 </div>
                 <h3>Token Factory</h3>
-                <p class="text-secondary">Crie sua própria criptomoeda na Arc Network em segundos. Sem código.</p>
+                <p class="text-secondary">Crie tokens ERC20 reais (padrão OpenZeppelin). Requer taxas de rede (Gas).</p>
             </div>
 
             <div class="form-grid">
@@ -45,25 +27,39 @@ export function initTokenFactory() {
                     <input type="text" id="tkSymbol" placeholder="Ex: BTC">
                 </div>
                 <div class="full-width">
-                    <label>Supply Inicial</label>
+                    <label>Supply Inicial (Sem Decimais)</label>
                     <input type="number" id="tkSupply" placeholder="Ex: 1000000">
-                    <p style="font-size:0.75rem; color:#666; margin-top:5px;">Os tokens serão enviados para sua carteira.</p>
+                    <p style="font-size:0.75rem; color:#666; margin-top:5px;">
+                        Serão criados <span id="supplyPreview">0</span> tokens com 18 decimais.
+                    </p>
                 </div>
             </div>
 
+            <div id="deployStatus" style="margin-top:20px; padding:15px; background:#121215; border-radius:6px; font-size:0.85rem; display:none;">
+                <div style="margin-bottom:5px; font-weight:600; color:#fff;">Status:</div>
+                <div id="deployMsg" style="color:#888;">Aguardando...</div>
+                <a id="explorerLink" href="#" target="_blank" style="display:none; color:var(--primary-blue); margin-top:10px; display:block;">Ver no Explorer</a>
+            </div>
+
             <button id="btnCreateToken" class="btn-primary full mt-4">
-                <i data-lucide="rocket"></i> Criar Token
+                <i data-lucide="rocket"></i> Criar Token (Deploy)
             </button>
         </div>
     `;
 
     if(window.lucide) window.lucide.createIcons();
 
+    // Listeners
     document.getElementById('btnCreateToken').addEventListener('click', deployToken);
+    
+    // Preview do Supply
+    document.getElementById('tkSupply').addEventListener('input', (e) => {
+        document.getElementById('supplyPreview').innerText = Number(e.target.value).toLocaleString();
+    });
 }
 
 async function deployToken() {
-    // Validação
+    // 1. Validações
     const name = document.getElementById('tkName').value;
     const symbol = document.getElementById('tkSymbol').value;
     const supply = document.getElementById('tkSupply').value;
@@ -72,53 +68,77 @@ async function deployToken() {
         return bus.emit('notification:error', "Preencha todos os campos.");
     }
 
-    if (!web3Service.isConnected) {
+    if (!web3Service.isConnected || !web3Service.signer) {
         return bus.emit('notification:error', "Conecte sua carteira primeiro.");
     }
 
     const btn = document.getElementById('btnCreateToken');
+    const statusBox = document.getElementById('deployStatus');
+    const statusMsg = document.getElementById('deployMsg');
+    const explorerLink = document.getElementById('explorerLink');
 
     try {
+        // UI Update
         btn.disabled = true;
-        btn.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Preparando...`;
+        btn.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Preparando Transação...`;
+        statusBox.style.display = 'block';
+        statusMsg.innerText = "Iniciando processo de deploy...";
+        explorerLink.style.display = 'none';
 
-        // 1. O jeito mais barato e seguro: Usar um contrato Factory na rede (Clone)
-        // Como não temos o endereço da Factory no config.js ainda, vamos usar uma abordagem híbrida:
-        // Vamos alertar o usuário que esta é uma funcionalidade Premium na Mainnet, 
-        // e na Testnet faremos uma simulação de sucesso para não travar o fluxo.
-        
-        // Se você tiver o Bytecode real, insira aqui. 
-        // Caso contrário, para evitar o erro "properties of null", faremos a simulação visual
-        // que é o padrão para protótipos UI/UX antes do deploy do contrato Factory.
-        
-        await new Promise(r => setTimeout(r, 2000)); // Simula tempo de rede
+        // 2. Prepara a Factory do Ethers (Usando window.ethers V6)
+        // Isso requer que o ERC20_BYTECODE seja válido no arquivo config/tokenData.js
+        const factory = new window.ethers.ContractFactory(ERC20_ABI, ERC20_BYTECODE, web3Service.signer);
 
-        // Criação do objeto para o usuário ver (Feedback)
-        const mockAddress = "0x" + Array(40).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+        // 3. Converte Supply para Wei (18 decimais)
+        // Ex: 1000 -> 1000000000000000000000
+        const initialSupplyWei = window.ethers.parseUnits(supply.toString(), 18);
+
+        statusMsg.innerText = "Por favor, confirme a transação na sua carteira...";
+
+        // 4. Envia Transação de Deploy
+        // Os argumentos (name, symbol, supply) são passados para o construtor do contrato
+        const contract = await factory.deploy(name, symbol, initialSupplyWei);
+
+        statusMsg.innerHTML = `Transação enviada! <br>Hash: <span class="mono">${contract.deploymentTransaction().hash.slice(0,10)}...</span><br>Aguardando confirmação...`;
+
+        // 5. Aguarda Mineração
+        await contract.waitForDeployment();
+        
+        const contractAddress = await contract.getAddress();
+
+        // 6. Sucesso
+        statusMsg.innerHTML = `<span style="color:var(--success-green)">Deploy Confirmado!</span><br>Endereço: <span class="mono">${contractAddress}</span>`;
         
         bus.emit('notification:success', `Token ${symbol} criado com sucesso!`);
-        bus.emit('notification:info', `Contrato: ${mockAddress}`); // Mostra endereço
-        
-        // Reset UI
-        btn.innerHTML = `<i data-lucide="check"></i> Sucesso!`;
-        document.getElementById('tkName').value = '';
-        document.getElementById('tkSymbol').value = '';
-        document.getElementById('tkSupply').value = '';
+        btn.innerHTML = `<i data-lucide="check"></i> Token Criado`;
 
-        // Adiciona ao histórico do console para debug
-        console.log("Token Deployed (Simulated):", {
-            name, symbol, supply, address: mockAddress, owner: web3Service.userAddress
+        // Configura link do Explorer (Base Sepolia)
+        explorerLink.href = `https://sepolia.basescan.org/address/${contractAddress}`;
+        explorerLink.style.display = 'block';
+        explorerLink.innerText = "Ver Contrato no BaseScan";
+
+        // Log para Debug
+        console.log("Token Deployed:", {
+            name, symbol, address: contractAddress, hash: contract.deploymentTransaction().hash
         });
 
+        // Reabilita botão após 5s
         setTimeout(() => {
             btn.disabled = false;
             btn.innerHTML = `<i data-lucide="rocket"></i> Criar Outro Token`;
-        }, 3000);
+        }, 5000);
 
     } catch (error) {
-        console.error("Token Deploy Error:", error);
-        bus.emit('notification:error', "Erro na criação: " + error.message);
+        console.error("Deploy Error:", error);
+        
+        let errorText = error.message || "Falha desconhecida";
+        if(error.code === 'ACTION_REJECTED') errorText = "Transação rejeitada pelo usuário.";
+        if(error.toString().includes('insufficient funds')) errorText = "Saldo insuficiente para o Gás.";
+        if(error.toString().includes('invalid bytecode')) errorText = "Erro interno: Bytecode inválido.";
+
+        statusMsg.innerHTML = `<span style="color:var(--error-red)">Erro: ${errorText}</span>`;
+        bus.emit('notification:error', "Falha no Deploy.");
         btn.disabled = false;
-        btn.innerText = "Tentar Novamente";
+        btn.innerHTML = `<i data-lucide="refresh-cw"></i> Tentar Novamente`;
     }
 }
