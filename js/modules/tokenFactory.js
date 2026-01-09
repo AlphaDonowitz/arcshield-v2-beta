@@ -1,13 +1,78 @@
-// js/modules/tokenFactory.js
-
-import { bus } from '../core/eventBus.js'; // Ajustado para 'core'
+import { bus } from '../core/eventBus.js';
+import { web3Service } from '../services/web3Service.js';
 import { tokenBytecode, tokenAbi } from '../config/tokenData.js';
 
-export async function deployToken() {
+export function initTokenFactory() {
+    const container = document.getElementById('token-factory');
+    
+    // Se o container não existir (estamos em outra rota), paramos.
+    // Mas se o usuario clicar no menu, o router deve criar a div.
+    // Vamos assumir que o 'main-content' é o alvo ou o elemento com ID específico.
+    // Para garantir, vamos renderizar na div que o router expõe.
+    
+    // Procura o container principal onde o conteúdo deve ser injetado
+    // Baseado na estrutura SPA, o container pode ser identificado dinamicamente
+    const target = document.querySelector('.main-content') || document.getElementById('app');
+    
+    // Escuta evento de navegação para renderizar apenas quando a aba for ativa
+    bus.on('navigation:changed', (viewId) => {
+        if (viewId === 'token-factory') {
+            renderUI(document.getElementById('token-factory') || target);
+        }
+    });
+
+    // Se já estiver na tela (reload), renderiza direto
+    const directContainer = document.getElementById('token-factory');
+    if (directContainer) {
+        renderUI(directContainer);
+    }
+}
+
+function renderUI(container) {
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="card fade-in">
+            <div class="card-header-icon">
+                <i data-lucide="coins"></i>
+            </div>
+            <h3>Criar Token ERC20</h3>
+            <p class="bio-text">Lance sua própria criptomoeda na Arc Network em segundos. Padrão verificado e seguro.</p>
+
+            <div class="form-grid">
+                <div>
+                    <label>Nome do Token</label>
+                    <input type="text" id="token-name" placeholder="Ex: Bitcoin Arc" autocomplete="off">
+                </div>
+                <div>
+                    <label>Símbolo</label>
+                    <input type="text" id="token-symbol" placeholder="Ex: BTC" maxlength="10" autocomplete="off">
+                </div>
+                <div class="full-width">
+                    <label>Supply Inicial (Quantidade)</label>
+                    <input type="number" id="token-supply" placeholder="Ex: 1000000" min="1">
+                </div>
+            </div>
+
+            <div id="deploy-status" style="margin-bottom: 20px; font-size: 0.9rem; min-height: 20px;"></div>
+
+            <button id="btn-deploy-token" class="btn-primary full">
+                <i data-lucide="rocket"></i> Criar Token
+            </button>
+        </div>
+    `;
+
+    // Reativa os ícones
+    if (window.lucide) window.lucide.createIcons();
+
+    // Attach Listener
+    document.getElementById('btn-deploy-token').addEventListener('click', handleDeploy);
+}
+
+async function handleDeploy() {
     const btn = document.getElementById('btn-deploy-token');
     const statusMsg = document.getElementById('deploy-status');
     
-    // Inputs
     const nameInput = document.getElementById('token-name');
     const symbolInput = document.getElementById('token-symbol');
     const supplyInput = document.getElementById('token-supply');
@@ -16,112 +81,105 @@ export async function deployToken() {
     const symbol = symbolInput.value.trim();
     const supply = supplyInput.value.trim();
 
-    // 1. Validação Básica
+    // 1. Validação
     if (!name || !symbol || !supply) {
-        bus.emit('notification:error', "Preencha todos os campos (Nome, Símbolo, Supply).");
+        bus.emit('notification:error', "Preencha todos os campos.");
+        return;
+    }
+
+    if (!web3Service.isConnected) {
+        bus.emit('notification:error', "Conecte sua carteira primeiro.");
+        web3Service.connectWallet();
         return;
     }
 
     try {
-        // 2. Estado de Carregamento Inicial
+        // 2. Bloqueio de UI
         btn.disabled = true;
-        const originalBtnContent = btn.innerHTML;
-        btn.innerHTML = `<i data-lucide="pen-tool" class="spin"></i> Aguardando Assinatura...`;
-        lucide.createIcons();
-        statusMsg.innerHTML = `<span style="color:var(--text-gray)">Iniciando conexão com a carteira...</span>`;
+        btn.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Preparando...`;
+        if (window.lucide) window.lucide.createIcons();
+        
+        statusMsg.innerHTML = `<span style="color:var(--text-secondary)">Inicializando transação...</span>`;
 
-        // 3. Configuração do Provider (Ethers v6)
-        if (!window.ethereum) throw new Error("Carteira não detectada.");
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-        const userAddress = await signer.getAddress();
+        // 3. Obter Signer e Factory
+        const signer = web3Service.signer;
+        if (!signer) throw new Error("Signer não disponível. Reconecte a carteira.");
 
-        // 4. Verificação de Saldo (Prevenção de Erros)
-        const balance = await provider.getBalance(userAddress);
-        if (balance <= 0n) {
-            throw new Error("Saldo insuficiente para cobrir as taxas de gás (ETH/ARC).");
-        }
+        const factory = new window.ethers.ContractFactory(tokenAbi, tokenBytecode, signer);
 
-        // 5. Preparação do Contrato
-        statusMsg.innerHTML = `<span style="color:var(--primary-blue)">Aguardando confirmação na carteira...</span>`;
-        const factory = new ethers.ContractFactory(tokenAbi, tokenBytecode, signer);
-
-        // 6. Deploy (Disparo da Transação)
+        // 4. Deploy
+        statusMsg.innerHTML = `<span style="color:var(--primary-blue)">Aguardando assinatura na carteira...</span>`;
+        
+        // Converte supply para BigInt com 18 decimais (padrão)
+        // Se o contrato espera supply bruto (sem decimais), remova o parseUnits.
+        // Pelo código do StandardToken.sol que forneci: _mint(msg.sender, _initialSupply * 10**decimals);
+        // Isso significa que devemos passar o número INTEIRO, e o contrato multiplica.
+        // Se passarmos parseUnits, vai multiplicar duas vezes.
+        // AUDITORIA: O construtor recebe uint256 _initialSupply.
+        // Se passarmos 1000, o contrato faz 1000 * 10^18. 
+        // Portanto, passamos apenas o valor inputado.
+        
         const contract = await factory.deploy(name, symbol, supply);
         
-        // Atualiza UI para estado de "Minerando/Confirmando"
-        btn.innerHTML = `<i data-lucide="loader" class="spin"></i> Implantando na Blockchain...`;
-        lucide.createIcons();
-        statusMsg.innerHTML = `<span style="color:var(--primary-blue)">Transação enviada! Aguardando confirmação de rede...</span>`;
-        
-        console.log("Transação enviada:", contract.deploymentTransaction().hash);
+        btn.innerHTML = `<i data-lucide="loader" class="spin"></i> Minerando...`;
+        if (window.lucide) window.lucide.createIcons();
+        statusMsg.innerHTML = `<span style="color:var(--primary-blue)">Transação enviada: ${contract.deploymentTransaction().hash.slice(0,10)}...</span>`;
 
-        // 7. Aguardar Confirmação (Ethers v6 syntax)
         await contract.waitForDeployment();
         const contractAddress = await contract.getAddress();
 
-        console.log(`Token ${symbol} implantado em: ${contractAddress}`);
-
-        // 8. Persistência no Supabase
-        statusMsg.innerHTML = `<span style="color:var(--primary-blue)">Salvando registo na base de dados...</span>`;
-
-        const { error: dbError } = await supabase
-            .from('tokens_created')
-            .insert([
-                {
-                    owner_address: userAddress,
+        // 5. Sucesso e Persistência
+        console.log(`Token Deployed: ${contractAddress}`);
+        
+        // Salvar no Supabase (se disponível)
+        if (window.supabase) {
+            statusMsg.innerHTML = `<span style="color:var(--primary-blue)">Salvando registro...</span>`;
+            const { error } = await window.supabase
+                .from('tokens_created')
+                .insert([{
+                    owner_address: web3Service.userAddress,
                     contract_address: contractAddress,
                     name: name,
                     symbol: symbol,
                     initial_supply: supply,
-                    created_at: new Date().toISOString()
-                }
-            ]);
-
-        if (dbError) {
-            console.error("Erro ao salvar no Supabase:", dbError);
-            bus.emit('notification:error', "Token criado, mas falha ao salvar no histórico.");
+                    created_at: new Date().toISOString(),
+                    chain_id: web3Service.chainId
+                }]);
+            
+            if (error) console.error("Supabase Error:", error);
         }
 
-        // 9. Sucesso Final
+        // Finalização
         statusMsg.innerHTML = `<span style="color:var(--success-green)">Sucesso! Token: ${contractAddress}</span>`;
-        bus.emit('notification:success', `Token ${symbol} criado com sucesso!`);
-        
+        bus.emit('notification:success', `Token ${symbol} criado!`);
+        bus.emit('token:created', { address: contractAddress, name, symbol });
+
         if (window.confetti) {
-            window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+            window.confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
         }
 
-        // Reset do Botão
+        // Reset Form
         setTimeout(() => {
             btn.disabled = false;
             btn.innerHTML = `<i data-lucide="rocket"></i> Criar Outro Token`;
-            lucide.createIcons();
-            
             nameInput.value = '';
             symbolInput.value = '';
             supplyInput.value = '';
+            statusMsg.innerHTML = '';
+            if (window.lucide) window.lucide.createIcons();
         }, 5000);
 
     } catch (error) {
-        console.error("Deploy Error:", error);
+        console.error("Deploy Failed:", error);
+        let msg = error.reason || error.message || "Erro desconhecido";
         
-        let errorText = error.message || "Falha desconhecida";
+        if (msg.includes("user rejected")) msg = "Transação rejeitada pelo usuário.";
         
-        if (error.code === 'ACTION_REJECTED') {
-            errorText = "Transação rejeitada pelo utilizador.";
-        } else if (error.toString().includes('insufficient funds')) {
-            errorText = "Saldo insuficiente para o Gás.";
-        } else if (error.toString().includes('invalid bytecode')) {
-            errorText = "Erro interno: Bytecode inválido ou corrompido.";
-        } else if (error.toString().includes('User denied')) {
-            errorText = "Acesso à carteira negado.";
-        }
-
-        statusMsg.innerHTML = `<span style="color:var(--error-red)">Erro: ${errorText}</span>`;
-        bus.emit('notification:error', `Falha no Deploy: ${errorText}`);
+        statusMsg.innerHTML = `<span style="color:var(--error-red)">${msg}</span>`;
+        bus.emit('notification:error', "Falha no Deploy.");
         
         btn.disabled = false;
         btn.innerHTML = `<i data-lucide="refresh-cw"></i> Tentar Novamente`;
-        lucide.createIcons();
+        if (window.lucide) window.lucide.createIcons();
     }
 }
