@@ -9,10 +9,11 @@ export function initSidebar() {
     btn.addEventListener('click', async () => {
         if (!web3Service.isConnected) {
             btn.innerText = "Conectando...";
-            await web3Service.connect();
+            // Atualizado para usar o novo método do Service unificado
+            await web3Service.connectWallet(); 
         } else {
             if(confirm("Deseja desconectar sua carteira?")) {
-                await web3Service.disconnect();
+                web3Service.disconnect();
             }
         }
     });
