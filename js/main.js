@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if(window.lucide) window.lucide.createIcons();
     } catch (e) { console.error("UI Init Error", e); }
 
-    // 2. Web3 (Fundamental)
+    // 2. Web3 (Fundamental - Agora gerencia conexão e rede)
     try {
         await web3Service.init();
     } catch (e) { console.error("Web3 Init Error", e); }
