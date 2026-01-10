@@ -1,33 +1,15 @@
-/* main.css - O Orquestrador de Estilos */
-
-/* 1. Variáveis Globais */
 @import url('variables.css');
-
-/* 2. Estrutura Base */
 @import url('layout.css');
-
-/* 3. Componentes Reutilizáveis */
 @import url('components.css');
-
-/* 4. Módulos Específicos */
-@import url('modules/multisender.css');
 @import url('modules/studio.css');
-@import url('modules/locker.css'); /* <--- NOVO */
+@import url('modules/locker.css');
 
-/* Reset Básico de Segurança */
 * { box-sizing: border-box; }
-
-body { 
-    margin: 0; padding: 0; 
-    font-family: var(--font-ui); 
-    background-color: var(--bg-app); 
-    color: var(--text-primary); 
+body {
+    margin: 0; padding: 0; font-family: var(--font-ui);
+    background-color: var(--bg-app); color: var(--text-primary);
     background-image: radial-gradient(#27272a 1px, transparent 1px);
-    background-size: 32px 32px;
-    min-height: 100vh;
+    background-size: 32px 32px; min-height: 100vh;
 }
-
 ::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: var(--bg-app); }
 ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #444; }
