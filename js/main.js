@@ -6,45 +6,25 @@ import { web3Service } from './services/web3Service.js';
 import { socialService } from './services/socialService.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log("System: Booting Arc Shield v17 (Golden Build)...");
-
-    // 1. Interface (Funciona sem Web3)
+    console.log("System: Booting ArcShield v17.0 (Stable)...");
     try {
         initNavigation();
         initSidebar();
         initProfileUI();
-        if(window.lucide) window.lucide.createIcons();
-    } catch (e) { console.error("UI Init Error", e); }
+        if (window.lucide) window.lucide.createIcons();
+    } catch (e) { console.error("Erro na UI:", e); }
 
-    // 2. Web3 (Fundamental - Agora gerencia conexão e rede)
-    try {
-        await web3Service.init();
-    } catch (e) { console.error("Web3 Init Error", e); }
+    try { await web3Service.init(); } catch (e) { console.error("Web3 Offline"); }
 
-    // 3. Carregamento Seguro dos Módulos
-    const loadModule = async (path, initFunction) => {
-        try {
-            const module = await import(path);
-            if (module[initFunction]) {
-                module[initFunction]();
-            }
-        } catch (e) {
-            console.warn(`Módulo ${path} não carregado (possível erro interno ou 404):`, e);
-        }
+    const load = async (path, fn) => {
+        try { const m = await import(path); if (m[fn]) m[fn](); } catch (e) { console.warn(`Módulo ${path} falhou.`); }
     };
 
-    await loadModule('./modules/tokenFactory.js', 'initTokenFactory');
-    await loadModule('./modules/userHub.js', 'initUserHub');
-    await loadModule('./modules/multisender.js', 'initMultisender');
-    await loadModule('./modules/studio.js', 'initStudio');
-    await loadModule('./modules/locker.js', 'initLocker');
-    await loadModule('./modules/vesting.js', 'initVesting');
+    await load('./modules/tokenFactory.js', 'initTokenFactory');
+    await load('./modules/userHub.js', 'initUserHub');
+    await load('./modules/multisender.js', 'initMultisender');
+    await load('./modules/studio.js', 'initStudio');
+    await load('./modules/locker.js', 'initLocker');
 
-    // 4. Listeners Globais
     bus.on('wallet:connected', (data) => socialService.loadUserProfile(data.address));
-    bus.on('notification:error', (msg) => alert("⚠️ " + msg));
-    bus.on('notification:success', (msg) => alert("✅ " + msg));
-    bus.on('notification:info', (msg) => console.log("Info:", msg));
-
-    console.log("System: Ready.");
 });
